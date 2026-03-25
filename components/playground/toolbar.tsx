@@ -1,7 +1,14 @@
 "use client"
 
 import * as React from "react"
-import { Code2, Monitor, Moon, Sun, Smartphone } from "lucide-react"
+import {
+  Code2,
+  Monitor,
+  Tablet,
+  Smartphone,
+  Moon,
+  Sun,
+} from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -13,14 +20,31 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 
+/* ── Breakpoint type ───────────────────────────────────────────── */
+
+export type Breakpoint = "sm" | "md" | "lg" | "xl" | "2xl"
+
+export const breakpoints: {
+  key: Breakpoint
+  label: string
+  width: number
+  icon: React.ComponentType<{ className?: string }>
+}[] = [
+  { key: "sm", label: "Small (640px)", width: 640, icon: Smartphone },
+  { key: "md", label: "Medium (768px)", width: 768, icon: Smartphone },
+  { key: "lg", label: "Large (1024px)", width: 1024, icon: Tablet },
+  { key: "xl", label: "X-Large (1280px)", width: 1280, icon: Monitor },
+  { key: "2xl", label: "2X-Large (1536px)", width: 1536, icon: Monitor },
+]
+
 /* ── Types ──────────────────────────────────────────────────────── */
 
 interface ToolbarProps {
   componentName?: string
   theme?: "light" | "dark"
   onThemeChange?: (theme: "light" | "dark") => void
-  breakpoint?: "desktop" | "mobile"
-  onBreakpointChange?: (breakpoint: "desktop" | "mobile") => void
+  breakpoint?: Breakpoint
+  onBreakpointChange?: (breakpoint: Breakpoint) => void
   className?: string
 }
 
@@ -30,7 +54,7 @@ export function PlaygroundToolbar({
   componentName,
   theme = "light",
   onThemeChange,
-  breakpoint = "desktop",
+  breakpoint = "2xl",
   onBreakpointChange,
   className,
 }: ToolbarProps) {
@@ -44,7 +68,7 @@ export function PlaygroundToolbar({
       >
         {/* ── Component name ─────────────────────────────────── */}
         <div className="flex items-center gap-2">
-          <Code2 className="h-4 w-4 text-blue-500" />
+          <Code2 className="size-4 text-blue-500" />
           <span
             className={cn(
               "text-sm font-medium",
@@ -58,23 +82,26 @@ export function PlaygroundToolbar({
         {/* ── Spacer ─────────────────────────────────────────── */}
         <div className="flex-1" />
 
-        {/* ── View controls ──────────────────────────────────── */}
-        <div className="flex items-center gap-1">
-          <ToolbarButton
-            icon={<Monitor className="size-4" />}
-            label="Desktop view"
-            active={breakpoint === "desktop"}
-            onClick={() => onBreakpointChange?.("desktop")}
-          />
-          <ToolbarButton
-            icon={<Smartphone className="size-4" />}
-            label="Mobile view"
-            active={breakpoint === "mobile"}
-            onClick={() => onBreakpointChange?.("mobile")}
-          />
+        {/* ── Breakpoint controls ─────────────────────────────── */}
+        <div className="flex items-center gap-0.5">
+          {breakpoints.map((bp) => {
+            const Icon = bp.icon
+            return (
+              <ToolbarButton
+                key={bp.key}
+                icon={<Icon className="size-4" />}
+                label={bp.label}
+                active={breakpoint === bp.key}
+                onClick={() => onBreakpointChange?.(bp.key)}
+              />
+            )
+          })}
+        </div>
 
-          <Separator orientation="vertical" className="mx-1.5 h-6" />
+        <Separator orientation="vertical" className="mx-1.5 h-6" />
 
+        {/* ── Theme controls ──────────────────────────────────── */}
+        <div className="flex items-center gap-0.5">
           <ToolbarButton
             icon={<Sun className="size-4" />}
             label="Light theme"

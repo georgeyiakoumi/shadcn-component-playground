@@ -4,7 +4,7 @@ import * as React from "react"
 import { useParams } from "next/navigation"
 
 import { registry } from "@/lib/registry"
-import { PlaygroundToolbar } from "@/components/playground/toolbar"
+import { PlaygroundToolbar, type Breakpoint } from "@/components/playground/toolbar"
 import { ComponentCanvas } from "@/components/playground/component-canvas"
 
 export default function ComponentPage() {
@@ -12,7 +12,7 @@ export default function ComponentPage() {
   const slug = params.slug
 
   const [theme, setTheme] = React.useState<"light" | "dark">("light")
-  const [breakpoint, setBreakpoint] = React.useState<"desktop" | "mobile">("desktop")
+  const [breakpoint, setBreakpoint] = React.useState<Breakpoint>("2xl")
 
   const component = registry.find((c) => c.slug === slug)
 

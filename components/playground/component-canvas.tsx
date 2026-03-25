@@ -4,6 +4,7 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 import { componentPreviews } from "@/lib/component-previews"
+import { breakpoints, type Breakpoint } from "@/components/playground/toolbar"
 
 /* ── Types ──────────────────────────────────────────────────────── */
 
@@ -11,7 +12,7 @@ interface ComponentCanvasProps {
   slug: string
   componentName: string
   theme?: "light" | "dark"
-  breakpoint?: "desktop" | "mobile"
+  breakpoint?: Breakpoint
 }
 
 /* ── Component ──────────────────────────────────────────────────── */
@@ -20,18 +21,24 @@ export function ComponentCanvas({
   slug,
   componentName,
   theme = "light",
-  breakpoint = "desktop",
+  breakpoint = "2xl",
 }: ComponentCanvasProps) {
   const PreviewComponent = componentPreviews[slug]
 
+  const bp = breakpoints.find((b) => b.key === breakpoint)
+  const maxWidth = bp?.width
+
   return (
-    <div className="flex flex-1 items-center justify-center bg-muted/30 p-8">
+    <div className="flex flex-1 items-start justify-center overflow-auto bg-muted/30 p-8">
       <div
         className={cn(
-          "w-full rounded-lg border bg-background p-8 shadow-sm transition-all duration-300",
-          breakpoint === "mobile" && "max-w-sm",
+          "w-full rounded-lg border border-border bg-background p-8 text-foreground shadow-sm transition-all duration-300",
           theme === "dark" && "dark",
         )}
+        style={{
+          maxWidth: maxWidth ? `${maxWidth}px` : undefined,
+          colorScheme: theme === "dark" ? "dark" : "light",
+        }}
       >
         {PreviewComponent ? (
           <PreviewComponent />
