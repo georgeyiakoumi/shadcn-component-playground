@@ -5,7 +5,12 @@ import { useParams } from "next/navigation"
 
 import { registry } from "@/lib/registry"
 import { componentSources } from "@/lib/component-source"
-import { PlaygroundToolbar, type Breakpoint } from "@/components/playground/toolbar"
+import { parseCvaVariants } from "@/lib/cva-parser"
+import {
+  PlaygroundToolbar,
+  type Breakpoint,
+  type PropSelector,
+} from "@/components/playground/toolbar"
 import { ComponentCanvas } from "@/components/playground/component-canvas"
 import { CodePanel } from "@/components/playground/code-panel"
 import { StructurePanel } from "@/components/playground/structure-panel"
@@ -17,18 +22,22 @@ export default function ComponentPage() {
 
   const [theme, setTheme] = React.useState<"light" | "dark">("light")
   const [breakpoint, setBreakpoint] = React.useState<Breakpoint>("2xl")
-  const [variant, setVariant] = React.useState<string>("")
+  const [propValues, setPropValues] = React.useState<Record<string, string>>({})
 
   const component = registry.find((c) => c.slug === slug)
 
-  // Reset variant when slug changes
+  // Parse cva variants from the actual component source code
+  const source = componentSources[slug] ?? ""
+  const variantDefs = React.useMemo(() => parseCvaVariants(source), [source])
+
+  // Reset prop values when slug changes, using defaults from parser
   React.useEffect(() => {
-    if (component && component.variants.length > 0) {
-      setVariant(component.variants[0])
-    } else {
-      setVariant("")
-    }
-  }, [slug, component])
+    const defaults: Record<string, string> = {}
+    variantDefs.forEach((v) => {
+      defaults[v.name] = v.defaultValue
+    })
+    setPropValues(defaults)
+  }, [slug, variantDefs])
 
   if (!component) {
     return (
@@ -38,9 +47,24 @@ export default function ComponentPage() {
     )
   }
 
-  const source =
-    componentSources[slug] ??
-    `// Source code for ${component.name} coming soon`
+  const displaySource =
+    source || `// Source code for ${component.name} coming soon`
+
+  // Build prop selectors from parsed variant definitions
+  const propSelectors: PropSelector[] | undefined =
+    variantDefs.length > 0
+      ? variantDefs.map((v) => ({
+          label: v.name.charAt(0).toUpperCase() + v.name.slice(1),
+          options: v.options,
+          value: propValues[v.name] ?? v.defaultValue,
+          onChange: (value: string) =>
+            setPropValues((prev) => ({ ...prev, [v.name]: value })),
+        }))
+      : undefined
+
+  // Build preview props from current prop values
+  const previewProps: Record<string, string> | undefined =
+    Object.keys(propValues).length > 0 ? propValues : undefined
 
   return (
     <>
@@ -50,9 +74,7 @@ export default function ComponentPage() {
         onThemeChange={setTheme}
         breakpoint={breakpoint}
         onBreakpointChange={setBreakpoint}
-        variants={component.variants}
-        variant={variant}
-        onVariantChange={setVariant}
+        propSelectors={propSelectors}
       />
       <div className="flex flex-1 overflow-hidden">
         {/* ── Left: Inspect panels ───────────────────────────── */}
@@ -66,7 +88,7 @@ export default function ComponentPage() {
               <StructurePanel slug={slug} />
             </TabsContent>
             <TabsContent value="code" className="flex-1 overflow-hidden">
-              <CodePanel code={source} />
+              <CodePanel code={displaySource} />
             </TabsContent>
           </Tabs>
         </div>
@@ -77,7 +99,7 @@ export default function ComponentPage() {
           componentName={component.name}
           theme={theme}
           breakpoint={breakpoint}
-          variant={variant}
+          previewProps={previewProps}
         />
       </div>
     </>

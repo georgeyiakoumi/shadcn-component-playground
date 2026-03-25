@@ -46,15 +46,20 @@ export const breakpoints: {
 
 /* ── Types ──────────────────────────────────────────────────────── */
 
+export interface PropSelector {
+  label: string
+  options: readonly string[]
+  value: string
+  onChange: (value: string) => void
+}
+
 interface ToolbarProps {
   componentName?: string
   theme?: "light" | "dark"
   onThemeChange?: (theme: "light" | "dark") => void
   breakpoint?: Breakpoint
   onBreakpointChange?: (breakpoint: Breakpoint) => void
-  variants?: readonly string[]
-  variant?: string
-  onVariantChange?: (variant: string) => void
+  propSelectors?: PropSelector[]
   className?: string
 }
 
@@ -66,12 +71,10 @@ export function PlaygroundToolbar({
   onThemeChange,
   breakpoint = "2xl",
   onBreakpointChange,
-  variants,
-  variant,
-  onVariantChange,
+  propSelectors,
   className,
 }: ToolbarProps) {
-  const hasVariants = variants && variants.length > 0
+  const hasSelectors = propSelectors && propSelectors.length > 0
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -97,21 +100,27 @@ export function PlaygroundToolbar({
         {/* ── Spacer ─────────────────────────────────────────── */}
         <div className="flex-1" />
 
-        {/* ── Variant selector ─────────────────────────────────── */}
-        {hasVariants && (
+        {/* ── Prop selectors ──────────────────────────────────── */}
+        {hasSelectors && (
           <>
-            <Select value={variant} onValueChange={onVariantChange}>
-              <SelectTrigger className="h-8 w-[140px] text-xs">
-                <SelectValue placeholder="Variant" />
-              </SelectTrigger>
-              <SelectContent>
-                {variants.map((v) => (
-                  <SelectItem key={v} value={v}>
-                    {v}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {propSelectors.map((selector) => (
+              <Select
+                key={selector.label}
+                value={selector.value}
+                onValueChange={selector.onChange}
+              >
+                <SelectTrigger className="h-8 w-[130px] text-xs">
+                  <SelectValue placeholder={selector.label} />
+                </SelectTrigger>
+                <SelectContent>
+                  {selector.options.map((opt) => (
+                    <SelectItem key={opt} value={opt}>
+                      {opt}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ))}
 
             <Separator orientation="vertical" className="mx-1.5 h-6" />
           </>

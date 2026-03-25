@@ -1,9 +1,7 @@
 "use client"
 
-import * as React from "react"
-
 import { cn } from "@/lib/utils"
-import { componentPreviews } from "@/lib/component-previews"
+import { renderComponent } from "@/lib/component-renderer"
 import { breakpoints, type Breakpoint } from "@/components/playground/toolbar"
 
 /* ── Types ──────────────────────────────────────────────────────── */
@@ -13,20 +11,18 @@ interface ComponentCanvasProps {
   componentName: string
   theme?: "light" | "dark"
   breakpoint?: Breakpoint
-  variant?: string
+  previewProps?: Record<string, string>
 }
 
 /* ── Component ──────────────────────────────────────────────────── */
 
 export function ComponentCanvas({
   slug,
-  componentName,
+  componentName: _componentName,
   theme = "light",
   breakpoint = "2xl",
-  variant,
+  previewProps,
 }: ComponentCanvasProps) {
-  const PreviewComponent = componentPreviews[slug]
-
   const bp = breakpoints.find((b) => b.key === breakpoint)
   const maxWidth = bp?.width
 
@@ -42,16 +38,7 @@ export function ComponentCanvas({
           colorScheme: theme === "dark" ? "dark" : "light",
         }}
       >
-        {PreviewComponent ? (
-          <PreviewComponent variant={variant} />
-        ) : (
-          <div className="space-y-2 text-center">
-            <h2 className="text-lg font-medium">{componentName}</h2>
-            <p className="text-sm text-muted-foreground">
-              Preview not yet available
-            </p>
-          </div>
-        )}
+        {renderComponent(slug, previewProps ?? {})}
       </div>
     </div>
   )
