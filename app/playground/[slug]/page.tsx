@@ -89,8 +89,10 @@ export default function ComponentPage() {
             <TabsContent value="structure" className="flex-1 overflow-auto">
               <StructurePanel slug={slug} />
             </TabsContent>
-            <TabsContent value="code" className="flex-1 overflow-hidden">
-              <CodePanel code={displaySource} />
+            <TabsContent value="code" className="relative flex-1 overflow-hidden">
+              <div className="absolute inset-0">
+                <CodePanel code={displaySource} />
+              </div>
             </TabsContent>
             <TabsContent value="styles" className="flex-1 overflow-hidden">
               <TwPanel source={source} />
