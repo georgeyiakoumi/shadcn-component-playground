@@ -27,16 +27,16 @@ export function ComponentCanvas({
   const maxWidth = bp?.width
 
   return (
-    <div className="flex flex-1 justify-center overflow-auto bg-background">
+    <div
+      className={cn(
+        "flex flex-1 justify-center overflow-auto bg-background text-foreground transition-colors duration-300",
+        theme === "dark" && "dark",
+      )}
+      style={{ colorScheme: theme === "dark" ? "dark" : "light" }}
+    >
       <div
-        className={cn(
-          "flex w-full items-center justify-center p-8 text-foreground transition-all duration-300",
-          theme === "dark" && "dark",
-        )}
-        style={{
-          maxWidth: maxWidth ? `${maxWidth}px` : undefined,
-          colorScheme: theme === "dark" ? "dark" : "light",
-        }}
+        className="flex w-full items-center justify-center p-8 transition-all duration-300"
+        style={{ maxWidth: maxWidth ? `${maxWidth}px` : undefined }}
       >
         {renderComponent(slug, previewProps ?? {})}
       </div>
