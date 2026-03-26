@@ -187,7 +187,7 @@ function categorise(base: string): TwCategory {
     "top", "right", "bottom", "left", "inset",
     "z", "order",
     "grow", "shrink", "basis",
-    "flex-", // flex-col, flex-row, flex-1, flex-wrap, etc.
+    "flex-col", "flex-row", "flex-wrap", "flex-nowrap", "flex-1", "flex-auto", "flex-initial", "flex-none", "flex-row-reverse", "flex-col-reverse", "flex-wrap-reverse",
     "grid-", "col-", "row-", "auto-cols", "auto-rows",
     "aspect",
     "float", "clear",
