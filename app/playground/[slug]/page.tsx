@@ -7,6 +7,7 @@ import { registry } from "@/lib/registry"
 import { componentSources } from "@/lib/component-source"
 import { parseCvaVariants } from "@/lib/cva-parser"
 import { ComponentEditProvider } from "@/lib/component-state"
+import type { ElementInfo } from "@/components/playground/element-selector"
 import {
   PlaygroundToolbar,
   type Breakpoint,
@@ -28,6 +29,8 @@ export default function ComponentPage() {
   const [breakpoint, setBreakpoint] = React.useState<Breakpoint>("2xl")
   const [propValues, setPropValues] = React.useState<Record<string, string>>({})
   const [mode, setMode] = React.useState<PlaygroundMode>("inspect")
+  const [selectedElement, setSelectedElement] =
+    React.useState<ElementInfo | null>(null)
 
   const component = registry.find((c) => c.slug === slug)
 
@@ -43,6 +46,13 @@ export default function ComponentPage() {
     })
     setPropValues(defaults)
   }, [slug, variantDefs])
+
+  // Clear selection when leaving edit mode
+  React.useEffect(() => {
+    if (mode !== "edit") {
+      setSelectedElement(null)
+    }
+  }, [mode])
 
   if (!component) {
     return (
@@ -70,6 +80,19 @@ export default function ComponentPage() {
   // Build preview props from current prop values
   const previewProps: Record<string, string> | undefined =
     Object.keys(propValues).length > 0 ? propValues : undefined
+
+  const handleClassChange = React.useCallback((classes: string[]) => {
+    // Update the selected element's class list in state so the visual
+    // editor stays in sync. In a future iteration this will feed into
+    // the component-state context to persist changes.
+    setSelectedElement((prev) =>
+      prev ? { ...prev, currentClasses: classes } : null,
+    )
+  }, [])
+
+  const handleDeselect = React.useCallback(() => {
+    setSelectedElement(null)
+  }, [])
 
   return (
     <ComponentEditProvider slug={slug}>
@@ -114,6 +137,9 @@ export default function ComponentPage() {
           theme={theme}
           breakpoint={breakpoint}
           previewProps={previewProps}
+          mode={mode}
+          onElementSelect={setSelectedElement}
+          onElementHover={() => {}}
         />
 
         {/* ── Right: Edit panels (slides in when edit mode) ──── */}
@@ -121,6 +147,9 @@ export default function ComponentPage() {
           isOpen={mode === "edit"}
           source={source}
           isCompound={component.isCompound}
+          selectedElement={selectedElement}
+          onClassChange={handleClassChange}
+          onDeselect={handleDeselect}
         />
       </div>
 
