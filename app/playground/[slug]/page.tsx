@@ -77,6 +77,8 @@ export default function ComponentPage() {
     <ComponentEditProvider slug={slug}>
       <PlaygroundToolbar
         componentName={component.name}
+        slug={slug}
+        source={source}
         theme={theme}
         onThemeChange={setTheme}
         breakpoint={breakpoint}

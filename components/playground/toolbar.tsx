@@ -9,6 +9,7 @@ import {
   Moon,
   Sun,
 } from "lucide-react"
+import { ExportDialog } from "@/components/playground/export-dialog"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -55,6 +56,8 @@ export interface PropSelector {
 
 interface ToolbarProps {
   componentName?: string
+  slug?: string
+  source?: string
   theme?: "light" | "dark"
   onThemeChange?: (theme: "light" | "dark") => void
   breakpoint?: Breakpoint
@@ -67,6 +70,8 @@ interface ToolbarProps {
 
 export function PlaygroundToolbar({
   componentName,
+  slug,
+  source,
   theme = "light",
   onThemeChange,
   breakpoint = "2xl",
@@ -159,6 +164,18 @@ export function PlaygroundToolbar({
             onClick={() => onThemeChange?.("dark")}
           />
         </div>
+
+        {/* ── Export ──────────────────────────────────────────── */}
+        {componentName && slug && source && (
+          <>
+            <Separator orientation="vertical" className="mx-1.5 h-6" />
+            <ExportDialog
+              slug={slug}
+              source={source}
+              componentName={componentName}
+            />
+          </>
+        )}
       </div>
     </TooltipProvider>
   )
