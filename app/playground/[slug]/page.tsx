@@ -20,7 +20,6 @@ import { StructurePanel } from "@/components/playground/structure-panel"
 import { StatusBar } from "@/components/playground/status-bar"
 import { RightPanel } from "@/components/playground/right-panel"
 import { DragHandle } from "@/components/playground/drag-handle"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function ComponentPage() {
   const params = useParams<{ slug: string }>()
@@ -32,7 +31,8 @@ export default function ComponentPage() {
   const [mode, setMode] = React.useState<PlaygroundMode>("inspect")
   const [selectedElement, setSelectedElement] =
     React.useState<ElementInfo | null>(null)
-  const [leftPanelWidth, setLeftPanelWidth] = React.useState(350)
+  const [structurePanelWidth, setStructurePanelWidth] = React.useState(200)
+  const [codePanelWidth, setCodePanelWidth] = React.useState(350)
   const contentRef = React.useRef<HTMLDivElement>(null)
 
   const component = registry.find((c) => c.slug === slug)
@@ -117,37 +117,47 @@ export default function ComponentPage() {
 
       {/* ── Main content area ────────────────────────────────── */}
       <div ref={contentRef} className="flex flex-1 overflow-hidden">
-        {/* ── Left: Code + Structure (inspect views) ─────────── */}
+        {/* ── Structure / Outline panel ──────────────────────── */}
         <div
           className="flex shrink-0 flex-col border-r"
-          style={{ width: `${leftPanelWidth}px` }}
+          style={{ width: `${structurePanelWidth}px` }}
         >
-          <Tabs defaultValue="code" className="flex flex-1 flex-col">
-            <TabsList className="mx-2 mt-2 shrink-0">
-              <TabsTrigger value="code">Code</TabsTrigger>
-              <TabsTrigger value="structure">Structure</TabsTrigger>
-            </TabsList>
-            <TabsContent value="code" className="relative flex-1 overflow-hidden">
-              <div className="absolute inset-0">
-                <CodePanel code={displaySource} />
-              </div>
-            </TabsContent>
-            <TabsContent value="structure" className="flex-1 overflow-auto">
-              <StructurePanel slug={slug} />
-            </TabsContent>
-          </Tabs>
+          <div className="flex items-center gap-1.5 border-b px-3 py-2">
+            <span className="text-xs font-medium text-muted-foreground">Outline</span>
+          </div>
+          <div className="flex-1 overflow-auto">
+            <StructurePanel slug={slug} />
+          </div>
         </div>
 
-        {/* ── Left panel resize handle ──────────────────────── */}
+        {/* ── Structure panel resize handle ─────────────────── */}
         <DragHandle
-          width={leftPanelWidth}
+          width={structurePanelWidth}
+          minWidth={150}
+          maxWidth={350}
+          onWidthChange={setStructurePanelWidth}
+          side="left"
+        />
+
+        {/* ── Code panel ─────────────────────────────────────── */}
+        <div
+          className="relative flex shrink-0 flex-col border-r"
+          style={{ width: `${codePanelWidth}px` }}
+        >
+          <CodePanel code={displaySource} />
+        </div>
+
+        {/* ── Code panel resize handle ──────────────────────── */}
+        <DragHandle
+          width={codePanelWidth}
           minWidth={250}
           maxWidth={
             (contentRef.current?.offsetWidth ?? 1200)
+            - structurePanelWidth
             - 200  // min canvas gap
             - (mode === "edit" ? 320 : 0) // right panel
           }
-          onWidthChange={setLeftPanelWidth}
+          onWidthChange={setCodePanelWidth}
           side="left"
         />
 
