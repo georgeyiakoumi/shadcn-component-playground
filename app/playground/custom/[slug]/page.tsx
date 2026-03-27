@@ -292,7 +292,7 @@ export default function CustomComponentPage() {
             <span className="text-xs font-medium text-muted-foreground">Outline</span>
           </div>
           <div className="flex-1 overflow-auto">
-            <StructurePanel slug={slug} onNodeClick={handleOutlineNodeClick} />
+            <StructurePanel slug={slug} customTree={componentTree} onNodeClick={handleOutlineNodeClick} />
           </div>
         </div>
 

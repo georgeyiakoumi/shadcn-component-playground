@@ -247,7 +247,7 @@ export function BuilderPanel({
                   isRoot
                   selectedNodeId={selectedNodeId}
                   subComponents={tree.subComponents}
-                  readOnly
+                  hideEditor
                   labelOverrides={{ [tree.assemblyTree.id]: tree.name }}
                   onSelectNode={setSelectedNodeId}
                   onAddChild={(parentId, tag) => {
@@ -319,6 +319,7 @@ export function BuilderPanel({
                   isRoot
                   selectedNodeId={selectedNodeId}
                   subComponents={focusedId === "main" ? tree.subComponents : []}
+                  hideEditor
                   hideTextEditor
                   onSelectNode={setSelectedNodeId}
                   onAddChild={(parentId, tag) => {
@@ -523,8 +524,9 @@ interface ElementTreeProps {
   isRoot: boolean
   selectedNodeId: string | null
   subComponents?: SubComponentDef[]
-  /** When true, clicking a node won't show the class/text inline editor */
-  readOnly?: boolean
+  /** When true, clicking a node won't show the class/text inline editor.
+   *  Add/remove/reorder still work — only the inline editor is hidden. */
+  hideEditor?: boolean
   /** Override display labels for specific node IDs (e.g. root → "MyCard") */
   labelOverrides?: Record<string, string>
   /** When true, hide text field in inline editor (root elements pass {children}) */
@@ -543,7 +545,7 @@ function ElementTree({
   isRoot,
   selectedNodeId,
   subComponents,
-  readOnly,
+  hideEditor,
   labelOverrides,
   hideTextEditor,
   onSelectNode,
@@ -685,7 +687,7 @@ function ElementTree({
       </div>
 
       {/* Inline editor when selected */}
-      {isSelected && !readOnly && (
+      {isSelected && !hideEditor && (
         <div
           className="space-y-2 rounded-md border bg-muted/20 p-2"
           style={{ marginLeft: `${depth * 16 + 4}px`, marginRight: "4px" }}
@@ -735,7 +737,7 @@ function ElementTree({
             isRoot={false}
             selectedNodeId={selectedNodeId}
             subComponents={subComponents}
-            readOnly={readOnly}
+            hideEditor={hideEditor}
             labelOverrides={labelOverrides}
             hideTextEditor={hideTextEditor}
             onSelectNode={onSelectNode}

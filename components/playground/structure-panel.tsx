@@ -4,20 +4,48 @@ import * as React from "react"
 import { Code2, ChevronRight } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import { registry, type ComponentMeta } from "@/lib/registry"
+import { registry } from "@/lib/registry"
+import type { ComponentTree } from "@/lib/component-tree"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 /* ── Types ──────────────────────────────────────────────────────── */
 
 interface StructurePanelProps {
   slug: string
+  /** Pass a ComponentTree for custom components (overrides registry lookup) */
+  customTree?: ComponentTree
   onNodeClick?: (name: string) => void
   className?: string
 }
 
 /* ── Component ──────────────────────────────────────────────────── */
 
-export function StructurePanel({ slug, onNodeClick, className }: StructurePanelProps) {
+export function StructurePanel({ slug, customTree, onNodeClick, className }: StructurePanelProps) {
+  // For custom components, build the outline from the tree
+  if (customTree) {
+    return (
+      <ScrollArea className={cn("h-full", className)}>
+        <div className="p-4">
+          <div className="space-y-1">
+            <TreeNode
+              name={customTree.name}
+              isRoot
+              isCompound={customTree.subComponents.length > 0}
+              onClick={onNodeClick}
+            />
+            {customTree.subComponents.length > 0 && (
+              <div className="ml-3 border-l border-border pl-3 space-y-0.5">
+                {customTree.subComponents.map((sub) => (
+                  <TreeNode key={sub.id} name={sub.name} onClick={onNodeClick} />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </ScrollArea>
+    )
+  }
+
   const component = registry.find((c) => c.slug === slug)
 
   if (!component) {
