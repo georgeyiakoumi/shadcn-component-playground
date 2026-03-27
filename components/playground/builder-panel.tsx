@@ -167,8 +167,8 @@ export function BuilderPanel({
 
   return (
     <div className={cn("flex flex-1 flex-col border-l bg-background", className)}>
-      {/* ── Focus selector pills ─────────────────────────────── */}
-      <div className="flex items-center gap-1 overflow-x-auto border-b px-2 py-1.5">
+      {/* ── Focus selector: row 1 (Assembly + Main) ─────────── */}
+      <div className="flex items-center gap-1 border-b px-2 py-1.5">
         <button
           type="button"
           onClick={() => setFocusedId(null)}
@@ -193,22 +193,31 @@ export function BuilderPanel({
         >
           {tree.name}
         </button>
-        {tree.subComponents.map((sc) => (
-          <button
-            key={sc.id}
-            type="button"
-            onClick={() => setFocusedId(sc.id)}
-            className={cn(
-              "shrink-0 rounded-md px-2 py-1 text-[10px] font-medium transition-colors",
-              focusedId === sc.id
-                ? "bg-blue-500/10 text-blue-500"
-                : "text-muted-foreground hover:bg-muted/50",
-            )}
-          >
-            {sc.name}
-          </button>
-        ))}
       </div>
+
+      {/* ── Focus selector: row 2 (Sub-components, scrollable) ── */}
+      {tree.subComponents.length > 0 && (
+        <div className="flex items-center gap-1 overflow-x-auto border-b px-2 py-1">
+          <span className="shrink-0 text-[9px] font-medium uppercase tracking-wider text-muted-foreground/50">
+            Sub
+          </span>
+          {tree.subComponents.map((sc) => (
+            <button
+              key={sc.id}
+              type="button"
+              onClick={() => setFocusedId(sc.id)}
+              className={cn(
+                "shrink-0 rounded-md px-2 py-0.5 text-[10px] font-medium transition-colors",
+                focusedId === sc.id
+                  ? "bg-blue-500/10 text-blue-500"
+                  : "text-muted-foreground hover:bg-muted/50",
+              )}
+            >
+              {sc.name.replace(tree.name, "")}
+            </button>
+          ))}
+        </div>
+      )}
 
       <ScrollArea className="flex-1">
         <div className="space-y-0">
