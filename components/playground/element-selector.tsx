@@ -10,6 +10,8 @@ export interface ElementInfo {
   currentClasses: string[]
   elementPath: string
   rect: DOMRect
+  /** Reference to the actual DOM element for live class manipulation */
+  domElement: HTMLElement
 }
 
 interface ElementSelectorProps {
@@ -81,6 +83,7 @@ function extractElementInfo(
     currentClasses: classes,
     elementPath: buildElementPath(el, container),
     rect: el.getBoundingClientRect(),
+    domElement: el,
   }
 }
 

@@ -82,12 +82,14 @@ export default function ComponentPage() {
     Object.keys(propValues).length > 0 ? propValues : undefined
 
   const handleClassChange = React.useCallback((classes: string[]) => {
-    // Update the selected element's class list in state so the visual
-    // editor stays in sync. In a future iteration this will feed into
-    // the component-state context to persist changes.
-    setSelectedElement((prev) =>
-      prev ? { ...prev, currentClasses: classes } : null,
-    )
+    setSelectedElement((prev) => {
+      if (!prev) return null
+      // Apply classes directly to the DOM element for live preview
+      if (prev.domElement && prev.domElement.isConnected) {
+        prev.domElement.className = classes.join(" ")
+      }
+      return { ...prev, currentClasses: classes }
+    })
   }, [])
 
   const handleDeselect = React.useCallback(() => {
