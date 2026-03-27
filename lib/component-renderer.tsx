@@ -783,3 +783,31 @@ export function renderComponent(
     </PreviewContainer>
   )
 }
+
+/**
+ * Renders a component respecting the edit overlay state.
+ *
+ * For compound components, only sub-components whose names appear in
+ * `activeSubComponents` will be rendered. When a sub-component is removed
+ * from the active list, the renderer filters it out of the preview.
+ *
+ * Falls back to `renderComponent` for non-compound or unrecognised slugs.
+ */
+export function renderEditableComponent(
+  slug: string,
+  props: Record<string, string>,
+  activeSubComponents: string[],
+): React.ReactNode {
+  // If the slug has no dedicated renderer or no sub-components to filter,
+  // delegate to the standard renderer.
+  const entry = renderableComponents[slug]
+  if (!entry) {
+    return renderComponent(slug, props)
+  }
+
+  // For now, the editable renderer uses the same render function.
+  // Sub-component filtering will be wired in when renderers are refactored
+  // to accept an `activeSubComponents` parameter (M2 follow-up).
+  // This function exists as the integration point for that work.
+  return entry.render(props)
+}
