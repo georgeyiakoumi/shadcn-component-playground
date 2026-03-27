@@ -16,6 +16,7 @@ import { ComponentCanvas } from "@/components/playground/component-canvas"
 import { CodePanel } from "@/components/playground/code-panel"
 import { StructurePanel } from "@/components/playground/structure-panel"
 import { TwPanel } from "@/components/playground/tw-panel"
+import { TwEditorPanel } from "@/components/playground/tw-editor-panel"
 import { A11yPanel } from "@/components/playground/a11y-panel"
 import { SemanticPanel } from "@/components/playground/semantic-panel"
 import { SubComponentPanel } from "@/components/playground/sub-component-panel"
@@ -89,6 +90,7 @@ export default function ComponentPage() {
               <TabsTrigger value="structure">Structure</TabsTrigger>
               <TabsTrigger value="code">Code</TabsTrigger>
               <TabsTrigger value="styles">Styles</TabsTrigger>
+              <TabsTrigger value="classes">Classes</TabsTrigger>
               <TabsTrigger value="a11y">A11y</TabsTrigger>
               <TabsTrigger value="semantic">Semantic</TabsTrigger>
               {component.isCompound && (
@@ -105,6 +107,9 @@ export default function ComponentPage() {
             </TabsContent>
             <TabsContent value="styles" className="flex-1 overflow-hidden">
               <TwPanel source={source} />
+            </TabsContent>
+            <TabsContent value="classes" className="flex-1 overflow-hidden">
+              <TwEditorPanel source={source} />
             </TabsContent>
             <TabsContent value="a11y" className="flex-1 overflow-hidden">
               <A11yPanel source={source} />
