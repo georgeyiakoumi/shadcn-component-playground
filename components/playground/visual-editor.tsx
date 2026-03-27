@@ -27,6 +27,13 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Slider } from "@/components/ui/slider"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -375,7 +382,138 @@ function ControlRow({
   )
 }
 
-/* ── Spacing slider ──────────────────────────────────────────────── */
+/* ── Spacing value input (Figma-style) ──────────────────────────── */
+
+const SPACING_VALUES = ["0", "0.5", "1", "1.5", "2", "2.5", "3", "3.5", "4", "5", "6", "7", "8", "9", "10", "11", "12", "14", "16"] as const
+
+function SpacingValueInput({
+  prefix,
+  value,
+  onChange,
+  placeholder = "–",
+}: {
+  prefix: string // e.g. "p", "pt", "m", "ml"
+  value: string // e.g. "p-4" or ""
+  onChange: (val: string) => void
+  placeholder?: string
+}) {
+  const numericVal = value ? value.replace(/^[a-z]+-/, "") : ""
+  const pxLabel = SPACING_PX[numericVal] ?? ""
+
+  return (
+    <div className="flex items-center gap-1">
+      <span className="w-5 text-[10px] text-muted-foreground">{prefix}</span>
+      <Select
+        value={numericVal || "__none__"}
+        onValueChange={(v) => {
+          if (v === "__none__") {
+            onChange("")
+          } else {
+            onChange(`${prefix}-${v}`)
+          }
+        }}
+      >
+        <SelectTrigger className="h-6 w-14 text-[10px]">
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__none__">–</SelectItem>
+          {SPACING_VALUES.map((v) => (
+            <SelectItem key={v} value={v}>
+              {v} {SPACING_PX[v] ? `(${SPACING_PX[v]})` : ""}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {pxLabel && (
+        <span className="text-[9px] text-muted-foreground">{pxLabel}</span>
+      )}
+    </div>
+  )
+}
+
+/* ── Box model control (Figma-style: all → expand to sides) ──────── */
+
+function BoxModelControl({
+  label,
+  allPrefix,
+  allValue,
+  onAllChange,
+  sides,
+  expanded,
+  onToggleExpand,
+}: {
+  label: string
+  allPrefix: string
+  allValue: string
+  onAllChange: (val: string) => void
+  sides: {
+    prefix: string
+    label: string
+    value: string
+    onChange: (val: string) => void
+  }[]
+  expanded: boolean
+  onToggleExpand: () => void
+}) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-1">
+        <SpacingValueInput
+          prefix={allPrefix}
+          value={allValue}
+          onChange={onAllChange}
+        />
+        <div className="flex-1" />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-5"
+          onClick={onToggleExpand}
+        >
+          {expanded ? (
+            <Minus className="size-3" />
+          ) : (
+            <Plus className="size-3" />
+          )}
+        </Button>
+      </div>
+      {expanded && (
+        <div className="grid grid-cols-2 gap-1 pl-2">
+          {sides.map((side) => (
+            <SpacingValueInput
+              key={side.prefix}
+              prefix={side.prefix}
+              value={side.value}
+              onChange={side.onChange}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ── Border radius control (Figma-style) ─────────────────────────── */
+
+const RADIUS_VALUES = [
+  { value: "rounded-none", label: "none", px: "0" },
+  { value: "rounded-sm", label: "sm", px: "2px" },
+  { value: "rounded-md", label: "md", px: "6px" },
+  { value: "rounded-lg", label: "lg", px: "8px" },
+  { value: "rounded-xl", label: "xl", px: "12px" },
+  { value: "rounded-2xl", label: "2xl", px: "16px" },
+  { value: "rounded-full", label: "full", px: "9999px" },
+] as const
+
+const RADIUS_SIDES = [
+  { prefix: "rounded-tl", label: "TL" },
+  { prefix: "rounded-tr", label: "TR" },
+  { prefix: "rounded-bl", label: "BL" },
+  { prefix: "rounded-br", label: "BR" },
+] as const
+
+/* ── (legacy SpacingSlider kept for compatibility but unused) ─────── */
 
 function SpacingSlider({
   label,
@@ -679,85 +817,41 @@ export function VisualEditor({
 
           {/* ── Spacing ──────────────────────────────────── */}
           <ControlSection icon={Box} title="Spacing">
-            <div className="flex items-center justify-between">
-              <SpacingSlider
+            <ControlRow label="Padding">
+              <BoxModelControl
                 label="Padding"
-                scale={PADDING_SCALE}
-                value={state.padding}
-                onChange={(v) => update("padding", v)}
+                allPrefix="p"
+                allValue={state.padding}
+                onAllChange={(v) => update("padding", v)}
+                sides={[
+                  { prefix: "pt", label: "Top", value: state.paddingTop, onChange: (v) => update("paddingTop", v) },
+                  { prefix: "pr", label: "Right", value: state.paddingRight, onChange: (v) => update("paddingRight", v) },
+                  { prefix: "pb", label: "Bottom", value: state.paddingBottom, onChange: (v) => update("paddingBottom", v) },
+                  { prefix: "pl", label: "Left", value: state.paddingLeft, onChange: (v) => update("paddingLeft", v) },
+                ]}
+                expanded={showPaddingSides}
+                onToggleExpand={() => setShowPaddingSides((v) => !v)}
               />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-5 shrink-0"
-                onClick={() => setShowPaddingSides((v) => !v)}
-              >
-                {showPaddingSides ? (
-                  <Minus className="size-3" />
-                ) : (
-                  <Plus className="size-3" />
-                )}
-              </Button>
-            </div>
-            {showPaddingSides && (
-              <div className="space-y-2 pl-2">
-                {(
-                  Object.entries(PADDING_SIDES) as [
-                    keyof typeof PADDING_SIDES,
-                    readonly string[],
-                  ][]
-                ).map(([key, scale]) => (
-                  <SpacingSlider
-                    key={key}
-                    label={key.replace("padding", "").toLowerCase()}
-                    scale={scale}
-                    value={state[key]}
-                    onChange={(v) => update(key, v)}
-                  />
-                ))}
-              </div>
-            )}
+            </ControlRow>
 
             <Separator className="my-1" />
 
-            <div className="flex items-center justify-between">
-              <SpacingSlider
+            <ControlRow label="Margin">
+              <BoxModelControl
                 label="Margin"
-                scale={MARGIN_SCALE}
-                value={state.margin}
-                onChange={(v) => update("margin", v)}
+                allPrefix="m"
+                allValue={state.margin}
+                onAllChange={(v) => update("margin", v)}
+                sides={[
+                  { prefix: "mt", label: "Top", value: state.marginTop, onChange: (v) => update("marginTop", v) },
+                  { prefix: "mr", label: "Right", value: state.marginRight, onChange: (v) => update("marginRight", v) },
+                  { prefix: "mb", label: "Bottom", value: state.marginBottom, onChange: (v) => update("marginBottom", v) },
+                  { prefix: "ml", label: "Left", value: state.marginLeft, onChange: (v) => update("marginLeft", v) },
+                ]}
+                expanded={showMarginSides}
+                onToggleExpand={() => setShowMarginSides((v) => !v)}
               />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-5 shrink-0"
-                onClick={() => setShowMarginSides((v) => !v)}
-              >
-                {showMarginSides ? (
-                  <Minus className="size-3" />
-                ) : (
-                  <Plus className="size-3" />
-                )}
-              </Button>
-            </div>
-            {showMarginSides && (
-              <div className="space-y-2 pl-2">
-                {(
-                  Object.entries(MARGIN_SIDES) as [
-                    keyof typeof MARGIN_SIDES,
-                    readonly string[],
-                  ][]
-                ).map(([key, scale]) => (
-                  <SpacingSlider
-                    key={key}
-                    label={key.replace("margin", "").toLowerCase()}
-                    scale={scale}
-                    value={state[key]}
-                    onChange={(v) => update(key, v)}
-                  />
-                ))}
-              </div>
-            )}
+            </ControlRow>
           </ControlSection>
 
           {/* ── Typography ───────────────────────────────── */}
@@ -839,22 +933,26 @@ export function VisualEditor({
           {/* ── Borders ──────────────────────────────────── */}
           <ControlSection icon={Square} title="Borders">
             <ControlRow label="Radius">
-              <ToggleGroup
-                type="single"
-                value={state.borderRadius}
-                onValueChange={(v) => update("borderRadius", v)}
-                className="flex flex-wrap gap-1"
-              >
-                {BORDER_RADIUS_OPTIONS.map((opt) => (
-                  <ToggleGroupItem
-                    key={opt}
-                    value={opt}
-                    className="h-6 px-2 text-[10px]"
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1">
+                  <Select
+                    value={state.borderRadius || "__none__"}
+                    onValueChange={(v) => update("borderRadius", v === "__none__" ? "" : v)}
                   >
-                    {opt.replace("rounded-", "")}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
+                    <SelectTrigger className="h-6 flex-1 text-[10px]">
+                      <SelectValue placeholder="–" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">–</SelectItem>
+                      {RADIUS_VALUES.map((r) => (
+                        <SelectItem key={r.value} value={r.value}>
+                          {r.label} ({r.px})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </ControlRow>
 
             <ControlRow label="Width">
