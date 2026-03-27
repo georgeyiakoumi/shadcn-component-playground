@@ -105,53 +105,38 @@ export default function CustomComponentPage() {
     [],
   )
 
-  // Check if a tag is a sub-component name (PascalCase) rather than an HTML element
-  const subComponentNames = React.useMemo(
-    () => new Set(componentTree?.subComponents.map((sc) => sc.name) ?? []),
-    [componentTree],
-  )
+  // Build a map of sub-component name → SubComponentDef for quick lookup
+  const subComponentMap = React.useMemo(() => {
+    const map = new Map<string, import("@/lib/component-tree").SubComponentDef>()
+    componentTree?.subComponents.forEach((sc) => map.set(sc.name, sc))
+    return map
+  }, [componentTree])
 
   // Render the component tree as live JSX for the canvas preview
   const renderTreePreview = React.useCallback(
     (node: ElementNode): React.ReactNode => {
-      const isSubComponent = subComponentNames.has(node.tag)
-      // Sub-components render as a labelled div placeholder
-      const tag = isSubComponent ? "div" : node.tag
-      const className = [
-        ...node.classes,
-        ...(isSubComponent
-          ? ["border", "border-dashed", "border-blue-300", "rounded-md", "p-2", "bg-blue-50/50", "dark:bg-blue-950/30"]
-          : []),
-      ]
-        .filter(Boolean)
-        .join(" ") || undefined
+      const subComponent = subComponentMap.get(node.tag)
+
+      // If this node is a sub-component, render its actual tree content
+      if (subComponent) {
+        return renderSubComponentPreview(subComponent, node.id)
+      }
+
+      const tag = node.tag as keyof React.JSX.IntrinsicElements
+      const className = node.classes.length > 0
+        ? node.classes.join(" ")
+        : undefined
 
       const children: React.ReactNode[] = []
 
-      // Sub-component label
-      if (isSubComponent) {
-        children.push(
-          React.createElement(
-            "span",
-            {
-              key: "__label__",
-              className: "text-[10px] font-mono text-blue-500 block mb-1",
-            },
-            `<${node.tag} />`,
-          ),
-        )
-      }
-
-      // Text content
       if (node.text) {
         children.push(node.text)
       }
 
-      // Child elements
       children.push(...node.children.map(renderTreePreview))
 
-      // If nothing to show, render a min-height placeholder so element is visible
-      if (children.length === 0 && !isSubComponent) {
+      // Empty element placeholder
+      if (children.length === 0) {
         children.push(
           React.createElement(
             "span",
@@ -164,13 +149,49 @@ export default function CustomComponentPage() {
         )
       }
 
-      return React.createElement(
-        tag as keyof React.JSX.IntrinsicElements,
-        { key: node.id, className },
-        ...children,
-      )
+      return React.createElement(tag, { key: node.id, className }, ...children)
     },
-    [subComponentNames],
+    [subComponentMap],
+  )
+
+  // Render a sub-component using its own tree
+  const renderSubComponentPreview = React.useCallback(
+    (sc: import("@/lib/component-tree").SubComponentDef, key: string): React.ReactNode => {
+      const tag = sc.baseElement as keyof React.JSX.IntrinsicElements
+      const className = sc.classes.length > 0
+        ? sc.classes.join(" ")
+        : undefined
+
+      const children: React.ReactNode[] = []
+
+      // Render the sub-component's own tree children
+      sc.tree.children.forEach((child) => {
+        children.push(renderTreePreview(child))
+      })
+
+      // Sub-component's own text
+      if (sc.tree.text) {
+        children.unshift(sc.tree.text)
+      }
+
+      // Empty sub-component placeholder
+      if (children.length === 0) {
+        children.push(
+          React.createElement(
+            "span",
+            {
+              key: "__sc_empty__",
+              className: "text-[10px] text-muted-foreground/40 select-none",
+            },
+            `<${sc.name}>`,
+          ),
+        )
+      }
+
+      return React.createElement(tag, { key, className }, ...children)
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [subComponentMap],
   )
 
   const customPreview = componentTree

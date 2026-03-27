@@ -22,10 +22,13 @@ export interface ComponentProp {
 }
 
 export interface SubComponentDef {
+  id: string
   name: string
   baseElement: string
   tree: ElementNode
   classes: string[]
+  props: ComponentProp[]
+  variants: CustomVariantDef[]
 }
 
 export interface ComponentTree {
@@ -68,6 +71,22 @@ export function createComponentTree(
     props: [],
     variants: [],
     subComponents: [],
+  }
+}
+
+export function createSubComponent(
+  parentName: string,
+  name: string,
+  baseElement: string,
+): SubComponentDef {
+  return {
+    id: generateId(),
+    name: `${parentName}${name}`,
+    baseElement,
+    tree: createElementNode(baseElement),
+    classes: [],
+    props: [],
+    variants: [],
   }
 }
 

@@ -839,25 +839,81 @@ function renderElementTree(
 /** Generates a sub-component as a separate forwardRef component. */
 function generateSubComponent(
   sub: SubComponentDef,
-  parentName: string,
+  _parentName: string,
 ): string {
   const elementInfo = getElementTypeInfo(sub.baseElement)
-  const classStr = sub.classes.length > 0 ? sub.classes.join(" ") : ""
-  const classNameExpr = classStr
-    ? `cn("${classStr}", className)`
-    : "cn(className)"
+  const hasVariants = sub.variants.length > 0
+  const hasProps = sub.props.length > 0
+  const variantsName = `${toCamelCase(sub.name)}Variants`
 
-  return `const ${sub.name} = React.forwardRef<
-  ${elementInfo.htmlElement},
-  ${elementInfo.htmlAttributes}
->(({ className, ...props }, ref) => (
-  <${sub.baseElement}
-    ref={ref}
-    className={${classNameExpr}}
-    {...props}
-  />
-))
-${sub.name}.displayName = "${sub.name}"`
+  const parts: string[] = []
+
+  // cva block for sub-component variants
+  if (hasVariants) {
+    const rootClasses = sub.tree.classes
+    parts.push(buildCvaBlock(variantsName, rootClasses, sub.variants))
+  }
+
+  // Props interface for sub-component
+  const propsInterfaceParts: string[] = []
+  if (hasProps) {
+    for (const prop of sub.props) {
+      const tsType = propTypeToTs(prop.type, false)
+      const optional = prop.required ? "" : "?"
+      propsInterfaceParts.push(`  ${prop.name}${optional}: ${tsType}`)
+    }
+  }
+
+  const extensions: string[] = [elementInfo.htmlAttributes]
+  if (hasVariants) {
+    extensions.push(`VariantProps<typeof ${variantsName}>`)
+  }
+  const extendClause = extensions.join(", ")
+
+  const propsBody =
+    propsInterfaceParts.length > 0
+      ? ` {\n${propsInterfaceParts.join("\n")}\n}`
+      : " {}"
+
+  parts.push(
+    `export interface ${sub.name}Props\n  extends ${extendClause}${propsBody}`,
+  )
+
+  // Build destructured props
+  const variantPropNames = sub.variants.map((v) => v.name)
+  const customPropNames = sub.props.map((p) => p.name)
+  const allDestructured = [
+    "className",
+    ...variantPropNames,
+    ...customPropNames,
+    "children",
+    "...props",
+  ]
+
+  // Render JSX body from sub-component's own tree
+  const jsxBody = renderElementTree(sub.tree, 2, true)
+
+  const classNameExpr = hasVariants
+    ? `cn(${variantsName}({ ${variantPropNames.join(", ")}, className }))`
+    : sub.tree.classes.length > 0
+      ? `cn("${sub.tree.classes.join(" ")}", className)`
+      : "cn(className)"
+
+  // Use classNameExpr in the JSX — it's built into renderElementTree via isRoot
+  void classNameExpr // classNameExpr is used by renderElementTree when isRoot=true
+
+  parts.push(
+    `const ${sub.name} = React.forwardRef<${elementInfo.htmlElement}, ${sub.name}Props>(
+  ({ ${allDestructured.join(", ")} }, ref) => {
+    return (
+${jsxBody}
+    )
+  }
+)
+${sub.name}.displayName = "${sub.name}"`,
+  )
+
+  return parts.join("\n\n")
 }
 
 /** Converts a ComponentProp type to its TypeScript equivalent. */

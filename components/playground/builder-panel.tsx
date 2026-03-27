@@ -106,118 +106,303 @@ export function BuilderPanel({
   onTreeChange,
   className,
 }: BuilderPanelProps) {
+  // null = assembly view (root), "main" = main component, sc id = sub-component
+  const [focusedId, setFocusedId] = React.useState<string | null>(null)
   const [structureOpen, setStructureOpen] = React.useState(true)
   const [propsOpen, setPropsOpen] = React.useState(true)
   const [variantsOpen, setVariantsOpen] = React.useState(true)
   const [subComponentsOpen, setSubComponentsOpen] = React.useState(true)
-  const [selectedNodeId, setSelectedNodeId] = React.useState<string | null>(
-    null,
-  )
+  const [selectedNodeId, setSelectedNodeId] = React.useState<string | null>(null)
+
+  // Get the focused component's data
+  const focusedSc = focusedId && focusedId !== "main"
+    ? tree.subComponents.find((sc) => sc.id === focusedId)
+    : null
+  const focusedName = focusedId === "main"
+    ? tree.name
+    : focusedSc?.name ?? null
+  const focusedTree = focusedId === "main"
+    ? tree.tree
+    : focusedSc?.tree ?? null
+  const focusedProps = focusedId === "main"
+    ? tree.props
+    : focusedSc?.props ?? []
+  const focusedVariants = focusedId === "main"
+    ? tree.variants
+    : focusedSc?.variants ?? []
+
+  // Handlers that route to the correct tree
+  const handleTreeUpdate = (newElementTree: ElementNode) => {
+    if (focusedId === "main") {
+      onTreeChange({ ...tree, tree: newElementTree })
+    } else if (focusedSc) {
+      const updated = tree.subComponents.map((sc) =>
+        sc.id === focusedId ? { ...sc, tree: newElementTree } : sc,
+      )
+      onTreeChange({ ...tree, subComponents: updated })
+    }
+  }
+
+  const handlePropsUpdate = (props: ComponentProp[]) => {
+    if (focusedId === "main") {
+      onTreeChange({ ...tree, props })
+    } else if (focusedSc) {
+      const updated = tree.subComponents.map((sc) =>
+        sc.id === focusedId ? { ...sc, props } : sc,
+      )
+      onTreeChange({ ...tree, subComponents: updated })
+    }
+  }
+
+  const handleVariantsUpdate = (variants: CustomVariantDef[]) => {
+    if (focusedId === "main") {
+      onTreeChange({ ...tree, variants })
+    } else if (focusedSc) {
+      const updated = tree.subComponents.map((sc) =>
+        sc.id === focusedId ? { ...sc, variants } : sc,
+      )
+      onTreeChange({ ...tree, subComponents: updated })
+    }
+  }
 
   return (
     <div className={cn("flex flex-1 flex-col border-l bg-background", className)}>
-      <div className="flex items-center gap-2 border-b px-3 py-2">
-        <Settings2 className="size-4 text-muted-foreground" />
-        <span className="text-xs font-medium">Builder</span>
+      {/* ── Focus selector pills ─────────────────────────────── */}
+      <div className="flex items-center gap-1 overflow-x-auto border-b px-2 py-1.5">
+        <button
+          type="button"
+          onClick={() => setFocusedId(null)}
+          className={cn(
+            "shrink-0 rounded-md px-2 py-1 text-[10px] font-medium transition-colors",
+            focusedId === null
+              ? "bg-blue-500/10 text-blue-500"
+              : "text-muted-foreground hover:bg-muted/50",
+          )}
+        >
+          Assembly
+        </button>
+        <button
+          type="button"
+          onClick={() => setFocusedId("main")}
+          className={cn(
+            "shrink-0 rounded-md px-2 py-1 text-[10px] font-medium transition-colors",
+            focusedId === "main"
+              ? "bg-blue-500/10 text-blue-500"
+              : "text-muted-foreground hover:bg-muted/50",
+          )}
+        >
+          {tree.name}
+        </button>
+        {tree.subComponents.map((sc) => (
+          <button
+            key={sc.id}
+            type="button"
+            onClick={() => setFocusedId(sc.id)}
+            className={cn(
+              "shrink-0 rounded-md px-2 py-1 text-[10px] font-medium transition-colors",
+              focusedId === sc.id
+                ? "bg-blue-500/10 text-blue-500"
+                : "text-muted-foreground hover:bg-muted/50",
+            )}
+          >
+            {sc.name}
+          </button>
+        ))}
       </div>
 
       <ScrollArea className="flex-1">
         <div className="space-y-0">
-          {/* ── Step 1: Structure ──────────────────────────────── */}
-          <BuilderSection
-            icon={<Layers className="size-3.5" />}
-            title="Structure"
-            badge={countNodes(tree.tree)}
-            open={structureOpen}
-            onOpenChange={setStructureOpen}
-          >
-            <ElementTree
-              node={tree.tree}
-              depth={0}
-              isRoot
-              selectedNodeId={selectedNodeId}
-              subComponents={tree.subComponents}
-              onSelectNode={setSelectedNodeId}
-              onAddChild={(parentId, tag) => {
-                const child = createElementNode(tag)
-                const newTree = addChild(tree.tree, parentId, child)
-                onTreeChange({ ...tree, tree: newTree })
-              }}
-              onRemoveNode={(nodeId) => {
-                const newTree = removeNode(tree.tree, nodeId)
-                onTreeChange({ ...tree, tree: newTree })
-              }}
-              onUpdateClasses={(nodeId, classes) => {
-                const newTree = updateNodeClasses(tree.tree, nodeId, classes)
-                onTreeChange({ ...tree, tree: newTree })
-              }}
-              onUpdateText={(nodeId, text) => {
-                const newTree = updateNodeText(
-                  tree.tree,
-                  nodeId,
-                  text || undefined,
-                )
-                onTreeChange({ ...tree, tree: newTree })
-              }}
-            />
-          </BuilderSection>
+          {/* ── Assembly view (no focus) ─────────────────────── */}
+          {focusedId === null && (
+            <>
+              <div className="px-3 py-2">
+                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                  Component structure
+                </p>
+                <AssemblyTree
+                  tree={tree}
+                  onFocusComponent={setFocusedId}
+                />
+              </div>
+              <Separator />
+              <BuilderSection
+                icon={<Component className="size-3.5" />}
+                title="Sub-components"
+                badge={tree.subComponents.length}
+                open={subComponentsOpen}
+                onOpenChange={setSubComponentsOpen}
+              >
+                <SubComponentsEditor
+                  subComponents={tree.subComponents}
+                  parentName={tree.name}
+                  onSubComponentsChange={(subComponents) =>
+                    onTreeChange({ ...tree, subComponents })
+                  }
+                />
+              </BuilderSection>
+            </>
+          )}
 
-          <Separator />
+          {/* ── Focused component editing ───────────────────── */}
+          {focusedId !== null && focusedTree && (
+            <>
+              <div className="px-3 py-2">
+                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                  Editing: {focusedName}
+                </p>
+              </div>
 
-          {/* ── Step 2: Props & State ─────────────────────────── */}
-          <BuilderSection
-            icon={<Code2 className="size-3.5" />}
-            title="Props"
-            badge={tree.props.length}
-            open={propsOpen}
-            onOpenChange={setPropsOpen}
-          >
-            <PropsEditor
-              props={tree.props}
-              onPropsChange={(props) =>
-                onTreeChange({ ...tree, props })
-              }
-            />
-          </BuilderSection>
+              <BuilderSection
+                icon={<Layers className="size-3.5" />}
+                title="Structure"
+                badge={countNodes(focusedTree)}
+                open={structureOpen}
+                onOpenChange={setStructureOpen}
+              >
+                <ElementTree
+                  node={focusedTree}
+                  depth={0}
+                  isRoot
+                  selectedNodeId={selectedNodeId}
+                  subComponents={focusedId === "main" ? tree.subComponents : []}
+                  onSelectNode={setSelectedNodeId}
+                  onAddChild={(parentId, tag) => {
+                    const child = createElementNode(tag)
+                    const newTree = addChild(focusedTree, parentId, child)
+                    handleTreeUpdate(newTree)
+                  }}
+                  onRemoveNode={(nodeId) => {
+                    const newTree = removeNode(focusedTree, nodeId)
+                    handleTreeUpdate(newTree)
+                  }}
+                  onUpdateClasses={(nodeId, classes) => {
+                    const newTree = updateNodeClasses(focusedTree, nodeId, classes)
+                    handleTreeUpdate(newTree)
+                  }}
+                  onUpdateText={(nodeId, text) => {
+                    const newTree = updateNodeText(focusedTree, nodeId, text || undefined)
+                    handleTreeUpdate(newTree)
+                  }}
+                />
+              </BuilderSection>
 
-          <Separator />
+              <Separator />
 
-          {/* ── Step 3: Variants ───────────────────────────────── */}
-          <BuilderSection
-            icon={<ToggleLeft className="size-3.5" />}
-            title="Variants"
-            badge={tree.variants.length}
-            open={variantsOpen}
-            onOpenChange={setVariantsOpen}
-          >
-            <VariantsEditor
-              variants={tree.variants}
-              onVariantsChange={(variants) =>
-                onTreeChange({ ...tree, variants })
-              }
-            />
-          </BuilderSection>
+              <BuilderSection
+                icon={<Code2 className="size-3.5" />}
+                title="Props"
+                badge={focusedProps.length}
+                open={propsOpen}
+                onOpenChange={setPropsOpen}
+              >
+                <PropsEditor
+                  props={focusedProps}
+                  onPropsChange={handlePropsUpdate}
+                />
+              </BuilderSection>
 
-          <Separator />
+              <Separator />
 
-          {/* ── Step 4: Sub-components ─────────────────────────── */}
-          <BuilderSection
-            icon={<Component className="size-3.5" />}
-            title="Sub-components"
-            badge={tree.subComponents.length}
-            open={subComponentsOpen}
-            onOpenChange={setSubComponentsOpen}
-          >
-            <SubComponentsEditor
-              subComponents={tree.subComponents}
-              parentName={tree.name}
-              onSubComponentsChange={(subComponents) =>
-                onTreeChange({ ...tree, subComponents })
-              }
-            />
-          </BuilderSection>
+              <BuilderSection
+                icon={<ToggleLeft className="size-3.5" />}
+                title="Variants"
+                badge={focusedVariants.length}
+                open={variantsOpen}
+                onOpenChange={setVariantsOpen}
+              >
+                <VariantsEditor
+                  variants={focusedVariants}
+                  onVariantsChange={handleVariantsUpdate}
+                />
+              </BuilderSection>
+
+              {/* Show sub-components section only when editing main component */}
+              {focusedId === "main" && (
+                <>
+                  <Separator />
+                  <BuilderSection
+                    icon={<Component className="size-3.5" />}
+                    title="Sub-components"
+                    badge={tree.subComponents.length}
+                    open={subComponentsOpen}
+                    onOpenChange={setSubComponentsOpen}
+                  >
+                    <SubComponentsEditor
+                      subComponents={tree.subComponents}
+                      parentName={tree.name}
+                      onSubComponentsChange={(subComponents) =>
+                        onTreeChange({ ...tree, subComponents })
+                      }
+                    />
+                  </BuilderSection>
+                </>
+              )}
+            </>
+          )}
         </div>
       </ScrollArea>
+    </div>
+  )
+}
+
+/* ── AssemblyTree — read-only view of composed structure ────────── */
+
+function AssemblyTree({
+  tree,
+  onFocusComponent,
+}: {
+  tree: ComponentTree
+  onFocusComponent: (id: string) => void
+}) {
+  const renderAssemblyNode = (node: ElementNode, depth: number): React.ReactNode => {
+    const subComponent = tree.subComponents.find((sc) => sc.name === node.tag)
+
+    if (subComponent) {
+      return (
+        <div key={node.id} style={{ paddingLeft: `${depth * 12}px` }}>
+          <button
+            type="button"
+            onClick={() => onFocusComponent(subComponent.id)}
+            className="flex items-center gap-1 rounded px-1 py-0.5 text-[11px] font-mono text-blue-500 hover:bg-blue-500/10"
+          >
+            <Component className="size-3" />
+            &lt;{subComponent.name}&gt;
+          </button>
+          {subComponent.tree.children.map((child) =>
+            renderAssemblyNode(child, depth + 1),
+          )}
+        </div>
+      )
+    }
+
+    return (
+      <div key={node.id} style={{ paddingLeft: `${depth * 12}px` }}>
+        <span className="text-[11px] font-mono text-muted-foreground">
+          &lt;{node.tag}&gt;
+          {node.text && (
+            <span className="ml-1 text-foreground/60">{node.text.slice(0, 20)}</span>
+          )}
+        </span>
+        {node.children.map((child) =>
+          renderAssemblyNode(child, depth + 1),
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-0.5">
+      <button
+        type="button"
+        onClick={() => onFocusComponent("main")}
+        className="flex items-center gap-1 rounded px-1 py-0.5 text-[11px] font-mono text-blue-500 hover:bg-blue-500/10"
+      >
+        <Component className="size-3" />
+        &lt;{tree.name}&gt;
+      </button>
+      {tree.tree.children.map((child) =>
+        renderAssemblyNode(child, 1),
+      )}
     </div>
   )
 }
@@ -1127,12 +1312,15 @@ function SubComponentsEditor({
     }
 
     const def: SubComponentDef = {
+      id: `sc_${Date.now().toString(36)}`,
       name: fullName,
       baseElement,
       tree: createElementNode(baseElement),
       classes: classes
         .split(/\s+/)
         .filter(Boolean),
+      props: [],
+      variants: [],
     }
 
     if (editingIndex !== null) {
