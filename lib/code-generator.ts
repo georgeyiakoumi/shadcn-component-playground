@@ -1,37 +1,144 @@
-// Code Generator — produces a clean .tsx file from component state + edits
-// Uses string-based injection at known patterns rather than full AST manipulation.
+// Code Generator — produces registry-grade .tsx files from component state + edits
+// Supports both editing existing components and generating new ones from scratch.
 
 import type { CustomVariantDef } from "@/lib/component-state"
 
 /* ── Public types ──────────────────────────────────────────────── */
 
 export interface GenerateOptions {
-  slug: string
-  originalSource: string
-  customClasses: Record<string, string[]>
-  customVariantDefs: CustomVariantDef[]
-  activeSubComponents: string[]
-  componentName: string
+  /** Component identity */
+  componentName: string // e.g. "MyButton"
+  slug: string // e.g. "my-button"
+
+  /** Base — existing source to modify (edit mode) */
+  originalSource?: string
+
+  /** From-scratch options */
+  baseElement?: string // e.g. "button", "div", "input"
+
+  /** User edits */
+  customClasses: Record<string, string[]> // per-element custom classes
+  customVariantDefs: CustomVariantDef[] // user-created variants
+  activeSubComponents: string[] // which sub-components are active
+
+  /** Options */
+  enableAsChild?: boolean // whether to add Slot support
+  enableForwardRef?: boolean // whether to use forwardRef (default true)
 }
 
-/* ── Generator ─────────────────────────────────────────────────── */
+/* ── Element type mapping ──────────────────────────────────────── */
+
+interface ElementTypeInfo {
+  htmlElement: string
+  htmlAttributes: string
+}
+
+const ELEMENT_TYPE_MAP: Record<string, ElementTypeInfo> = {
+  button: {
+    htmlElement: "HTMLButtonElement",
+    htmlAttributes: "React.ButtonHTMLAttributes<HTMLButtonElement>",
+  },
+  div: {
+    htmlElement: "HTMLDivElement",
+    htmlAttributes: "React.HTMLAttributes<HTMLDivElement>",
+  },
+  input: {
+    htmlElement: "HTMLInputElement",
+    htmlAttributes: "React.InputHTMLAttributes<HTMLInputElement>",
+  },
+  a: {
+    htmlElement: "HTMLAnchorElement",
+    htmlAttributes: "React.AnchorHTMLAttributes<HTMLAnchorElement>",
+  },
+  span: {
+    htmlElement: "HTMLSpanElement",
+    htmlAttributes: "React.HTMLAttributes<HTMLSpanElement>",
+  },
+  form: {
+    htmlElement: "HTMLFormElement",
+    htmlAttributes: "React.FormHTMLAttributes<HTMLFormElement>",
+  },
+  img: {
+    htmlElement: "HTMLImageElement",
+    htmlAttributes: "React.ImgHTMLAttributes<HTMLImageElement>",
+  },
+  textarea: {
+    htmlElement: "HTMLTextAreaElement",
+    htmlAttributes: "React.TextareaHTMLAttributes<HTMLTextAreaElement>",
+  },
+  select: {
+    htmlElement: "HTMLSelectElement",
+    htmlAttributes: "React.SelectHTMLAttributes<HTMLSelectElement>",
+  },
+}
 
 /**
- * Takes the current component state (original source + edits) and produces
- * a clean .tsx string ready for export.
- *
- * If no edits have been made (no custom classes, no custom variants, and
- * all sub-components still active), the original source is returned with
- * only a header comment prepended.
+ * Returns the element type info for a given base element tag.
+ * Falls back to div if the element is not in the map.
+ */
+function getElementTypeInfo(element: string): ElementTypeInfo {
+  return (
+    ELEMENT_TYPE_MAP[element] ?? {
+      htmlElement: "HTMLDivElement",
+      htmlAttributes: "React.HTMLAttributes<HTMLDivElement>",
+    }
+  )
+}
+
+/* ── Name utilities ────────────────────────────────────────────── */
+
+/**
+ * Converts a kebab-case or space-separated string to PascalCase.
+ * e.g. "my-button" -> "MyButton", "alert dialog" -> "AlertDialog"
+ */
+export function toPascalCase(str: string): string {
+  return str
+    .replace(/[^a-zA-Z0-9]+(.)?/g, (_, char: string | undefined) =>
+      char ? char.toUpperCase() : "",
+    )
+    .replace(/^(.)/, (_, char: string) => char.toUpperCase())
+}
+
+/**
+ * Converts a kebab-case or space-separated string to camelCase.
+ * e.g. "my-button" -> "myButton", "alert dialog" -> "alertDialog"
+ */
+export function toCamelCase(str: string): string {
+  const pascal = toPascalCase(str)
+  return pascal.charAt(0).toLowerCase() + pascal.slice(1)
+}
+
+/* ── Main generators ───────────────────────────────────────────── */
+
+/**
+ * Entry point: routes to edit mode or from-scratch based on whether
+ * originalSource is provided.
  */
 export function generateComponentCode(options: GenerateOptions): string {
+  if (options.originalSource) {
+    return generateFromExisting(options)
+  }
+  return generateFromScratch(options)
+}
+
+/* ── Edit mode: modify existing source ─────────────────────────── */
+
+/**
+ * Takes an existing component source and injects user edits:
+ * - Custom classes into cva base / cn() / className
+ * - Custom variant definitions into cva variants block
+ * - Sub-component removal via comment markers
+ * - Header comment with generation info
+ */
+function generateFromExisting(options: GenerateOptions): string {
   const {
     originalSource,
     customClasses,
     customVariantDefs,
-    activeSubComponents,
     componentName,
   } = options
+
+  if (!originalSource) return ""
 
   const hasCustomClasses = Object.values(customClasses).some(
     (classes) => classes.length > 0,
@@ -47,12 +154,12 @@ export function generateComponentCode(options: GenerateOptions): string {
 
   let output = originalSource
 
-  // ── Inject custom classes into the root className / cva base ───
+  // Inject custom classes into the root className / cva base
   if (hasCustomClasses) {
     output = injectCustomClasses(output, customClasses)
   }
 
-  // ── Inject custom variant definitions into cva variants block ──
+  // Inject custom variant definitions into cva variants block
   if (hasCustomVariants) {
     output = injectCustomVariants(output, customVariantDefs)
   }
@@ -60,12 +167,309 @@ export function generateComponentCode(options: GenerateOptions): string {
   return header + output
 }
 
-/* ── Class injection ───────────────────────────────────────────── */
+/* ── From-scratch generation ───────────────────────────────────── */
+
+/**
+ * Generates a complete component file from scratch following shadcn conventions:
+ * - forwardRef wrapping (configurable)
+ * - cva for variants (when variant defs exist)
+ * - cn() for class merging
+ * - Slot/asChild support (configurable)
+ * - Proper TypeScript interfaces extending HTML element types
+ * - Named exports with displayName
+ */
+export function generateFromScratch(options: GenerateOptions): string {
+  const {
+    componentName,
+    slug,
+    baseElement = "div",
+    customClasses,
+    customVariantDefs,
+    enableAsChild = false,
+    enableForwardRef = true,
+  } = options
+
+  const name = toPascalCase(componentName)
+  const variantsName = `${toCamelCase(componentName)}Variants`
+  const elementInfo = getElementTypeInfo(baseElement)
+  const hasVariants = customVariantDefs.length > 0
+  const rootClasses = customClasses["root"] ?? []
+
+  // ── Build imports ──────────────────────────────────────────────
+  const imports = buildImports({ enableAsChild, hasVariants })
+
+  // ── Build cva call (if variants exist) ─────────────────────────
+  const cvaBlock = hasVariants
+    ? buildCvaBlock(variantsName, rootClasses, customVariantDefs)
+    : ""
+
+  // ── Build interface ────────────────────────────────────────────
+  const interfaceBlock = buildInterface({
+    name,
+    variantsName,
+    elementInfo,
+    hasVariants,
+    enableAsChild,
+  })
+
+  // ── Build component ────────────────────────────────────────────
+  const componentBlock = enableForwardRef
+    ? buildForwardRefComponent({
+        name,
+        variantsName,
+        baseElement,
+        elementInfo,
+        rootClasses,
+        customVariantDefs,
+        hasVariants,
+        enableAsChild,
+      })
+    : buildFunctionComponent({
+        name,
+        variantsName,
+        baseElement,
+        rootClasses,
+        customVariantDefs,
+        hasVariants,
+        enableAsChild,
+      })
+
+  // ── Build exports ──────────────────────────────────────────────
+  const exportsBlock = hasVariants
+    ? `export { ${name}, ${variantsName} }`
+    : `export { ${name} }`
+
+  // ── Assemble ───────────────────────────────────────────────────
+  const sections = [
+    "// Generated by shadcn Playground",
+    "",
+    imports,
+    "",
+    ...(cvaBlock ? [cvaBlock, ""] : []),
+    interfaceBlock,
+    "",
+    componentBlock,
+    `${name}.displayName = "${name}"`,
+    "",
+    exportsBlock,
+    "",
+  ]
+
+  return sections.join("\n")
+}
+
+/* ── Import builder ────────────────────────────────────────────── */
+
+function buildImports(opts: {
+  enableAsChild: boolean
+  hasVariants: boolean
+}): string {
+  const lines: string[] = ['import * as React from "react"']
+
+  if (opts.enableAsChild) {
+    lines.push('import { Slot } from "@radix-ui/react-slot"')
+  }
+
+  if (opts.hasVariants) {
+    lines.push(
+      'import { cva, type VariantProps } from "class-variance-authority"',
+    )
+  }
+
+  lines.push("")
+  lines.push('import { cn } from "@/lib/utils"')
+
+  return lines.join("\n")
+}
+
+/* ── CVA block builder ─────────────────────────────────────────── */
+
+function buildCvaBlock(
+  variantsName: string,
+  rootClasses: string[],
+  customVariantDefs: CustomVariantDef[],
+): string {
+  const baseClasses = rootClasses.length > 0 ? rootClasses.join(" ") : ""
+
+  const variantGroups = customVariantDefs
+    .filter((def) => def.type === "variant")
+    .map((def) => {
+      const optionEntries = def.options
+        .map((opt) => `        ${opt}: "",`)
+        .join("\n")
+      return `      ${def.name}: {\n${optionEntries}\n      },`
+    })
+
+  const booleanGroups = customVariantDefs
+    .filter((def) => def.type === "boolean")
+    .map((def) => {
+      return `      ${def.name}: {\n        true: "",\n        false: "",\n      },`
+    })
+
+  const allGroups = [...variantGroups, ...booleanGroups].join("\n")
+
+  const defaultEntries = customVariantDefs
+    .map((def) => {
+      const val = def.type === "boolean" ? "false" : def.defaultValue
+      return `      ${def.name}: "${val}",`
+    })
+    .join("\n")
+
+  return `const ${variantsName} = cva(
+  "${baseClasses}",
+  {
+    variants: {
+${allGroups}
+    },
+    defaultVariants: {
+${defaultEntries}
+    },
+  }
+)`
+}
+
+/* ── Interface builder ─────────────────────────────────────────── */
+
+function buildInterface(opts: {
+  name: string
+  variantsName: string
+  elementInfo: ElementTypeInfo
+  hasVariants: boolean
+  enableAsChild: boolean
+}): string {
+  const extensions = [opts.elementInfo.htmlAttributes]
+  if (opts.hasVariants) {
+    extensions.push(`VariantProps<typeof ${opts.variantsName}>`)
+  }
+
+  const extendClause = extensions
+    .map((ext, i) => (i === 0 ? `  extends ${ext}` : `    ${ext}`))
+    .join(",\n")
+
+  const asChildProp = opts.enableAsChild ? "\n  asChild?: boolean" : ""
+
+  return `export interface ${opts.name}Props
+${extendClause} {${asChildProp}
+}`
+}
+
+/* ── forwardRef component builder ──────────────────────────────── */
+
+function buildForwardRefComponent(opts: {
+  name: string
+  variantsName: string
+  baseElement: string
+  elementInfo: ElementTypeInfo
+  rootClasses: string[]
+  customVariantDefs: CustomVariantDef[]
+  hasVariants: boolean
+  enableAsChild: boolean
+}): string {
+  const variantPropNames = opts.customVariantDefs.map((def) => def.name)
+  const destructured = buildDestructuredProps(
+    variantPropNames,
+    opts.enableAsChild,
+  )
+  const classNameExpr = buildClassNameExpr(opts)
+  const compExpr = opts.enableAsChild
+    ? `    const Comp = asChild ? Slot : "${opts.baseElement}"\n`
+    : ""
+  const tag = opts.enableAsChild ? "Comp" : `"${opts.baseElement}"`
+
+  return `const ${opts.name} = React.forwardRef<${opts.elementInfo.htmlElement}, ${opts.name}Props>(
+  (${destructured}, ref) => {
+${compExpr}    return (
+      <${tag === `"${opts.baseElement}"` ? opts.baseElement : "Comp"}
+        className={${classNameExpr}}
+        ref={ref}
+        {...props}
+      />
+    )
+  }
+)`
+}
+
+/* ── Function component builder (no forwardRef) ────────────────── */
+
+function buildFunctionComponent(opts: {
+  name: string
+  variantsName: string
+  baseElement: string
+  rootClasses: string[]
+  customVariantDefs: CustomVariantDef[]
+  hasVariants: boolean
+  enableAsChild: boolean
+}): string {
+  const variantPropNames = opts.customVariantDefs.map((def) => def.name)
+  const destructured = buildDestructuredProps(
+    variantPropNames,
+    opts.enableAsChild,
+  )
+  const classNameExpr = buildClassNameExpr(opts)
+  const compExpr = opts.enableAsChild
+    ? `  const Comp = asChild ? Slot : "${opts.baseElement}"\n`
+    : ""
+  const tag = opts.enableAsChild ? "Comp" : opts.baseElement
+
+  return `function ${opts.name}(${destructured}) {
+${compExpr}  return (
+    <${tag}
+      className={${classNameExpr}}
+      {...props}
+    />
+  )
+}`
+}
+
+/* ── Shared component helpers ──────────────────────────────────── */
+
+/**
+ * Builds the destructured props string for the component function.
+ * e.g. "{ className, variant, size, asChild = false, ...props }"
+ */
+function buildDestructuredProps(
+  variantPropNames: string[],
+  enableAsChild: boolean,
+): string {
+  const parts: string[] = ["className"]
+  parts.push(...variantPropNames)
+  if (enableAsChild) {
+    parts.push("asChild = false")
+  }
+  parts.push("...props")
+  return `{ ${parts.join(", ")} }`
+}
+
+/**
+ * Builds the className expression for JSX.
+ * Uses cva + cn when variants exist, or plain cn otherwise.
+ */
+function buildClassNameExpr(opts: {
+  variantsName: string
+  rootClasses: string[]
+  customVariantDefs: CustomVariantDef[]
+  hasVariants: boolean
+}): string {
+  if (opts.hasVariants) {
+    const variantArgs = opts.customVariantDefs
+      .map((def) => def.name)
+      .join(", ")
+    return `cn(${opts.variantsName}({ ${variantArgs}, className }))`
+  }
+
+  // No variants — use cn with base classes
+  if (opts.rootClasses.length > 0) {
+    return `cn("${opts.rootClasses.join(" ")}", className)`
+  }
+
+  return `cn(className)`
+}
+
+/* ── Class injection (edit mode) ───────────────────────────────── */
 
 /**
  * Injects custom classes into the component source. For "root" classes,
- * appends them to the first cva() base string or the first cn() /
- * className occurrence.
+ * appends them to the first cva() base string, cn() call, or className.
  */
 function injectCustomClasses(
   source: string,
@@ -73,7 +477,6 @@ function injectCustomClasses(
 ): string {
   let output = source
 
-  // Handle "root" element classes
   const rootClasses = customClasses["root"]
   if (rootClasses && rootClasses.length > 0) {
     const classString = rootClasses.join(" ")
@@ -82,7 +485,9 @@ function injectCustomClasses(
     const cvaBaseMatch = /cva\(\s*"([^"]*)"/.exec(output)
     if (cvaBaseMatch) {
       const existingBase = cvaBaseMatch[1]
-      const newBase = `${existingBase} ${classString}`
+      const newBase = existingBase
+        ? `${existingBase} ${classString}`
+        : classString
       output = output.replace(
         `cva("${existingBase}"`,
         `cva("${newBase}"`,
@@ -94,7 +499,9 @@ function injectCustomClasses(
     const cnMatch = /className=\{cn\(\s*"([^"]*)"/.exec(output)
     if (cnMatch) {
       const existingCn = cnMatch[1]
-      const newCn = `${existingCn} ${classString}`
+      const newCn = existingCn
+        ? `${existingCn} ${classString}`
+        : classString
       output = output.replace(
         `className={cn("${existingCn}"`,
         `className={cn("${newCn}"`,
@@ -102,14 +509,13 @@ function injectCustomClasses(
       return output
     }
 
-    // Strategy 3: Inject into a plain className string
+    // Strategy 3: Wrap a plain className in cn() with the new classes
     const classNameMatch = /className="([^"]*)"/.exec(output)
     if (classNameMatch) {
       const existingClass = classNameMatch[1]
-      const newClass = `${existingClass} ${classString}`
       output = output.replace(
         `className="${existingClass}"`,
-        `className="${newClass}"`,
+        `className={cn("${existingClass} ${classString}")}`,
       )
     }
   }
@@ -117,12 +523,10 @@ function injectCustomClasses(
   return output
 }
 
-/* ── Variant injection ─────────────────────────────────────────── */
+/* ── Variant injection (edit mode) ─────────────────────────────── */
 
 /**
  * Injects custom variant definitions into the cva() variants block.
- * If a cva() call exists with a variants block, appends the new variants.
- * If cva() exists without a variants block, this is a no-op (rare case).
  */
 function injectCustomVariants(
   source: string,
@@ -130,25 +534,20 @@ function injectCustomVariants(
 ): string {
   let output = source
 
-  // Find the variants block inside cva()
-  const variantsBlockStart = findVariantsBlockEnd(output)
-  if (variantsBlockStart === -1) {
-    // No variants block found — try to create one inside cva()
+  const variantsBlockEnd = findVariantsBlockEnd(output)
+  if (variantsBlockEnd === -1) {
     return injectVariantsBlock(output, customVariantDefs)
   }
 
-  // Build the new variant entries
   const variantEntries = customVariantDefs
     .map((def) => formatVariantEntry(def))
     .join("")
 
-  // Insert before the closing brace of the variants block
   output =
-    output.slice(0, variantsBlockStart) +
+    output.slice(0, variantsBlockEnd) +
     variantEntries +
-    output.slice(variantsBlockStart)
+    output.slice(variantsBlockEnd)
 
-  // Also inject into defaultVariants
   output = injectDefaultVariants(output, customVariantDefs)
 
   return output
@@ -172,9 +571,8 @@ function findVariantsBlockEnd(source: string): number {
     if (char === "{") depth++
     else if (char === "}") depth--
 
-    if (depth === 0) return i // position of the closing }
+    if (depth === 0) return i
 
-    // Skip string literals
     if (char === '"' || char === "'" || char === "`") {
       i = skipString(source, i, char)
       continue
@@ -194,7 +592,6 @@ function injectVariantsBlock(
   source: string,
   defs: CustomVariantDef[],
 ): string {
-  // Find `cva("...",` or `cva("..."` and look for the config object
   const cvaMatch = /cva\(\s*"[^"]*"\s*,\s*\{/.exec(source)
   if (!cvaMatch) return source
 
