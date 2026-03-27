@@ -900,29 +900,30 @@ export function VisualEditor({
           </ControlSection>
         </div>
 
-        {/* ── Applied classes ─────────────────────────────── */}
-        <div className="border-t px-3 py-3">
-          <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-            Applied classes
-          </p>
-          <div className="flex flex-wrap gap-1">
-            {allClasses.length === 0 && (
-              <span className="text-xs text-muted-foreground">
-                No classes applied
-              </span>
-            )}
-            {allClasses.map((cls) => (
-              <Badge
-                key={cls}
-                variant="secondary"
-                className="h-5 text-[10px]"
-              >
-                {cls}
-              </Badge>
-            ))}
-          </div>
-        </div>
       </ScrollArea>
+
+      {/* ── Applied classes (pinned to bottom) ──────────── */}
+      <div className="max-h-[200px] shrink-0 overflow-auto border-t px-3 py-3">
+        <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          Applied classes
+        </p>
+        <div className="flex flex-wrap gap-1">
+          {allClasses.length === 0 && (
+            <span className="text-xs text-muted-foreground">
+              No classes applied
+            </span>
+          )}
+          {allClasses.map((cls) => (
+            <Badge
+              key={cls}
+              variant="secondary"
+              className="h-5 text-[10px]"
+            >
+              {cls}
+            </Badge>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
