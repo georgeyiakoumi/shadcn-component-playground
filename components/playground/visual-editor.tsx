@@ -1000,28 +1000,124 @@ export function VisualEditor({
 
       </ScrollArea>
 
-      {/* ── Applied classes (pinned to bottom) ──────────── */}
-      <div className="max-h-[200px] shrink-0 overflow-auto border-t px-3 py-3">
-        <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-          Applied classes
-        </p>
-        <div className="flex flex-wrap gap-1">
-          {allClasses.length === 0 && (
-            <span className="text-xs text-muted-foreground">
-              No classes applied
-            </span>
-          )}
-          {allClasses.map((cls) => (
-            <Badge
-              key={cls}
-              variant="secondary"
-              className="h-5 text-[10px]"
-            >
-              {cls}
-            </Badge>
-          ))}
-        </div>
+      {/* ── Applied classes (pinned to bottom, collapsible) ── */}
+      <AppliedClassesSection classes={allClasses} />
+    </div>
+  )
+}
+
+/* ── Applied classes with drag-to-resize ──────────────────────────── */
+
+const MIN_HEIGHT = 28 // header only
+const DEFAULT_HEIGHT = 120
+const MAX_HEIGHT = 300
+
+function AppliedClassesSection({ classes }: { classes: string[] }) {
+  const [height, setHeight] = React.useState(DEFAULT_HEIGHT)
+  const [isDragging, setIsDragging] = React.useState(false)
+  const startY = React.useRef(0)
+  const startHeight = React.useRef(0)
+  const collapsed = height <= MIN_HEIGHT + 4
+
+  const handleMouseDown = React.useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault()
+      setIsDragging(true)
+      startY.current = e.clientY
+      startHeight.current = height
+    },
+    [height],
+  )
+
+  React.useEffect(() => {
+    if (!isDragging) return
+
+    const handleMouseMove = (e: MouseEvent) => {
+      // Dragging up = increasing height (clientY decreases)
+      const delta = startY.current - e.clientY
+      const newHeight = Math.min(
+        MAX_HEIGHT,
+        Math.max(MIN_HEIGHT, startHeight.current + delta),
+      )
+      setHeight(newHeight)
+    }
+
+    const handleMouseUp = () => {
+      setIsDragging(false)
+    }
+
+    document.addEventListener("mousemove", handleMouseMove)
+    document.addEventListener("mouseup", handleMouseUp)
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove)
+      document.removeEventListener("mouseup", handleMouseUp)
+    }
+  }, [isDragging])
+
+  const toggleCollapse = () => {
+    setHeight(collapsed ? DEFAULT_HEIGHT : MIN_HEIGHT)
+  }
+
+  return (
+    <div
+      className="shrink-0 border-t"
+      style={{ height: `${height}px` }}
+    >
+      {/* ── Drag handle ──────────────────────────────────── */}
+      <div
+        className={cn(
+          "flex h-1.5 cursor-row-resize items-center justify-center",
+          isDragging && "bg-blue-500/10",
+        )}
+        onMouseDown={handleMouseDown}
+      >
+        <div className="h-0.5 w-8 rounded-full bg-muted-foreground/30" />
       </div>
+
+      {/* ── Header ───────────────────────────────────────── */}
+      <button
+        type="button"
+        className="flex w-full items-center gap-1 px-3 py-1"
+        onClick={toggleCollapse}
+      >
+        <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          Applied classes
+        </span>
+        <Badge
+          variant="secondary"
+          className="ml-1 h-4 px-1 text-[9px]"
+        >
+          {classes.length}
+        </Badge>
+        <div className="flex-1" />
+        {collapsed ? (
+          <ChevronRight className="size-3 text-muted-foreground" />
+        ) : (
+          <ChevronDown className="size-3 text-muted-foreground" />
+        )}
+      </button>
+
+      {/* ── Class badges ─────────────────────────────────── */}
+      {!collapsed && (
+        <div className="overflow-auto px-3 pb-2" style={{ maxHeight: `${height - 36}px` }}>
+          <div className="flex flex-wrap gap-1">
+            {classes.length === 0 && (
+              <span className="text-xs text-muted-foreground">
+                No classes applied
+              </span>
+            )}
+            {classes.map((cls) => (
+              <Badge
+                key={cls}
+                variant="secondary"
+                className="h-5 text-[10px]"
+              >
+                {cls}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
