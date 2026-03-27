@@ -105,19 +105,72 @@ export default function CustomComponentPage() {
     [],
   )
 
+  // Check if a tag is a sub-component name (PascalCase) rather than an HTML element
+  const subComponentNames = React.useMemo(
+    () => new Set(componentTree?.subComponents.map((sc) => sc.name) ?? []),
+    [componentTree],
+  )
+
   // Render the component tree as live JSX for the canvas preview
   const renderTreePreview = React.useCallback(
     (node: ElementNode): React.ReactNode => {
-      const Tag = node.tag as keyof React.JSX.IntrinsicElements
-      const className = node.classes.length > 0 ? node.classes.join(" ") : undefined
+      const isSubComponent = subComponentNames.has(node.tag)
+      // Sub-components render as a labelled div placeholder
+      const tag = isSubComponent ? "div" : node.tag
+      const className = [
+        ...node.classes,
+        ...(isSubComponent
+          ? ["border", "border-dashed", "border-blue-300", "rounded-md", "p-2", "bg-blue-50/50", "dark:bg-blue-950/30"]
+          : []),
+      ]
+        .filter(Boolean)
+        .join(" ") || undefined
+
+      const children: React.ReactNode[] = []
+
+      // Sub-component label
+      if (isSubComponent) {
+        children.push(
+          React.createElement(
+            "span",
+            {
+              key: "__label__",
+              className: "text-[10px] font-mono text-blue-500 block mb-1",
+            },
+            `<${node.tag} />`,
+          ),
+        )
+      }
+
+      // Text content
+      if (node.text) {
+        children.push(node.text)
+      }
+
+      // Child elements
+      children.push(...node.children.map(renderTreePreview))
+
+      // If nothing to show, render a min-height placeholder so element is visible
+      if (children.length === 0 && !isSubComponent) {
+        children.push(
+          React.createElement(
+            "span",
+            {
+              key: "__empty__",
+              className: "text-[10px] text-muted-foreground/40 select-none",
+            },
+            `<${node.tag}>`,
+          ),
+        )
+      }
+
       return React.createElement(
-        Tag,
+        tag as keyof React.JSX.IntrinsicElements,
         { key: node.id, className },
-        node.text || null,
-        ...node.children.map(renderTreePreview),
+        ...children,
       )
     },
-    [],
+    [subComponentNames],
   )
 
   const customPreview = componentTree
