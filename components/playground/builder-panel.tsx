@@ -58,6 +58,7 @@ import {
   updateNodeText,
   moveNode,
   findNodeByTag,
+  toDataSlot,
 } from "@/lib/component-tree"
 import type { CustomVariantDef } from "@/lib/component-state"
 
@@ -98,6 +99,8 @@ type PropType = "string" | "number" | "boolean" | "ReactNode"
 interface BuilderPanelProps {
   tree: ComponentTree
   onTreeChange: (tree: ComponentTree) => void
+  /** Hide assembly tab and default to main component (for Define mode) */
+  hideAssembly?: boolean
   className?: string
 }
 
@@ -106,10 +109,13 @@ interface BuilderPanelProps {
 export function BuilderPanel({
   tree,
   onTreeChange,
+  hideAssembly,
   className,
 }: BuilderPanelProps) {
   // null = assembly view (root), "main" = main component, sc id = sub-component
-  const [focusedId, setFocusedId] = React.useState<string | null>(null)
+  const [focusedId, setFocusedId] = React.useState<string | null>(
+    hideAssembly ? "main" : null,
+  )
   const [structureOpen, setStructureOpen] = React.useState(true)
   const [propsOpen, setPropsOpen] = React.useState(true)
   const [variantsOpen, setVariantsOpen] = React.useState(true)
@@ -171,18 +177,20 @@ export function BuilderPanel({
     <div className={cn("flex flex-1 flex-col border-l bg-background", className)}>
       {/* ── Focus selector: row 1 (Assembly + Main) ─────────── */}
       <div className="flex items-center gap-1 border-b px-2 py-1.5">
-        <button
-          type="button"
-          onClick={() => setFocusedId(null)}
-          className={cn(
-            "shrink-0 rounded-md px-2 py-1 text-[10px] font-medium transition-colors",
-            focusedId === null
-              ? "bg-blue-500/10 text-blue-500"
-              : "text-muted-foreground hover:bg-muted/50",
-          )}
-        >
-          Assembly
-        </button>
+        {!hideAssembly && (
+          <button
+            type="button"
+            onClick={() => setFocusedId(null)}
+            className={cn(
+              "shrink-0 rounded-md px-2 py-1 text-[10px] font-medium transition-colors",
+              focusedId === null
+                ? "bg-blue-500/10 text-blue-500"
+                : "text-muted-foreground hover:bg-muted/50",
+            )}
+          >
+            Assembly
+          </button>
+        )}
         <button
           type="button"
           onClick={() => setFocusedId("main")}
@@ -1496,6 +1504,7 @@ function SubComponentsEditor({
       id: `sc_${Date.now().toString(36)}`,
       name: fullName,
       baseElement,
+      dataSlot: toDataSlot(fullName),
       tree: createElementNode(baseElement),
       classes: classes
         .split(/\s+/)
@@ -1634,7 +1643,7 @@ function SubComponentsEditor({
             <div className="space-y-1.5">
               <Label className="text-xs">Name</Label>
               <Input
-                placeholder={`e.g. ${parentName}Header`}
+                placeholder="e.g. Header, Content, Footer"
                 value={subName}
                 onChange={(e) => setSubName(e.target.value)}
                 className="h-8 text-xs"

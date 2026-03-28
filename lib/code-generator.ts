@@ -728,7 +728,7 @@ export function generateFromTree(tree: ComponentTree): string {
       ? `cn("${tree.tree.classes.join(" ")}", className)`
       : "cn(className)"
 
-  const jsxBody = renderElementTree(tree.tree, 3, true)
+  const jsxBody = renderElementTree(tree.tree, 3, true, tree.dataSlot)
 
   sections.push(
     `const ${name} = React.forwardRef<${elementInfo.htmlElement}, ${name}Props>(
@@ -768,6 +768,7 @@ function renderElementTree(
   node: ElementNode,
   indent: number,
   isRoot: boolean,
+  dataSlot?: string,
 ): string {
   const pad = " ".repeat(indent * 2)
   const tag = node.tag
@@ -778,6 +779,9 @@ function renderElementTree(
   // Build attributes
   const attrs: string[] = []
   if (isRoot) {
+    if (dataSlot) {
+      attrs.push(`data-slot="${dataSlot}"`)
+    }
     attrs.push("ref={ref}")
     if (classStr) {
       attrs.push(`className={cn("${classStr}", className)}`)
@@ -891,7 +895,7 @@ function generateSubComponent(
   ]
 
   // Render JSX body from sub-component's own tree
-  const jsxBody = renderElementTree(sub.tree, 2, true)
+  const jsxBody = renderElementTree(sub.tree, 2, true, sub.dataSlot)
 
   const classNameExpr = hasVariants
     ? `cn(${variantsName}({ ${variantPropNames.join(", ")}, className }))`

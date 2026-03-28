@@ -25,6 +25,7 @@ export interface SubComponentDef {
   id: string
   name: string
   baseElement: string
+  dataSlot: string
   tree: ElementNode
   classes: string[]
   props: ComponentProp[]
@@ -34,6 +35,7 @@ export interface SubComponentDef {
 export interface ComponentTree {
   name: string
   baseElement: string
+  dataSlot: string
   /** Component definition — the internal structure of the component itself.
    *  This is what gets exported as .tsx code.
    *  Typically simple: just the root element with className + {children} pass-through. */
@@ -67,6 +69,14 @@ export function createElementNode(tag: string): ElementNode {
   }
 }
 
+/** Convert PascalCase to kebab-case for data-slot values */
+export function toDataSlot(name: string): string {
+  return name
+    .replace(/([a-z])([A-Z])/g, "$1-$2")
+    .replace(/([A-Z])([A-Z][a-z])/g, "$1-$2")
+    .toLowerCase()
+}
+
 export function createComponentTree(
   name: string,
   baseElement: string,
@@ -74,6 +84,7 @@ export function createComponentTree(
   return {
     name,
     baseElement,
+    dataSlot: toDataSlot(name),
     tree: createElementNode(baseElement),
     assemblyTree: createElementNode(baseElement),
     props: [],
@@ -87,9 +98,11 @@ export function createSubComponent(
   name: string,
   baseElement: string,
 ): SubComponentDef {
+  const fullName = `${parentName}${name}`
   return {
     id: generateId(),
-    name: `${parentName}${name}`,
+    name: fullName,
+    dataSlot: toDataSlot(fullName),
     baseElement,
     tree: createElementNode(baseElement),
     classes: [],

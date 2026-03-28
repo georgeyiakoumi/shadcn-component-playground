@@ -1295,9 +1295,9 @@ function AppliedClassesSection({ classes }: { classes: string[] }) {
                 No classes applied
               </span>
             )}
-            {classes.map((cls) => (
+            {classes.map((cls, idx) => (
               <Badge
-                key={cls}
+                key={`${cls}-${idx}`}
                 variant="secondary"
                 className="h-5 text-[10px]"
               >

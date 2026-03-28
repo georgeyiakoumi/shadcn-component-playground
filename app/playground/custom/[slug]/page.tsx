@@ -163,8 +163,10 @@ export default function CustomComponentPage() {
   const renderSubComponentPreview = React.useCallback(
     (sc: import("@/lib/component-tree").SubComponentDef, key: string): React.ReactNode => {
       const tag = sc.baseElement as keyof React.JSX.IntrinsicElements
-      const className = sc.classes.length > 0
-        ? sc.classes.join(" ")
+      // Use classes from the definition tree root (these are the styled classes)
+      const allClasses = [...sc.tree.classes, ...sc.classes].filter(Boolean)
+      const className = allClasses.length > 0
+        ? allClasses.join(" ")
         : undefined
 
       const children: React.ReactNode[] = []
@@ -199,9 +201,18 @@ export default function CustomComponentPage() {
     [subComponentMap],
   )
 
-  const customPreview = componentTree
-    ? renderTreePreview(componentTree.assemblyTree)
-    : null
+  const customPreview = React.useMemo(() => {
+    if (!componentTree) return null
+    // Apply main component definition classes to the assembly root for preview
+    const assemblyWithClasses = {
+      ...componentTree.assemblyTree,
+      classes: [
+        ...componentTree.tree.classes,
+        ...componentTree.assemblyTree.classes,
+      ].filter(Boolean),
+    }
+    return renderTreePreview(assemblyWithClasses)
+  }, [componentTree, renderTreePreview])
 
   if (!userComponent) {
     return (
@@ -318,36 +329,13 @@ export default function CustomComponentPage() {
 
         {/* ═══════════ DEFINE MODE ═══════════════════════════════ */}
         {mode === "define" && hasTree && (
-          <>
-            {/* Outline */}
-            <div
-              className="flex shrink-0 flex-col border-r"
-              style={{ width: `${structurePanelWidth}px` }}
-            >
-              <div className="flex items-center gap-1.5 border-b px-3 py-2">
-                <span className="text-xs font-medium text-muted-foreground">Outline</span>
-              </div>
-              <div className="flex-1 overflow-auto">
-                <StructurePanel slug={slug} customTree={componentTree} onNodeClick={handleOutlineNodeClick} />
-              </div>
-            </div>
-
-            <DragHandle
-              width={structurePanelWidth}
-              minWidth={150}
-              maxWidth={350}
-              onWidthChange={setStructurePanelWidth}
-              side="left"
+          <div className="flex flex-1">
+            <BuilderPanel
+              tree={componentTree}
+              onTreeChange={handleTreeChange}
+              hideAssembly
             />
-
-            {/* Builder panel — fills remaining space */}
-            <div className="flex flex-1">
-              <BuilderPanel
-                tree={componentTree}
-                onTreeChange={handleTreeChange}
-              />
-            </div>
-          </>
+          </div>
         )}
 
         {/* ═══════════ PREVIEW MODE ═════════════════════════════ */}
