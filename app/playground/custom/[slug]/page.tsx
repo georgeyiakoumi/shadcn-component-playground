@@ -41,7 +41,9 @@ export default function CustomComponentPage() {
   const [theme, setTheme] = React.useState<"light" | "dark">("light")
   const [breakpoint, setBreakpoint] = React.useState<Breakpoint>("2xl")
   const [propValues, setPropValues] = React.useState<Record<string, string>>({})
-  const [mode, setMode] = React.useState<PlaygroundMode>("inspect")
+  const [mode, setMode] = React.useState<PlaygroundMode>(
+    userComponent?.tree ? "define" : "inspect",
+  )
   const [selectedElement, setSelectedElement] =
     React.useState<ElementInfo | null>(null)
   const [structurePanelWidth, setStructurePanelWidth] = React.useState(200)
@@ -279,87 +281,174 @@ export default function CustomComponentPage() {
         propSelectors={propSelectors}
         mode={mode}
         onModeChange={setMode}
+        isCustom={hasTree}
       />
 
       {/* ── Main content area ────────────────────────────────── */}
       <div ref={contentRef} className="flex flex-1 overflow-hidden">
-        {/* ── Structure / Outline panel ────────────────────────── */}
-        <div
-          className="flex shrink-0 flex-col border-r"
-          style={{ width: `${structurePanelWidth}px` }}
-        >
-          <div className="flex items-center gap-1.5 border-b px-3 py-2">
-            <span className="text-xs font-medium text-muted-foreground">Outline</span>
-          </div>
-          <div className="flex-1 overflow-auto">
-            <StructurePanel slug={slug} customTree={componentTree} onNodeClick={handleOutlineNodeClick} />
-          </div>
-        </div>
 
-        {/* ── Structure panel resize handle ───────────────────── */}
-        <DragHandle
-          width={structurePanelWidth}
-          minWidth={150}
-          maxWidth={350}
-          onWidthChange={setStructurePanelWidth}
-          side="left"
-        />
+        {/* ═══════════ DEFINE MODE ═══════════════════════════════ */}
+        {mode === "define" && hasTree && (
+          <>
+            {/* Outline */}
+            <div
+              className="flex shrink-0 flex-col border-r"
+              style={{ width: `${structurePanelWidth}px` }}
+            >
+              <div className="flex items-center gap-1.5 border-b px-3 py-2">
+                <span className="text-xs font-medium text-muted-foreground">Outline</span>
+              </div>
+              <div className="flex-1 overflow-auto">
+                <StructurePanel slug={slug} customTree={componentTree} onNodeClick={handleOutlineNodeClick} />
+              </div>
+            </div>
 
-        {/* ── Code panel ─────────────────────────────────────── */}
-        <div
-          className="relative flex shrink-0 flex-col border-r"
-          style={{ width: `${codePanelWidth}px` }}
-        >
-          <CodePanel code={displaySource} highlightLine={highlightLine} />
-        </div>
-
-        {/* ── Code panel resize handle ────────────────────────── */}
-        <DragHandle
-          width={codePanelWidth}
-          minWidth={250}
-          maxWidth={
-            (contentRef.current?.offsetWidth ?? 1200)
-            - structurePanelWidth
-            - 200
-            - (hasTree || mode === "edit" ? 320 : 0)
-          }
-          onWidthChange={setCodePanelWidth}
-          side="left"
-        />
-
-        {/* ── Centre: Component preview canvas ─────────────────── */}
-        <ComponentCanvas
-          slug={slug}
-          componentName={userComponent.name}
-          theme={theme}
-          breakpoint={breakpoint}
-          previewProps={previewProps}
-          customPreview={customPreview}
-          mode={mode}
-          onElementSelect={setSelectedElement}
-          onElementHover={() => {}}
-        />
-
-        {/* ── Right panel: Builder (tree) or generic edit panel ── */}
-        {hasTree ? (
-          <div
-            className="flex shrink-0"
-            style={{ width: "320px" }}
-          >
-            <BuilderPanel
-              tree={componentTree}
-              onTreeChange={handleTreeChange}
+            <DragHandle
+              width={structurePanelWidth}
+              minWidth={150}
+              maxWidth={350}
+              onWidthChange={setStructurePanelWidth}
+              side="left"
             />
-          </div>
-        ) : (
-          <RightPanel
-            isOpen={mode === "edit"}
-            source={source}
-            isCompound={false}
-            selectedElement={selectedElement}
-            onClassChange={handleClassChange}
-            onDeselect={handleDeselect}
-          />
+
+            {/* Builder panel — fills remaining space */}
+            <div className="flex flex-1">
+              <BuilderPanel
+                tree={componentTree}
+                onTreeChange={handleTreeChange}
+              />
+            </div>
+          </>
+        )}
+
+        {/* ═══════════ PREVIEW MODE ═════════════════════════════ */}
+        {mode === "preview" && hasTree && (
+          <>
+            {/* Outline */}
+            <div
+              className="flex shrink-0 flex-col border-r"
+              style={{ width: `${structurePanelWidth}px` }}
+            >
+              <div className="flex items-center gap-1.5 border-b px-3 py-2">
+                <span className="text-xs font-medium text-muted-foreground">Outline</span>
+              </div>
+              <div className="flex-1 overflow-auto">
+                <StructurePanel slug={slug} customTree={componentTree} onNodeClick={handleOutlineNodeClick} />
+              </div>
+            </div>
+
+            <DragHandle
+              width={structurePanelWidth}
+              minWidth={150}
+              maxWidth={350}
+              onWidthChange={setStructurePanelWidth}
+              side="left"
+            />
+
+            {/* Code panel */}
+            <div
+              className="relative flex shrink-0 flex-col border-r"
+              style={{ width: `${codePanelWidth}px` }}
+            >
+              <CodePanel code={displaySource} highlightLine={highlightLine} />
+            </div>
+
+            <DragHandle
+              width={codePanelWidth}
+              minWidth={250}
+              maxWidth={
+                (contentRef.current?.offsetWidth ?? 1200)
+                - structurePanelWidth
+                - 200
+                - 320
+              }
+              onWidthChange={setCodePanelWidth}
+              side="left"
+            />
+
+            {/* Canvas */}
+            <ComponentCanvas
+              slug={slug}
+              componentName={userComponent.name}
+              theme={theme}
+              breakpoint={breakpoint}
+              previewProps={previewProps}
+              customPreview={customPreview}
+              mode="edit"
+              onElementSelect={setSelectedElement}
+              onElementHover={() => {}}
+            />
+
+            {/* Right panel: styling for focused sub-component */}
+            <RightPanel
+              isOpen
+              source={source}
+              isCompound={componentTree.subComponents.length > 0}
+              selectedElement={selectedElement}
+              onClassChange={handleClassChange}
+              onDeselect={handleDeselect}
+            />
+          </>
+        )}
+
+        {/* ═══════════ INSPECT/EDIT (non-tree components) ═══════ */}
+        {!hasTree && (
+          <>
+            <div
+              className="flex shrink-0 flex-col border-r"
+              style={{ width: `${structurePanelWidth}px` }}
+            >
+              <div className="flex items-center gap-1.5 border-b px-3 py-2">
+                <span className="text-xs font-medium text-muted-foreground">Outline</span>
+              </div>
+              <div className="flex-1 overflow-auto">
+                <StructurePanel slug={slug} onNodeClick={handleOutlineNodeClick} />
+              </div>
+            </div>
+
+            <DragHandle
+              width={structurePanelWidth}
+              minWidth={150}
+              maxWidth={350}
+              onWidthChange={setStructurePanelWidth}
+              side="left"
+            />
+
+            <div
+              className="relative flex shrink-0 flex-col border-r"
+              style={{ width: `${codePanelWidth}px` }}
+            >
+              <CodePanel code={displaySource} highlightLine={highlightLine} />
+            </div>
+
+            <DragHandle
+              width={codePanelWidth}
+              minWidth={250}
+              maxWidth={(contentRef.current?.offsetWidth ?? 1200) - structurePanelWidth - 200}
+              onWidthChange={setCodePanelWidth}
+              side="left"
+            />
+
+            <ComponentCanvas
+              slug={slug}
+              componentName={userComponent.name}
+              theme={theme}
+              breakpoint={breakpoint}
+              previewProps={previewProps}
+              mode={mode}
+              onElementSelect={setSelectedElement}
+              onElementHover={() => {}}
+            />
+
+            <RightPanel
+              isOpen={mode === "edit"}
+              source={source}
+              isCompound={false}
+              selectedElement={selectedElement}
+              onClassChange={handleClassChange}
+              onDeselect={handleDeselect}
+            />
+          </>
         )}
       </div>
 

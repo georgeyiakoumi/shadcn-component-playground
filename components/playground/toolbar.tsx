@@ -10,6 +10,7 @@ import {
   Sun,
   Eye,
   Pencil,
+  Layers,
 } from "lucide-react"
 import { ExportDialog } from "@/components/playground/export-dialog"
 
@@ -49,7 +50,7 @@ export const breakpoints: {
 
 /* ── Types ──────────────────────────────────────────────────────── */
 
-export type PlaygroundMode = "inspect" | "edit"
+export type PlaygroundMode = "inspect" | "edit" | "define" | "preview"
 
 export interface PropSelector {
   label: string
@@ -69,6 +70,8 @@ interface ToolbarProps {
   propSelectors?: PropSelector[]
   mode?: PlaygroundMode
   onModeChange?: (mode: PlaygroundMode) => void
+  /** When true, shows Define/Preview toggle instead of Inspect/Edit */
+  isCustom?: boolean
   className?: string
 }
 
@@ -85,6 +88,7 @@ export function PlaygroundToolbar({
   propSelectors,
   mode = "inspect",
   onModeChange,
+  isCustom,
   className,
 }: ToolbarProps) {
   const hasSelectors = propSelectors && propSelectors.length > 0
@@ -115,24 +119,49 @@ export function PlaygroundToolbar({
           <>
             <Separator orientation="vertical" className="mx-1.5 h-6" />
             <div className="flex items-center gap-0.5 rounded-md border p-0.5">
-              <Button
-                variant={mode === "inspect" ? "default" : "ghost"}
-                size="sm"
-                className="h-6 gap-1 px-2 text-xs"
-                onClick={() => onModeChange?.("inspect")}
-              >
-                <Eye className="size-3" />
-                Inspect
-              </Button>
-              <Button
-                variant={mode === "edit" ? "default" : "ghost"}
-                size="sm"
-                className="h-6 gap-1 px-2 text-xs"
-                onClick={() => onModeChange?.("edit")}
-              >
-                <Pencil className="size-3" />
-                Edit
-              </Button>
+              {isCustom ? (
+                <>
+                  <Button
+                    variant={mode === "define" ? "default" : "ghost"}
+                    size="sm"
+                    className="h-6 gap-1 px-2 text-xs"
+                    onClick={() => onModeChange?.("define")}
+                  >
+                    <Layers className="size-3" />
+                    Define
+                  </Button>
+                  <Button
+                    variant={mode === "preview" ? "default" : "ghost"}
+                    size="sm"
+                    className="h-6 gap-1 px-2 text-xs"
+                    onClick={() => onModeChange?.("preview")}
+                  >
+                    <Eye className="size-3" />
+                    Preview
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant={mode === "inspect" ? "default" : "ghost"}
+                    size="sm"
+                    className="h-6 gap-1 px-2 text-xs"
+                    onClick={() => onModeChange?.("inspect")}
+                  >
+                    <Eye className="size-3" />
+                    Inspect
+                  </Button>
+                  <Button
+                    variant={mode === "edit" ? "default" : "ghost"}
+                    size="sm"
+                    className="h-6 gap-1 px-2 text-xs"
+                    onClick={() => onModeChange?.("edit")}
+                  >
+                    <Pencil className="size-3" />
+                    Edit
+                  </Button>
+                </>
+              )}
             </div>
           </>
         )}
