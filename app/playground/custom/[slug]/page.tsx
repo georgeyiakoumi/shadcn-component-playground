@@ -3,6 +3,7 @@
 import * as React from "react"
 import { useParams, useRouter } from "next/navigation"
 
+import { cn } from "@/lib/utils"
 import { parseCvaVariants } from "@/lib/cva-parser"
 import { generateFromTree } from "@/lib/code-generator"
 import { ComponentEditProvider } from "@/lib/component-state"
@@ -235,6 +236,9 @@ export default function CustomComponentPage() {
   const previewProps: Record<string, string> | undefined =
     Object.keys(propValues).length > 0 ? propValues : undefined
 
+  // Track which sub-component is being styled in Preview mode
+  const [styledComponentId, setStyledComponentId] = React.useState<string | null>(null)
+
   const handleClassChange = React.useCallback((classes: string[]) => {
     setSelectedElement((prev) => {
       if (!prev) return null
@@ -244,6 +248,29 @@ export default function CustomComponentPage() {
       return { ...prev, currentClasses: classes }
     })
   }, [])
+
+  // Update classes on a specific component/sub-component in the tree
+  const handleTreeClassChange = React.useCallback(
+    (targetId: string, classes: string[]) => {
+      if (!componentTree) return
+      if (targetId === "main") {
+        const newTree = {
+          ...componentTree,
+          tree: { ...componentTree.tree, classes },
+        }
+        handleTreeChange(newTree)
+      } else {
+        const newTree = {
+          ...componentTree,
+          subComponents: componentTree.subComponents.map((sc) =>
+            sc.id === targetId ? { ...sc, tree: { ...sc.tree, classes } } : sc,
+          ),
+        }
+        handleTreeChange(newTree)
+      }
+    },
+    [componentTree, handleTreeChange],
+  )
 
   const handleDeselect = React.useCallback(() => {
     setSelectedElement(null)
@@ -324,7 +351,7 @@ export default function CustomComponentPage() {
         {/* ═══════════ PREVIEW MODE ═════════════════════════════ */}
         {mode === "preview" && hasTree && (
           <>
-            {/* Outline */}
+            {/* Outline + Assembly */}
             <div
               className="flex shrink-0 flex-col border-r"
               style={{ width: `${structurePanelWidth}px` }}
@@ -334,6 +361,18 @@ export default function CustomComponentPage() {
               </div>
               <div className="flex-1 overflow-auto">
                 <StructurePanel slug={slug} customTree={componentTree} onNodeClick={handleOutlineNodeClick} />
+
+                {/* Assembly tree for navigation */}
+                <div className="border-t px-4 py-3">
+                  <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                    Assembly
+                  </p>
+                  <AssemblyOutline
+                    tree={componentTree}
+                    onSelectComponent={setStyledComponentId}
+                    selectedId={styledComponentId}
+                  />
+                </div>
               </div>
             </div>
 
@@ -379,15 +418,84 @@ export default function CustomComponentPage() {
               onElementHover={() => {}}
             />
 
-            {/* Right panel: styling for focused sub-component */}
-            <RightPanel
-              isOpen
-              source={source}
-              isCompound={componentTree.subComponents.length > 0}
-              selectedElement={selectedElement}
-              onClassChange={handleClassChange}
-              onDeselect={handleDeselect}
-            />
+            {/* Right panel: styling per component/sub-component */}
+            <div className="flex w-[320px] shrink-0 flex-col border-l bg-background">
+              <div className="flex items-center gap-1.5 border-b px-3 py-2">
+                <span className="text-xs font-medium text-muted-foreground">Style</span>
+              </div>
+
+              {/* Component/sub-component pills */}
+              <div className="flex flex-wrap items-center gap-1 border-b px-2 py-1.5">
+                <button
+                  type="button"
+                  onClick={() => setStyledComponentId("main")}
+                  className={cn(
+                    "rounded-md px-2 py-0.5 text-[10px] font-medium transition-colors",
+                    styledComponentId === "main"
+                      ? "bg-blue-500/10 text-blue-500"
+                      : "text-muted-foreground hover:bg-muted/50",
+                  )}
+                >
+                  {componentTree.name}
+                </button>
+                {componentTree.subComponents.map((sc) => (
+                  <button
+                    key={sc.id}
+                    type="button"
+                    onClick={() => setStyledComponentId(sc.id)}
+                    className={cn(
+                      "rounded-md px-2 py-0.5 text-[10px] font-medium transition-colors",
+                      styledComponentId === sc.id
+                        ? "bg-blue-500/10 text-blue-500"
+                        : "text-muted-foreground hover:bg-muted/50",
+                    )}
+                  >
+                    {sc.name.replace(componentTree.name, "")}
+                  </button>
+                ))}
+              </div>
+
+              {/* Classes editor for selected component */}
+              <div className="flex-1 overflow-auto p-3">
+                {styledComponentId ? (
+                  <div className="space-y-3">
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                      {styledComponentId === "main"
+                        ? componentTree.name
+                        : componentTree.subComponents.find(
+                            (sc) => sc.id === styledComponentId,
+                          )?.name ?? ""}{" "}
+                      classes
+                    </p>
+                    <textarea
+                      className="w-full rounded-md border bg-muted/20 px-3 py-2 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      rows={4}
+                      placeholder="Enter Tailwind classes..."
+                      value={
+                        styledComponentId === "main"
+                          ? componentTree.tree.classes.join(" ")
+                          : componentTree.subComponents
+                              .find((sc) => sc.id === styledComponentId)
+                              ?.tree.classes.join(" ") ?? ""
+                      }
+                      onChange={(e) => {
+                        const classes = e.target.value
+                          .split(/\s+/)
+                          .filter(Boolean)
+                        handleTreeClassChange(styledComponentId, classes)
+                      }}
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      Classes are applied to the component&apos;s root element and exported to .tsx
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Select a component above to edit its styles.
+                  </p>
+                )}
+              </div>
+            </div>
           </>
         )}
 
@@ -455,5 +563,75 @@ export default function CustomComponentPage() {
       {/* ── Bottom: Status bar ──────────────────────────────────── */}
       <StatusBar source={source} />
     </ComponentEditProvider>
+  )
+}
+
+/* ── AssemblyOutline — clickable tree for navigating in Preview ───── */
+
+function AssemblyOutline({
+  tree,
+  onSelectComponent,
+  selectedId,
+}: {
+  tree: ComponentTree
+  onSelectComponent: (id: string) => void
+  selectedId: string | null
+}) {
+  const renderNode = (
+    node: import("@/lib/component-tree").ElementNode,
+    depth: number,
+  ): React.ReactNode => {
+    const subComponent = tree.subComponents.find((sc) => sc.name === node.tag)
+
+    if (subComponent) {
+      return (
+        <div key={node.id} style={{ paddingLeft: `${depth * 12}px` }}>
+          <button
+            type="button"
+            onClick={() => onSelectComponent(subComponent.id)}
+            className={cn(
+              "flex items-center gap-1 rounded px-1 py-0.5 text-[11px] font-mono transition-colors",
+              selectedId === subComponent.id
+                ? "bg-blue-500/10 text-blue-500"
+                : "text-blue-500/70 hover:bg-blue-500/5",
+            )}
+          >
+            &lt;{subComponent.name}&gt;
+          </button>
+        </div>
+      )
+    }
+
+    return (
+      <div key={node.id} style={{ paddingLeft: `${depth * 12}px` }}>
+        <span className="text-[11px] font-mono text-muted-foreground">
+          &lt;{node.tag}&gt;
+          {node.text && (
+            <span className="ml-1 text-foreground/50">
+              {node.text.slice(0, 15)}
+            </span>
+          )}
+        </span>
+        {node.children.map((child) => renderNode(child, depth + 1))}
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-0.5">
+      <button
+        type="button"
+        onClick={() => onSelectComponent("main")}
+        className={cn(
+          "flex items-center gap-1 rounded px-1 py-0.5 text-[11px] font-mono transition-colors",
+          selectedId === "main"
+            ? "bg-blue-500/10 text-blue-500"
+            : "text-blue-500/70 hover:bg-blue-500/5",
+        )}
+      >
+        &lt;{tree.name}&gt;
+      </button>
+      {tree.assemblyTree.children.map((child) => renderNode(child, 1))}
+    </div>
   )
 }
