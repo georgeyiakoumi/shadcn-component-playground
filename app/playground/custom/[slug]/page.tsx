@@ -28,6 +28,7 @@ import { DefineView } from "@/components/playground/define-view"
 import { CanvasToolbar } from "@/components/playground/canvas-toolbar"
 import { VisualEditor } from "@/components/playground/visual-editor"
 import { DragHandle } from "@/components/playground/drag-handle"
+import { AssemblyPanel } from "@/components/playground/assembly-panel"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 export default function CustomComponentPage() {
@@ -476,21 +477,13 @@ export default function CustomComponentPage() {
                 />
 
                 {/* Floating assembly panel (bottom-left) */}
-                <div className="absolute bottom-3 left-3 z-10 w-56 rounded-lg border bg-background/95 shadow-lg backdrop-blur-sm">
-                  <div className="flex items-center gap-1.5 border-b px-3 py-1.5">
-                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Assembly
-                    </span>
-                  </div>
-                  <ScrollArea className="max-h-48">
-                    <div className="p-2">
-                      <AssemblyOutline
-                        tree={componentTree}
-                        onSelectComponent={setStyledComponentId}
-                        selectedId={styledComponentId}
-                      />
-                    </div>
-                  </ScrollArea>
+                <div className="absolute bottom-3 left-3 z-10 w-64 rounded-lg border bg-background/95 shadow-lg backdrop-blur-sm">
+                  <AssemblyPanel
+                    tree={componentTree}
+                    onTreeChange={handleTreeChange}
+                    onSelectComponent={setStyledComponentId}
+                    selectedId={styledComponentId}
+                  />
                 </div>
               </div>
 
@@ -649,72 +642,3 @@ export default function CustomComponentPage() {
   )
 }
 
-/* ── AssemblyOutline — clickable tree for navigating in Preview ───── */
-
-function AssemblyOutline({
-  tree,
-  onSelectComponent,
-  selectedId,
-}: {
-  tree: ComponentTree
-  onSelectComponent: (id: string) => void
-  selectedId: string | null
-}) {
-  const renderNode = (
-    node: import("@/lib/component-tree").ElementNode,
-    depth: number,
-  ): React.ReactNode => {
-    const subComponent = tree.subComponents.find((sc) => sc.name === node.tag)
-
-    if (subComponent) {
-      return (
-        <div key={node.id} style={{ paddingLeft: `${depth * 12}px` }}>
-          <button
-            type="button"
-            onClick={() => onSelectComponent(subComponent.id)}
-            className={cn(
-              "flex items-center gap-1 rounded px-1 py-0.5 text-xs font-mono transition-colors",
-              selectedId === subComponent.id
-                ? "bg-blue-500/10 text-blue-500"
-                : "text-blue-500/70 hover:bg-blue-500/5",
-            )}
-          >
-            &lt;{subComponent.name}&gt;
-          </button>
-        </div>
-      )
-    }
-
-    return (
-      <div key={node.id} style={{ paddingLeft: `${depth * 12}px` }}>
-        <span className="text-xs font-mono text-muted-foreground">
-          &lt;{node.tag}&gt;
-          {node.text && (
-            <span className="ml-1 text-foreground/50">
-              {node.text.slice(0, 15)}
-            </span>
-          )}
-        </span>
-        {node.children.map((child) => renderNode(child, depth + 1))}
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-0.5">
-      <button
-        type="button"
-        onClick={() => onSelectComponent("main")}
-        className={cn(
-          "flex items-center gap-1 rounded px-1 py-0.5 text-xs font-mono transition-colors",
-          selectedId === "main"
-            ? "bg-blue-500/10 text-blue-500"
-            : "text-blue-500/70 hover:bg-blue-500/5",
-        )}
-      >
-        &lt;{tree.name}&gt;
-      </button>
-      {tree.assemblyTree.children.map((child) => renderNode(child, 1))}
-    </div>
-  )
-}
