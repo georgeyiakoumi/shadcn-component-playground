@@ -52,15 +52,13 @@ export function getUserComponent(slug: string): UserComponent | undefined {
   return readStore().find((c) => c.slug === slug)
 }
 
-/** Create or update a user component. Matches on `id`. */
+/** Create or update a user component. Matches on `id`, removes slug duplicates. */
 export function saveUserComponent(component: UserComponent): void {
-  const all = readStore()
-  const index = all.findIndex((c) => c.id === component.id)
-  if (index >= 0) {
-    all[index] = component
-  } else {
-    all.push(component)
-  }
+  // Remove any existing component with the same slug (prevents duplicates)
+  const all = readStore().filter(
+    (c) => c.id !== component.id && c.slug !== component.slug,
+  )
+  all.push(component)
   writeStore(all)
 }
 

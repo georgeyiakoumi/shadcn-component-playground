@@ -102,6 +102,8 @@ export default function CustomComponentPage() {
     const timer = setTimeout(() => {
       const updated = {
         ...userComponent,
+        // Sync name from tree if it changed
+        name: componentTree?.name ?? userComponent.name,
         source,
         tree: componentTree,
         updatedAt: new Date().toISOString(),
@@ -407,7 +409,7 @@ export default function CustomComponentPage() {
     <ComponentEditProvider slug={slug}>
       {/* ── Toolbar ──────────────────────────────────────────── */}
       <PlaygroundToolbar
-        componentName={userComponent.name}
+        componentName={componentTree?.name ?? userComponent.name}
         slug={mode !== "define" ? slug : undefined}
         source={mode !== "define" ? source : undefined}
         theme={mode !== "define" ? theme : undefined}
@@ -461,7 +463,7 @@ export default function CustomComponentPage() {
               <div className="relative flex flex-1 flex-col">
                 <ComponentCanvas
                   slug={slug}
-                  componentName={userComponent.name}
+                  componentName={componentTree?.name ?? userComponent.name}
                   theme={theme}
                   breakpoint={breakpoint}
                   previewProps={previewProps}

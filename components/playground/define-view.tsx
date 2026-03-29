@@ -34,10 +34,31 @@ import type {
   ComponentProp,
   SubComponentDef,
   SubComponentUsecase,
+  ElementNode,
 } from "@/lib/component-tree"
 import { createElementNode, toDataSlot } from "@/lib/component-tree"
 import { toPascalCase } from "@/lib/code-generator"
 import type { CustomVariantDef } from "@/lib/component-state"
+
+/* ── Helpers ────────────────────────────────────────────────────── */
+
+/** Recursively rename tags in an element tree that contain the old prefix */
+function renameTagsInTree(
+  node: ElementNode,
+  oldPrefix: string,
+  newPrefix: string,
+): ElementNode {
+  const newTag = node.tag.includes(oldPrefix)
+    ? node.tag.replace(oldPrefix, newPrefix)
+    : node.tag
+  return {
+    ...node,
+    tag: newTag,
+    children: node.children.map((c) =>
+      renameTagsInTree(c, oldPrefix, newPrefix),
+    ),
+  }
+}
 
 /* ── Constants ──────────────────────────────────────────────────── */
 
@@ -76,9 +97,30 @@ export function DefineView({ tree, onTreeChange }: DefineViewProps) {
           name={tree.name}
           props={tree.props}
           variants={tree.variants}
-          onUpdate={(newName, props, variants) =>
-            onTreeChange({ ...tree, name: newName, props, variants })
-          }
+          onUpdate={(newName, props, variants) => {
+            const oldName = tree.name
+            // If name changed, cascade to sub-components
+            const updatedSubComponents = newName !== oldName
+              ? tree.subComponents.map((sc) => ({
+                  ...sc,
+                  name: sc.name.replace(oldName, newName),
+                  dataSlot: toDataSlot(sc.name.replace(oldName, newName)),
+                }))
+              : tree.subComponents
+            // Also update assembly tree tags that reference sub-component names
+            const updatedAssembly = newName !== oldName
+              ? renameTagsInTree(tree.assemblyTree, oldName, newName)
+              : tree.assemblyTree
+            onTreeChange({
+              ...tree,
+              name: newName,
+              dataSlot: toDataSlot(newName),
+              props,
+              variants,
+              subComponents: updatedSubComponents,
+              assemblyTree: updatedAssembly,
+            })
+          }}
         />
 
         {/* ── Sub-components ───────────────────────────────── */}
