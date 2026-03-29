@@ -2,19 +2,13 @@
 
 import * as React from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Copy, FileCode, Plus, Sparkles } from "lucide-react"
+import { FileCode, Plus } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import {
   Command,
   CommandEmpty,
@@ -67,7 +61,7 @@ const BASE_ELEMENTS = [
   { value: "img", label: "img", description: "Image element" },
 ] as const
 
-const PASCAL_CASE_REGEX = /^[A-Z][a-zA-Z0-9]*$/
+// Removed — auto-conversion to PascalCase means no validation needed
 
 /* ── Page ───────────────────────────────────────────────────────── */
 
@@ -82,34 +76,28 @@ export default function NewComponentPage() {
   const [name, setName] = React.useState("")
   const [selectedComponent, setSelectedComponent] = React.useState<string>("")
   const [baseElement, setBaseElement] = React.useState("div")
-  const [nameError, setNameError] = React.useState<string | null>(null)
   const [props, setProps] = React.useState<ComponentProp[]>([])
   const [variants, setVariants] = React.useState<CustomVariantDef[]>([])
 
   const grouped = React.useMemo(() => getComponentsByCategory(), [])
 
-  /* ── Validation ──────────────────────────────────────────────── */
-
-  const validateName = React.useCallback((value: string): string | null => {
-    if (value.length === 0) return null // don't show error on empty
-    if (value.length < 2) return "Name must be at least 2 characters"
-    if (!PASCAL_CASE_REGEX.test(value))
-      return "Name must be PascalCase (e.g. MyButton)"
-    return null
-  }, [])
+  /* ── Name handling ──────────────────────────────────────────── */
 
   const handleNameChange = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value
-      setName(value)
-      setNameError(validateName(value))
+      setName(e.target.value)
     },
-    [validateName],
+    [],
   )
 
+  // Auto-convert to PascalCase for display
+  const pascalName = React.useMemo(() => {
+    if (!name.trim()) return ""
+    return toPascalCase(name.trim())
+  }, [name])
+
   const isValid =
-    name.length >= 2 &&
-    PASCAL_CASE_REGEX.test(name) &&
+    pascalName.length >= 2 &&
     (mode === "copy" ? selectedComponent.length > 0 : true)
 
   /* ── Source rename helper ────────────────────────────────────── */
@@ -151,7 +139,7 @@ export default function NewComponentPage() {
   function handleCreate() {
     if (!isValid) return
 
-    const componentName = toPascalCase(name)
+    const componentName = pascalName
     const slug = toSlug(componentName)
     const now = new Date().toISOString()
 
@@ -202,68 +190,67 @@ export default function NewComponentPage() {
             <Label htmlFor="component-name" className="text-sm font-medium">
               Component Name
             </Label>
-            <Input
-              id="component-name"
-              placeholder="e.g. MyButton"
-              value={name}
-              onChange={handleNameChange}
-              className={cn(
-                "h-10",
-                nameError && "border-destructive focus-visible:ring-destructive",
+            <div className="flex items-center gap-3">
+              <Input
+                id="component-name"
+                placeholder="Start typing..."
+                value={name}
+                onChange={handleNameChange}
+                className="h-10 flex-1"
+              />
+              {pascalName && (
+                <code className="shrink-0 rounded-md bg-muted px-3 py-2 text-sm font-semibold">
+                  {pascalName}
+                </code>
               )}
-            />
-            {nameError && (
-              <p className="text-xs text-destructive">{nameError}</p>
-            )}
+            </div>
             <p className="text-xs text-muted-foreground">
-              Must be PascalCase. This becomes the exported component name. You can rename it later.
+              You can rename it later.
             </p>
           </div>
 
-          {/* ── Mode cards ─────────────────────────────────────── */}
-          <div className="grid grid-cols-2 gap-4">
-            {/* Copy from existing */}
-            <Card
+          {/* ── Mode selector ─────────────────────────────────── */}
+          <RadioGroup
+            value={mode}
+            onValueChange={(v) => setMode(v as CreationMode)}
+            className="grid grid-cols-2 gap-4"
+          >
+            <label
+              htmlFor="mode-copy"
               className={cn(
-                "cursor-pointer transition-colors",
+                "flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors",
                 mode === "copy"
                   ? "border-primary ring-1 ring-primary"
                   : "hover:border-muted-foreground/30",
               )}
-              onClick={() => setMode("copy")}
             >
-              <CardHeader className="pb-2">
-                <div className="flex items-center gap-2">
-                  <Copy className="size-4 text-primary" />
-                  <CardTitle className="text-sm">Copy from Existing</CardTitle>
-                </div>
-                <CardDescription className="text-xs">
+              <RadioGroupItem value="copy" id="mode-copy" className="mt-0.5" />
+              <div className="space-y-1">
+                <span className="text-sm font-medium">Copy from Existing</span>
+                <p className="text-xs text-muted-foreground">
                   Fork a shadcn component as your starting point
-                </CardDescription>
-              </CardHeader>
-            </Card>
+                </p>
+              </div>
+            </label>
 
-            {/* From scratch */}
-            <Card
+            <label
+              htmlFor="mode-scratch"
               className={cn(
-                "cursor-pointer transition-colors",
+                "flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors",
                 mode === "scratch"
                   ? "border-primary ring-1 ring-primary"
                   : "hover:border-muted-foreground/30",
               )}
-              onClick={() => setMode("scratch")}
             >
-              <CardHeader className="pb-2">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="size-4 text-primary" />
-                  <CardTitle className="text-sm">From Scratch</CardTitle>
-                </div>
-                <CardDescription className="text-xs">
+              <RadioGroupItem value="scratch" id="mode-scratch" className="mt-0.5" />
+              <div className="space-y-1">
+                <span className="text-sm font-medium">From Scratch</span>
+                <p className="text-xs text-muted-foreground">
                   Start with a blank component shell
-                </CardDescription>
-              </CardHeader>
-            </Card>
-          </div>
+                </p>
+              </div>
+            </label>
+          </RadioGroup>
 
           {/* ── Mode-specific content ──────────────────────────── */}
           {mode === "copy" ? (
@@ -316,7 +303,7 @@ export default function NewComponentPage() {
                   </span>
                   . All occurrences of the original name will be renamed to{" "}
                   <span className="font-medium text-foreground">
-                    {name || "YourName"}
+                    {pascalName || "YourName"}
                   </span>
                   .
                 </p>
@@ -325,28 +312,34 @@ export default function NewComponentPage() {
           ) : (
             <div className="space-y-2">
               <Label className="text-sm font-medium">Base HTML element</Label>
-              <div className="grid grid-cols-3 gap-2">
+              <RadioGroup
+                value={baseElement}
+                onValueChange={setBaseElement}
+                className="grid grid-cols-3 gap-2"
+              >
                 {BASE_ELEMENTS.map((el) => (
-                  <button
+                  <label
                     key={el.value}
-                    type="button"
-                    onClick={() => setBaseElement(el.value)}
+                    htmlFor={`el-${el.value}`}
                     className={cn(
-                      "flex flex-col items-start rounded-md border p-3 text-left transition-colors",
+                      "flex cursor-pointer items-start gap-2.5 rounded-md border p-3 transition-colors",
                       baseElement === el.value
-                        ? "border-primary bg-primary/5 ring-1 ring-primary"
+                        ? "border-primary ring-1 ring-primary"
                         : "hover:border-muted-foreground/30",
                     )}
                   >
-                    <code className="text-xs font-semibold">
-                      &lt;{el.label}&gt;
-                    </code>
-                    <span className="text-[10px] text-muted-foreground">
-                      {el.description}
-                    </span>
-                  </button>
+                    <RadioGroupItem value={el.value} id={`el-${el.value}`} className="mt-0.5" />
+                    <div>
+                      <code className="text-xs font-semibold">
+                        &lt;{el.label}&gt;
+                      </code>
+                      <p className="text-[10px] text-muted-foreground">
+                        {el.description}
+                      </p>
+                    </div>
+                  </label>
                 ))}
-              </div>
+              </RadioGroup>
             </div>
           )}
 
@@ -464,33 +457,42 @@ function InlinePropAdder({ onAdd }: { onAdd: (prop: ComponentProp) => void }) {
   }
 
   return (
-    <div className="flex items-end gap-2">
-      <div className="flex-1 space-y-1">
+    <div className="flex items-center gap-3">
+      {/* Button group: type + name + add */}
+      <div className="flex flex-1">
+        <Select value={type} onValueChange={(v) => setType(v as ComponentProp["type"])}>
+          <SelectTrigger className="h-8 w-24 rounded-r-none border-r-0 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {PROP_TYPES.map((t) => (
+              <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Input
           placeholder="Prop name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="h-8 text-xs"
+          className="h-8 rounded-none border-x-0 text-xs"
           onKeyDown={(e) => e.key === "Enter" && handleAdd()}
         />
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 shrink-0 rounded-l-none gap-1 text-xs"
+          onClick={handleAdd}
+          disabled={!name.trim()}
+        >
+          <Plus className="size-3" />
+          Add prop
+        </Button>
       </div>
-      <Select value={type} onValueChange={(v) => setType(v as ComponentProp["type"])}>
-        <SelectTrigger className="h-8 w-24 text-xs">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {PROP_TYPES.map((t) => (
-            <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <div className="flex items-center gap-1">
+      {/* Required switch */}
+      <div className="flex shrink-0 items-center gap-1.5">
         <Switch checked={required} onCheckedChange={setRequired} className="scale-75" />
         <span className="text-[10px] text-muted-foreground">Req</span>
       </div>
-      <Button size="sm" variant="outline" className="h-8 text-xs" onClick={handleAdd} disabled={!name.trim()}>
-        Add
-      </Button>
     </div>
   )
 }
@@ -504,13 +506,17 @@ function InlineVariantAdder({ onAdd }: { onAdd: (v: CustomVariantDef) => void })
   const [optionInput, setOptionInput] = React.useState("")
   const [defaultValue, setDefaultValue] = React.useState("")
 
-  function handleAddOption() {
-    const trimmed = optionInput.trim()
-    if (!trimmed || options.includes(trimmed)) return
-    const newOptions = [...options, trimmed]
-    setOptions(newOptions)
+  function handleAddOptions() {
+    // Support comma-separated and Enter
+    const newOpts = optionInput
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0 && !options.includes(s))
+    if (newOpts.length === 0) return
+    const updated = [...options, ...newOpts]
+    setOptions(updated)
     setOptionInput("")
-    if (newOptions.length === 1) setDefaultValue(trimmed)
+    if (updated.length >= 1 && !defaultValue) setDefaultValue(updated[0])
   }
 
   function handleAdd() {
@@ -532,49 +538,47 @@ function InlineVariantAdder({ onAdd }: { onAdd: (v: CustomVariantDef) => void })
   }
 
   return (
-    <div className="space-y-2 rounded-md border bg-muted/10 p-3">
-      <div className="flex gap-2">
-        <Input
-          placeholder="Variant name (e.g. size)"
-          value={variantName}
-          onChange={(e) => setVariantName(e.target.value)}
-          className="h-8 flex-1 text-xs"
-        />
-        <Select value={variantType} onValueChange={(v) => setVariantType(v as "variant" | "boolean")}>
-          <SelectTrigger className="h-8 w-28 text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="variant" className="text-xs">Variant</SelectItem>
-            <SelectItem value="boolean" className="text-xs">Boolean</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {variantType === "variant" && (
-        <div className="space-y-1.5">
-          <div className="flex gap-1.5">
-            <Input
-              placeholder="Type option and press Enter"
-              value={optionInput}
-              onChange={(e) => setOptionInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddOption())}
-              className="h-7 flex-1 text-xs"
-            />
-          </div>
-          {options.length > 0 && (
-            <div className="flex flex-wrap gap-1">
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-3">
+        {/* Button group: type + name + options (variant) + add */}
+        <div className="flex flex-1">
+          <Select value={variantType} onValueChange={(v) => setVariantType(v as "variant" | "boolean")}>
+            <SelectTrigger className="h-8 w-24 shrink-0 rounded-r-none border-r-0 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="variant" className="text-xs">Variant</SelectItem>
+              <SelectItem value="boolean" className="text-xs">Boolean</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input
+            placeholder="Name (e.g. size)"
+            value={variantName}
+            onChange={(e) => setVariantName(e.target.value)}
+            className="h-8 w-32 shrink-0 rounded-none border-x-0 text-xs"
+          />
+          {variantType === "variant" && (
+            <div
+              className="flex h-8 min-w-0 flex-1 cursor-text items-center gap-1 overflow-x-auto border-x-0 border-y px-2"
+              onClick={() => {
+                const input = document.getElementById("variant-option-input")
+                input?.focus()
+              }}
+            >
               {options.map((opt) => (
                 <Badge
                   key={opt}
                   variant={opt === defaultValue ? "default" : "secondary"}
-                  className="cursor-pointer text-[10px]"
-                  onClick={() => setDefaultValue(opt)}
+                  className="shrink-0 cursor-pointer gap-0.5 text-[10px]"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setDefaultValue(opt)
+                  }}
                 >
                   {opt}
                   <button
                     type="button"
-                    className="ml-1"
+                    className="hover:text-destructive"
                     onClick={(e) => {
                       e.stopPropagation()
                       setOptions(options.filter((o) => o !== opt))
@@ -584,32 +588,56 @@ function InlineVariantAdder({ onAdd }: { onAdd: (v: CustomVariantDef) => void })
                   </button>
                 </Badge>
               ))}
+              <input
+                id="variant-option-input"
+                placeholder={options.length === 0 ? "Options (e.g. sm, md, lg)" : ""}
+                value={optionInput}
+                onChange={(e) => setOptionInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === ",") {
+                    e.preventDefault()
+                    handleAddOptions()
+                  }
+                  if (e.key === "Backspace" && optionInput === "" && options.length > 0) {
+                    setOptions(options.slice(0, -1))
+                  }
+                }}
+                onBlur={handleAddOptions}
+                className="h-full min-w-[60px] flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground"
+              />
             </div>
           )}
-          <p className="text-[10px] text-muted-foreground">Click a badge to set default. Min 2 options.</p>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 shrink-0 rounded-l-none gap-1 text-xs"
+            onClick={handleAdd}
+            disabled={!variantName.trim() || (variantType === "variant" && options.length < 2)}
+          >
+            <Plus className="size-3" />
+            Add variant
+          </Button>
         </div>
-      )}
 
-      {variantType === "boolean" && (
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Default:</span>
-          <Switch
-            checked={defaultValue === "true"}
-            onCheckedChange={(checked) => setDefaultValue(checked ? "true" : "false")}
-          />
-          <span className="text-xs">{defaultValue === "true" ? "true" : "false"}</span>
-        </div>
-      )}
+        {/* Boolean default switch */}
+        {variantType === "boolean" && (
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Switch
+              checked={defaultValue === "true"}
+              onCheckedChange={(checked) => setDefaultValue(checked ? "true" : "false")}
+              className="scale-75"
+            />
+            <span className="text-[10px] text-muted-foreground">
+              {defaultValue === "true" ? "true" : "false"}
+            </span>
+          </div>
+        )}
+      </div>
 
-      <Button
-        size="sm"
-        variant="outline"
-        className="h-7 w-full text-xs"
-        onClick={handleAdd}
-        disabled={!variantName.trim() || (variantType === "variant" && options.length < 2)}
-      >
-        Add variant
-      </Button>
+      {/* Helper text */}
+      {variantType === "variant" && options.length > 0 && (
+        <p className="text-[10px] text-muted-foreground">Click a badge to set as default. Backspace to remove last.</p>
+      )}
     </div>
   )
 }
