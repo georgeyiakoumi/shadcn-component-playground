@@ -303,33 +303,7 @@ export default function CustomComponentPage() {
     return renderTreePreview(assemblyWithClasses)
   }, [componentTree, renderTreePreview])
 
-  // Show nothing until client-side mount to avoid hydration mismatch
-  if (!mounted) {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-muted-foreground">Loading...</p>
-      </div>
-    )
-  }
-
-  if (!userComponent) {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-muted-foreground">
-          Custom component not found.{" "}
-          <button
-            type="button"
-            className="underline hover:text-foreground"
-            onClick={() => router.push("/playground")}
-          >
-            Go back
-          </button>
-        </p>
-      </div>
-    )
-  }
-
-  const displaySource = source || `// Source code for ${userComponent.name}`
+  const displaySource = source || `// Source code for ${userComponent?.name ?? "Component"}`
 
   // Build prop selectors from parsed variant definitions
   const propSelectors: PropSelector[] | undefined =
@@ -401,6 +375,33 @@ export default function CustomComponentPage() {
     },
     [displaySource],
   )
+
+  // ── Early returns (after all hooks) ─────────────────────────────
+
+  if (!mounted) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <p className="text-sm text-muted-foreground">Loading...</p>
+      </div>
+    )
+  }
+
+  if (!userComponent) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <p className="text-sm text-muted-foreground">
+          Custom component not found.{" "}
+          <button
+            type="button"
+            className="underline hover:text-foreground"
+            onClick={() => router.push("/playground")}
+          >
+            Go back
+          </button>
+        </p>
+      </div>
+    )
+  }
 
   return (
     <ComponentEditProvider slug={slug}>
