@@ -333,7 +333,7 @@ export default function NewComponentPage() {
                       <code className="text-xs font-semibold">
                         &lt;{el.label}&gt;
                       </code>
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         {el.description}
                       </p>
                     </div>
@@ -354,15 +354,15 @@ export default function NewComponentPage() {
                     <p className="text-xs text-muted-foreground">Optional. You can add more later.</p>
                   </div>
                   {props.length > 0 && (
-                    <Badge variant="secondary" className="text-[10px]">{props.length}</Badge>
+                    <Badge variant="secondary" className="text-xs">{props.length}</Badge>
                   )}
                 </div>
 
                 {props.map((prop, i) => (
                   <div key={i} className="flex items-center gap-2 rounded-md border bg-muted/20 px-3 py-2">
                     <code className="text-xs font-medium">{prop.name}</code>
-                    <Badge variant="outline" className="text-[10px]">{prop.type}</Badge>
-                    {prop.required && <Badge variant="secondary" className="text-[10px]">required</Badge>}
+                    <Badge variant="outline" className="text-xs">{prop.type}</Badge>
+                    {prop.required && <Badge variant="secondary" className="text-xs">required</Badge>}
                     <div className="flex-1" />
                     <button
                       type="button"
@@ -390,18 +390,18 @@ export default function NewComponentPage() {
                     <p className="text-xs text-muted-foreground">Optional. Define size, intent, or boolean props.</p>
                   </div>
                   {variants.length > 0 && (
-                    <Badge variant="secondary" className="text-[10px]">{variants.length}</Badge>
+                    <Badge variant="secondary" className="text-xs">{variants.length}</Badge>
                   )}
                 </div>
 
                 {variants.map((v, i) => (
                   <div key={i} className="flex items-center gap-2 rounded-md border bg-muted/20 px-3 py-2">
                     <code className="text-xs font-medium">{v.name}</code>
-                    <Badge variant="outline" className="text-[10px]">{v.type}</Badge>
+                    <Badge variant="outline" className="text-xs">{v.type}</Badge>
                     {v.type === "variant" && (
                       <div className="flex flex-wrap gap-1">
                         {v.options.map((opt) => (
-                          <Badge key={opt} variant="secondary" className="text-[10px]">
+                          <Badge key={opt} variant="secondary" className="text-xs">
                             {opt}{opt === v.defaultValue ? " ✓" : ""}
                           </Badge>
                         ))}
@@ -491,7 +491,7 @@ function InlinePropAdder({ onAdd }: { onAdd: (prop: ComponentProp) => void }) {
       {/* Required switch */}
       <div className="flex shrink-0 items-center gap-1.5">
         <Switch checked={required} onCheckedChange={setRequired} className="scale-75" />
-        <span className="text-[10px] text-muted-foreground">Req</span>
+        <span className="text-xs text-muted-foreground">Req</span>
       </div>
     </div>
   )
@@ -569,7 +569,7 @@ function InlineVariantAdder({ onAdd }: { onAdd: (v: CustomVariantDef) => void })
                 <Badge
                   key={opt}
                   variant={opt === defaultValue ? "default" : "secondary"}
-                  className="shrink-0 cursor-pointer gap-0.5 text-[10px]"
+                  className="shrink-0 cursor-pointer gap-0.5 text-xs"
                   onClick={(e) => {
                     e.stopPropagation()
                     setDefaultValue(opt)
@@ -627,7 +627,7 @@ function InlineVariantAdder({ onAdd }: { onAdd: (v: CustomVariantDef) => void })
               onCheckedChange={(checked) => setDefaultValue(checked ? "true" : "false")}
               className="scale-75"
             />
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               {defaultValue === "true" ? "true" : "false"}
             </span>
           </div>
@@ -636,7 +636,7 @@ function InlineVariantAdder({ onAdd }: { onAdd: (v: CustomVariantDef) => void })
 
       {/* Helper text */}
       {variantType === "variant" && options.length > 0 && (
-        <p className="text-[10px] text-muted-foreground">Click a badge to set as default. Backspace to remove last.</p>
+        <p className="text-xs text-muted-foreground">Click a badge to set as default. Backspace to remove last.</p>
       )}
     </div>
   )

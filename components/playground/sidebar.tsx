@@ -94,7 +94,7 @@ export function PlaygroundSidebar({
         <span className="text-sm font-semibold tracking-tight">
           Components
         </span>
-        <Badge variant="secondary" className="ml-auto text-[10px]">
+        <Badge variant="secondary" className="ml-auto text-xs">
           {filteredComponents.length}
         </Badge>
         {onCollapse && (
@@ -131,7 +131,7 @@ export function PlaygroundSidebar({
                 <span className="text-xs font-medium text-muted-foreground">
                   My Components
                 </span>
-                <Badge variant="secondary" className="ml-auto text-[10px]">
+                <Badge variant="secondary" className="ml-auto text-xs">
                   {customComponents.length}
                 </Badge>
               </div>
@@ -153,7 +153,7 @@ export function PlaygroundSidebar({
                     <span className="truncate">{uc.name}</span>
                     <Badge
                       variant="outline"
-                      className="ml-auto h-4 shrink-0 px-1 text-[9px] font-normal"
+                      className="ml-auto h-4 shrink-0 px-1 text-xs font-normal"
                     >
                       custom
                     </Badge>
@@ -215,7 +215,7 @@ export function PlaygroundSidebar({
                       )}
                     />
                     <span>{category.name}</span>
-                    <span className="ml-auto tabular-nums text-[10px] text-muted-foreground/60">
+                    <span className="ml-auto tabular-nums text-xs text-muted-foreground/60">
                       {components.length}
                     </span>
                   </button>
@@ -270,14 +270,14 @@ function ComponentItem({
     >
       <span className="truncate">{component.name}</span>
       {showCategory && (
-        <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
+        <span className="ml-auto shrink-0 text-xs text-muted-foreground">
           {component.category}
         </span>
       )}
       {component.isCompound && !showCategory && (
         <Badge
           variant="outline"
-          className="ml-auto h-4 px-1 text-[9px] font-normal"
+          className="ml-auto h-4 px-1 text-xs font-normal"
         >
           compound
         </Badge>

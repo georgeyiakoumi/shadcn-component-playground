@@ -162,7 +162,7 @@ export default function CustomComponentPage() {
             "span",
             {
               key: "__empty__",
-              className: "text-[10px] text-muted-foreground/40 select-none",
+              className: "text-xs text-muted-foreground/40 select-none",
             },
             `<${node.tag}>`,
           ),
@@ -206,7 +206,7 @@ export default function CustomComponentPage() {
               "span",
               {
                 key: "__sc_empty__",
-                className: "text-[10px] text-muted-foreground/40 select-none",
+                className: "text-xs text-muted-foreground/40 select-none",
               },
               `<${sc.name}>`,
             ),
@@ -276,7 +276,7 @@ export default function CustomComponentPage() {
                     className: "min-h-[40px] rounded border border-dashed border-muted-foreground/30 p-2",
                   },
                     React.createElement("span", {
-                      className: "text-[10px] text-muted-foreground/40 select-none",
+                      className: "text-xs text-muted-foreground/40 select-none",
                     }, "{children}"),
                   ),
                 )
@@ -476,7 +476,7 @@ export default function CustomComponentPage() {
                 {/* Floating assembly panel (bottom-left) */}
                 <div className="absolute bottom-3 left-3 z-10 w-56 rounded-lg border bg-background/95 shadow-lg backdrop-blur-sm">
                   <div className="flex items-center gap-1.5 border-b px-3 py-1.5">
-                    <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Assembly
                     </span>
                   </div>
@@ -514,7 +514,7 @@ export default function CustomComponentPage() {
                   type="button"
                   onClick={() => setStyledComponentId("main")}
                   className={cn(
-                    "rounded-md px-2 py-0.5 text-[10px] font-medium transition-colors",
+                    "rounded-md px-2 py-0.5 text-xs font-medium transition-colors",
                     styledComponentId === "main"
                       ? "bg-blue-500/10 text-blue-500"
                       : "text-muted-foreground hover:bg-muted/50",
@@ -528,7 +528,7 @@ export default function CustomComponentPage() {
                     type="button"
                     onClick={() => setStyledComponentId(sc.id)}
                     className={cn(
-                      "rounded-md px-2 py-0.5 text-[10px] font-medium transition-colors",
+                      "rounded-md px-2 py-0.5 text-xs font-medium transition-colors",
                       styledComponentId === sc.id
                         ? "bg-blue-500/10 text-blue-500"
                         : "text-muted-foreground hover:bg-muted/50",
@@ -671,7 +671,7 @@ function AssemblyOutline({
             type="button"
             onClick={() => onSelectComponent(subComponent.id)}
             className={cn(
-              "flex items-center gap-1 rounded px-1 py-0.5 text-[11px] font-mono transition-colors",
+              "flex items-center gap-1 rounded px-1 py-0.5 text-xs font-mono transition-colors",
               selectedId === subComponent.id
                 ? "bg-blue-500/10 text-blue-500"
                 : "text-blue-500/70 hover:bg-blue-500/5",
@@ -685,7 +685,7 @@ function AssemblyOutline({
 
     return (
       <div key={node.id} style={{ paddingLeft: `${depth * 12}px` }}>
-        <span className="text-[11px] font-mono text-muted-foreground">
+        <span className="text-xs font-mono text-muted-foreground">
           &lt;{node.tag}&gt;
           {node.text && (
             <span className="ml-1 text-foreground/50">
@@ -704,7 +704,7 @@ function AssemblyOutline({
         type="button"
         onClick={() => onSelectComponent("main")}
         className={cn(
-          "flex items-center gap-1 rounded px-1 py-0.5 text-[11px] font-mono transition-colors",
+          "flex items-center gap-1 rounded px-1 py-0.5 text-xs font-mono transition-colors",
           selectedId === "main"
             ? "bg-blue-500/10 text-blue-500"
             : "text-blue-500/70 hover:bg-blue-500/5",

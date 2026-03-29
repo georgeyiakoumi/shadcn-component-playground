@@ -192,7 +192,7 @@ export function ExportDialog({
               <p className="text-xs text-muted-foreground">
                 No additional shadcn/ui dependencies detected. Bundle will
                 include the component and{" "}
-                <code className="font-mono text-[11px]">lib/utils.ts</code>.
+                <code className="font-mono text-xs">lib/utils.ts</code>.
               </p>
             </div>
           )}
@@ -281,7 +281,7 @@ function ExportModeCard({
         >
           {label}
         </p>
-        <p className="text-[11px] leading-tight text-muted-foreground">
+        <p className="text-xs leading-tight text-muted-foreground">
           {description}
         </p>
       </div>

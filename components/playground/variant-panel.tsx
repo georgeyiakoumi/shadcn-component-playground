@@ -311,7 +311,7 @@ function ExistingVariantCard({ variant }: ExistingVariantCardProps) {
     <div className="rounded-lg border bg-muted/20 p-3">
       <div className="mb-2 flex items-center gap-2">
         <span className="text-sm font-medium">{variant.name}</span>
-        <Badge variant="outline" className="text-[10px]">
+        <Badge variant="outline" className="text-xs">
           cva
         </Badge>
       </div>
@@ -351,7 +351,7 @@ function CustomVariantCard({
       <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">{variant.name}</span>
-          <Badge variant="outline" className="text-[10px]">
+          <Badge variant="outline" className="text-xs">
             {variant.type}
           </Badge>
         </div>
@@ -442,7 +442,7 @@ function CreateVariantForm({
           >
             <Tag className="size-5 text-muted-foreground" />
             <span className="text-xs font-medium">Variant</span>
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               Named options
             </span>
           </button>
@@ -462,7 +462,7 @@ function CreateVariantForm({
           >
             <ToggleLeft className="size-5 text-muted-foreground" />
             <span className="text-xs font-medium">Boolean</span>
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               True / false
             </span>
           </button>

@@ -38,7 +38,7 @@ export function CanvasToolbar({
     >
       {propSelectors.map((selector) => (
         <div key={selector.label} className="flex flex-col gap-1">
-          <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             {selector.label}
           </span>
           <Select

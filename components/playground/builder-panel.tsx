@@ -183,7 +183,7 @@ export function BuilderPanel({
             type="button"
             onClick={() => setFocusedId(null)}
             className={cn(
-              "shrink-0 rounded-md px-2 py-1 text-[10px] font-medium transition-colors",
+              "shrink-0 rounded-md px-2 py-1 text-xs font-medium transition-colors",
               focusedId === null
                 ? "bg-blue-500/10 text-blue-500"
                 : "text-muted-foreground hover:bg-muted/50",
@@ -196,7 +196,7 @@ export function BuilderPanel({
           type="button"
           onClick={() => setFocusedId("main")}
           className={cn(
-            "shrink-0 rounded-md px-2 py-1 text-[10px] font-medium transition-colors",
+            "shrink-0 rounded-md px-2 py-1 text-xs font-medium transition-colors",
             focusedId === "main"
               ? "bg-blue-500/10 text-blue-500"
               : "text-muted-foreground hover:bg-muted/50",
@@ -209,7 +209,7 @@ export function BuilderPanel({
       {/* ── Focus selector: row 2 (Sub-components, wrapping) ──── */}
       {tree.subComponents.length > 0 && (
         <div className="flex flex-wrap items-center gap-1 border-b px-2 py-1">
-          <span className="text-[9px] font-medium uppercase tracking-wider text-muted-foreground/50">
+          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground/50">
             Sub
           </span>
           {tree.subComponents.map((sc) => (
@@ -218,7 +218,7 @@ export function BuilderPanel({
               type="button"
               onClick={() => setFocusedId(sc.id)}
               className={cn(
-                "rounded-md px-2 py-0.5 text-[10px] font-medium transition-colors",
+                "rounded-md px-2 py-0.5 text-xs font-medium transition-colors",
                 focusedId === sc.id
                   ? "bg-blue-500/10 text-blue-500"
                   : "text-muted-foreground hover:bg-muted/50",
@@ -236,10 +236,10 @@ export function BuilderPanel({
           {focusedId === null && (
             <>
               <div className="px-3 py-2">
-                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
                   Usage preview (not exported)
                 </p>
-                <p className="text-[10px] text-muted-foreground/70 mb-3">
+                <p className="text-xs text-muted-foreground/70 mb-3">
                   Build how your components compose together. This is the canvas preview — it does not affect the exported .tsx file.
                 </p>
               </div>
@@ -327,10 +327,10 @@ export function BuilderPanel({
           {focusedId !== null && focusedTree && (
             <>
               <div className="px-3 py-2">
-                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   {focusedName} — definition
                 </p>
-                <p className="text-[10px] text-muted-foreground/70 mt-0.5">
+                <p className="text-xs text-muted-foreground/70 mt-0.5">
                   This is the component&apos;s internal structure. Changes here are exported to .tsx.
                 </p>
               </div>
@@ -469,7 +469,7 @@ function AssemblyTree({
           <button
             type="button"
             onClick={() => onFocusComponent(subComponent.id)}
-            className="flex items-center gap-1 rounded px-1 py-0.5 text-[11px] font-mono text-blue-500 hover:bg-blue-500/10"
+            className="flex items-center gap-1 rounded px-1 py-0.5 text-xs font-mono text-blue-500 hover:bg-blue-500/10"
           >
             <Component className="size-3" />
             &lt;{subComponent.name}&gt;
@@ -483,7 +483,7 @@ function AssemblyTree({
 
     return (
       <div key={node.id} style={{ paddingLeft: `${depth * 12}px` }}>
-        <span className="text-[11px] font-mono text-muted-foreground">
+        <span className="text-xs font-mono text-muted-foreground">
           &lt;{node.tag}&gt;
           {node.text && (
             <span className="ml-1 text-foreground/60">{node.text.slice(0, 20)}</span>
@@ -501,7 +501,7 @@ function AssemblyTree({
       <button
         type="button"
         onClick={() => onFocusComponent("main")}
-        className="flex items-center gap-1 rounded px-1 py-0.5 text-[11px] font-mono text-blue-500 hover:bg-blue-500/10"
+        className="flex items-center gap-1 rounded px-1 py-0.5 text-xs font-mono text-blue-500 hover:bg-blue-500/10"
       >
         <Component className="size-3" />
         &lt;{tree.name}&gt;
@@ -547,7 +547,7 @@ function BuilderSection({
           {icon}
           <span className="text-xs font-medium">{title}</span>
           {badge !== undefined && badge > 0 && (
-            <Badge variant="secondary" className="ml-auto h-4 px-1.5 text-[10px]">
+            <Badge variant="secondary" className="ml-auto h-4 px-1.5 text-xs">
               {badge}
             </Badge>
           )}
@@ -701,13 +701,13 @@ function ElementTree({
             &lt;{labelOverrides?.[node.id] ?? node.tag}&gt;
           </code>
           {node.classes.length > 0 && (
-            <span className="truncate text-[10px] text-muted-foreground">
+            <span className="truncate text-xs text-muted-foreground">
               .{node.classes[0]}
               {node.classes.length > 1 && `+${node.classes.length - 1}`}
             </span>
           )}
           {isRoot && (
-            <Badge variant="outline" className="h-4 px-1 text-[9px]">
+            <Badge variant="outline" className="h-4 px-1 text-xs">
               root
             </Badge>
           )}
@@ -739,7 +739,7 @@ function ElementTree({
           style={{ marginLeft: `${depth * 16 + 4}px`, marginRight: "4px" }}
         >
           <div className="space-y-1">
-            <Label className="text-[10px] text-muted-foreground">
+            <Label className="text-xs text-muted-foreground">
               Classes
             </Label>
             <Input
@@ -758,7 +758,7 @@ function ElementTree({
           </div>
           {!hideTextEditor && !isRoot && (
           <div className="space-y-1">
-            <Label className="text-[10px] text-muted-foreground">
+            <Label className="text-xs text-muted-foreground">
               Text content
             </Label>
             <Input
@@ -839,7 +839,7 @@ function AddElementPopover({ onSelect, subComponents }: AddElementPopoverProps) 
           </p>
           {ELEMENT_GROUPS.map((group) => (
             <div key={group.label}>
-              <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
+              <p className="mb-1 text-xs font-medium uppercase tracking-wider text-muted-foreground/60">
                 {group.label}
               </p>
               <div className="flex flex-wrap gap-1">
@@ -861,7 +861,7 @@ function AddElementPopover({ onSelect, subComponents }: AddElementPopoverProps) 
           ))}
           {subComponents && subComponents.length > 0 && (
             <div>
-              <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-blue-500/60">
+              <p className="mb-1 text-xs font-medium uppercase tracking-wider text-blue-500/60">
                 Sub-components
               </p>
               <div className="flex flex-wrap gap-1">
@@ -986,16 +986,16 @@ function PropsEditor({ props, onPropsChange }: PropsEditorProps) {
                 {prop.required && (
                   <Badge
                     variant="outline"
-                    className="h-4 px-1 text-[9px] text-destructive"
+                    className="h-4 px-1 text-xs text-destructive"
                   >
                     req
                   </Badge>
                 )}
-                <Badge variant="secondary" className="h-4 px-1 text-[9px]">
+                <Badge variant="secondary" className="h-4 px-1 text-xs">
                   {prop.type}
                 </Badge>
                 {prop.defaultValue && (
-                  <span className="truncate text-[10px] text-muted-foreground">
+                  <span className="truncate text-xs text-muted-foreground">
                     = {prop.defaultValue}
                   </span>
                 )}
@@ -1240,7 +1240,7 @@ function VariantsEditor({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-medium">{v.name}</span>
-                  <Badge variant="outline" className="h-4 px-1 text-[9px]">
+                  <Badge variant="outline" className="h-4 px-1 text-xs">
                     {v.type}
                   </Badge>
                 </div>
@@ -1270,7 +1270,7 @@ function VariantsEditor({
                   <Badge
                     key={opt}
                     variant={opt === v.defaultValue ? "default" : "secondary"}
-                    className="text-[10px]"
+                    className="text-xs"
                   >
                     {opt}
                     {opt === v.defaultValue && (
@@ -1576,7 +1576,7 @@ function SubComponentsEditor({
                 <div className="flex items-center gap-1.5">
                   <Box className="size-3 text-muted-foreground" />
                   <code className="text-xs font-medium">{sub.name}</code>
-                  <Badge variant="secondary" className="h-4 px-1 text-[9px]">
+                  <Badge variant="secondary" className="h-4 px-1 text-xs">
                     {sub.baseElement}
                   </Badge>
                 </div>
@@ -1609,13 +1609,13 @@ function SubComponentsEditor({
                     <Badge
                       key={cls}
                       variant="secondary"
-                      className="text-[9px]"
+                      className="text-xs"
                     >
                       {cls}
                     </Badge>
                   ))}
                   {sub.classes.length > 5 && (
-                    <Badge variant="secondary" className="text-[9px]">
+                    <Badge variant="secondary" className="text-xs">
                       +{sub.classes.length - 5}
                     </Badge>
                   )}
@@ -1663,7 +1663,7 @@ function SubComponentsEditor({
                 onChange={(e) => setSubName(e.target.value)}
                 className="h-8 text-xs"
               />
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 PascalCase. Will be prefixed with {parentName} if needed.
               </p>
             </div>
@@ -1687,7 +1687,7 @@ function SubComponentsEditor({
             {/* ── Usecase chips ─────────────────────────────── */}
             <div className="space-y-1.5">
               <Label className="text-xs">Content type</Label>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 What goes inside this component? Used for canvas preview only.
               </p>
               <div className="flex flex-wrap gap-1.5">
@@ -1708,19 +1708,19 @@ function SubComponentsEditor({
                     type="button"
                     onClick={() => toggleUsecase(value)}
                     className={cn(
-                      "flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-medium transition-colors",
+                      "flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition-colors",
                       usecases.includes(value)
                         ? "border-blue-500 bg-blue-500/10 text-blue-500"
                         : "border-border text-muted-foreground hover:bg-muted/50",
                     )}
                   >
-                    <span className="text-[10px]">{icon}</span>
+                    <span className="text-xs">{icon}</span>
                     {label}
                   </button>
                 ))}
               </div>
               {usecases.includes("wrapper") && (
-                <p className="text-[10px] text-muted-foreground/70">
+                <p className="text-xs text-muted-foreground/70">
                   Wrapper: renders {"{children}"} with a dashed border preview.
                 </p>
               )}

@@ -416,7 +416,7 @@ function ControlRow({
 }) {
   return (
     <div className="space-y-1">
-      <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+      <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
         {label}
       </span>
       {children}
@@ -532,7 +532,7 @@ function PositionGrid({
                     )}
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-[10px] font-mono">
+                <TooltipContent side="bottom" className="text-xs font-mono">
                   {tooltipText}
                 </TooltipContent>
               </Tooltip>
@@ -548,7 +548,7 @@ function PositionGrid({
             <button
               type="button"
               className={cn(
-                "flex h-6 items-center gap-1 rounded-md border px-2 text-[10px] transition-colors",
+                "flex h-6 items-center gap-1 rounded-md border px-2 text-xs transition-colors",
                 isBetween
                   ? "border-blue-500 bg-blue-500/10 text-blue-500"
                   : "text-muted-foreground hover:bg-muted",
@@ -559,7 +559,7 @@ function PositionGrid({
               between
             </button>
           </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-[10px] font-mono">
+          <TooltipContent side="bottom" className="text-xs font-mono">
             justify-between
           </TooltipContent>
         </Tooltip>
@@ -569,7 +569,7 @@ function PositionGrid({
             <button
               type="button"
               className={cn(
-                "flex h-6 items-center gap-1 rounded-md border px-2 text-[10px] transition-colors",
+                "flex h-6 items-center gap-1 rounded-md border px-2 text-xs transition-colors",
                 isStretch
                   ? "border-blue-500 bg-blue-500/10 text-blue-500"
                   : "text-muted-foreground hover:bg-muted",
@@ -580,7 +580,7 @@ function PositionGrid({
               stretch
             </button>
           </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-[10px] font-mono">
+          <TooltipContent side="bottom" className="text-xs font-mono">
             items-stretch
           </TooltipContent>
         </Tooltip>
@@ -620,7 +620,7 @@ function IconToggle({
           <Icon className="size-3.5" />
         </button>
       </TooltipTrigger>
-      <TooltipContent side="bottom" className="text-[10px] font-mono">
+      <TooltipContent side="bottom" className="text-xs font-mono">
         {tooltip}
       </TooltipContent>
     </Tooltip>
@@ -648,7 +648,7 @@ function TextToggle({
         <button
           type="button"
           className={cn(
-            "inline-flex h-6 items-center justify-center rounded-md px-2 text-[10px] font-medium transition-colors",
+            "inline-flex h-6 items-center justify-center rounded-md px-2 text-xs font-medium transition-colors",
             isActive
               ? "bg-blue-500/10 text-blue-500"
               : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -658,7 +658,7 @@ function TextToggle({
           {label}
         </button>
       </TooltipTrigger>
-      <TooltipContent side="bottom" className="text-[10px] font-mono">
+      <TooltipContent side="bottom" className="text-xs font-mono">
         {tooltip}
       </TooltipContent>
     </Tooltip>
@@ -685,7 +685,7 @@ function SpacingValueInput({
 
   return (
     <div className="flex items-center gap-1">
-      <span className="w-5 text-[10px] text-muted-foreground">{prefix}</span>
+      <span className="w-5 text-xs text-muted-foreground">{prefix}</span>
       <Select
         value={numericVal || "__none__"}
         onValueChange={(v) => {
@@ -696,7 +696,7 @@ function SpacingValueInput({
           }
         }}
       >
-        <SelectTrigger className="h-6 w-14 text-[10px]">
+        <SelectTrigger className="h-6 w-14 text-xs">
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
@@ -709,7 +709,7 @@ function SpacingValueInput({
         </SelectContent>
       </Select>
       {pxLabel && (
-        <span className="text-[9px] text-muted-foreground">{pxLabel}</span>
+        <span className="text-xs text-muted-foreground">{pxLabel}</span>
       )}
     </div>
   )
@@ -826,7 +826,7 @@ function SpacingSlider({
           }}
           className="flex-1"
         />
-        <span className="w-10 text-right text-[10px] tabular-nums text-muted-foreground">
+        <span className="w-10 text-right text-xs tabular-nums text-muted-foreground">
           {pxLabel}
         </span>
       </div>
@@ -980,7 +980,7 @@ export function VisualEditor({
             {">"}
           </p>
           {selectedElement.textContent && (
-            <p className="truncate text-[10px] text-muted-foreground">
+            <p className="truncate text-xs text-muted-foreground">
               {selectedElement.textContent}
             </p>
           )}
@@ -1038,7 +1038,7 @@ export function VisualEditor({
                   onValueChange={(v) => update("gap", v === "__none__" ? "" : `gap-${v}`)}
                   disabled={state.justify === "justify-between"}
                 >
-                  <SelectTrigger className="h-6 w-20 text-[10px]">
+                  <SelectTrigger className="h-6 w-20 text-xs">
                     <SelectValue placeholder="–" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1051,7 +1051,7 @@ export function VisualEditor({
                   </SelectContent>
                 </Select>
                 {state.justify === "justify-between" && (
-                  <p className="mt-0.5 text-[9px] text-muted-foreground">
+                  <p className="mt-0.5 text-xs text-muted-foreground">
                     Disabled — between handles spacing
                   </p>
                 )}
@@ -1150,7 +1150,7 @@ export function VisualEditor({
                     value={state.borderRadius || "__none__"}
                     onValueChange={(v) => update("borderRadius", v === "__none__" ? "" : v)}
                   >
-                    <SelectTrigger className="h-6 flex-1 text-[10px]">
+                    <SelectTrigger className="h-6 flex-1 text-xs">
                       <SelectValue placeholder="–" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1269,12 +1269,12 @@ function AppliedClassesSection({ classes }: { classes: string[] }) {
         className="flex w-full items-center gap-1 px-3 py-1"
         onClick={toggleCollapse}
       >
-        <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           Applied classes
         </span>
         <Badge
           variant="secondary"
-          className="ml-1 h-4 px-1 text-[9px]"
+          className="ml-1 h-4 px-1 text-xs"
         >
           {classes.length}
         </Badge>
@@ -1299,7 +1299,7 @@ function AppliedClassesSection({ classes }: { classes: string[] }) {
               <Badge
                 key={`${cls}-${idx}`}
                 variant="secondary"
-                className="h-5 text-[10px]"
+                className="h-5 text-xs"
               >
                 {cls}
               </Badge>

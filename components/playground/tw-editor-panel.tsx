@@ -422,7 +422,7 @@ function ClassAutocomplete({ onAdd, existingClasses }: ClassAutocompleteProps) {
                     className="flex items-center justify-between gap-2"
                   >
                     <span className="font-mono text-xs">{cls}</span>
-                    <span className="truncate text-[10px] text-muted-foreground">
+                    <span className="truncate text-xs text-muted-foreground">
                       {describeTwClass(cls)}
                     </span>
                   </CommandItem>
@@ -476,7 +476,7 @@ function EditorCategorySection({
         <span>{meta.label}</span>
         <Badge
           variant="secondary"
-          className="ml-auto h-5 min-w-[20px] justify-center px-1.5 text-[10px]"
+          className="ml-auto h-5 min-w-[20px] justify-center px-1.5 text-xs"
         >
           {total}
         </Badge>
@@ -536,7 +536,7 @@ function SourceClassBadge({ info, hasConflict, conflicts }: SourceClassBadgeProp
         <Badge
           variant="secondary"
           className={cn(
-            "cursor-default select-text font-mono text-[11px] font-normal text-muted-foreground",
+            "cursor-default select-text font-mono text-xs font-normal text-muted-foreground",
             hasConflict &&
               "border-red-300 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300",
           )}
@@ -550,11 +550,11 @@ function SourceClassBadge({ info, hasConflict, conflicts }: SourceClassBadgeProp
       <TooltipContent side="top" className="max-w-[260px]">
         <p className="text-xs">{description}</p>
         {hasConflict && conflictReason && (
-          <p className="mt-0.5 text-[10px] font-medium text-red-500">
+          <p className="mt-0.5 text-xs font-medium text-red-500">
             Conflict: {conflictReason}
           </p>
         )}
-        <p className="mt-0.5 text-[10px] text-muted-foreground">
+        <p className="mt-0.5 text-xs text-muted-foreground">
           Source (read-only)
         </p>
       </TooltipContent>
@@ -596,7 +596,7 @@ function CustomClassBadge({
         <Badge
           variant="outline"
           className={cn(
-            "cursor-default gap-1 font-mono text-[11px] font-normal",
+            "cursor-default gap-1 font-mono text-xs font-normal",
             hasConflict
               ? "border-red-300 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300"
               : "border-primary/30 bg-primary/5 text-primary",
@@ -622,11 +622,11 @@ function CustomClassBadge({
       <TooltipContent side="top" className="max-w-[260px]">
         <p className="text-xs">{description}</p>
         {hasConflict && conflictReason && (
-          <p className="mt-0.5 text-[10px] font-medium text-red-500">
+          <p className="mt-0.5 text-xs font-medium text-red-500">
             Conflict: {conflictReason}
           </p>
         )}
-        <p className="mt-0.5 text-[10px] text-muted-foreground">
+        <p className="mt-0.5 text-xs text-muted-foreground">
           Custom (click X to remove)
         </p>
       </TooltipContent>
@@ -650,10 +650,10 @@ function ConflictCard({ conflict }: ConflictCardProps) {
           {" "}+{" "}
           <code className="font-mono">{conflict.classes[1]}</code>
         </p>
-        <p className="text-[11px] text-yellow-700 dark:text-yellow-300">
+        <p className="text-xs text-yellow-700 dark:text-yellow-300">
           {conflict.reason}
         </p>
-        <p className="text-[10px] text-yellow-600 dark:text-yellow-400">
+        <p className="text-xs text-yellow-600 dark:text-yellow-400">
           {conflict.suggestion}
         </p>
       </div>

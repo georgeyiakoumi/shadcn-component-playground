@@ -55,7 +55,7 @@ function IssueCard({ issue }: { issue: A11yIssue }) {
           <div className="flex items-center gap-2">
             <p className="text-sm font-medium">{issue.title}</p>
             {issue.wcagCriteria && (
-              <Badge variant="outline" className="shrink-0 text-[10px]">
+              <Badge variant="outline" className="shrink-0 text-xs">
                 WCAG {issue.wcagCriteria}
               </Badge>
             )}

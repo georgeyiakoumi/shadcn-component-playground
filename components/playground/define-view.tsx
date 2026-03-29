@@ -188,7 +188,7 @@ export function DefineView({ tree, onTreeChange }: DefineViewProps) {
 
           {/* Props — stacked rows */}
           <div>
-            <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
               Props
             </p>
             {tree.props.length === 0 ? (
@@ -197,9 +197,9 @@ export function DefineView({ tree, onTreeChange }: DefineViewProps) {
               <div className="space-y-1">
                 {tree.props.map((p) => (
                   <div key={p.name} className="flex items-center gap-2 rounded-md border px-3 py-1.5">
-                    <Badge variant="outline" className="h-5 text-[10px]">{p.type}</Badge>
+                    <Badge variant="outline" className="h-5 text-xs">{p.type}</Badge>
                     <code className="text-xs font-medium">{p.name}</code>
-                    {p.required && <Badge variant="secondary" className="h-4 px-1.5 text-[9px]">req</Badge>}
+                    {p.required && <Badge variant="secondary" className="h-4 px-1.5 text-xs">req</Badge>}
                   </div>
                 ))}
               </div>
@@ -208,7 +208,7 @@ export function DefineView({ tree, onTreeChange }: DefineViewProps) {
 
           {/* Variants — stacked rows */}
           <div>
-            <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
               Variants
             </p>
             {tree.variants.length === 0 ? (
@@ -217,10 +217,10 @@ export function DefineView({ tree, onTreeChange }: DefineViewProps) {
               <div className="space-y-1">
                 {tree.variants.map((v) => (
                   <div key={v.name} className="flex items-center gap-2 rounded-md border px-3 py-1.5">
-                    <Badge variant="outline" className="h-5 text-[10px]">{v.type}</Badge>
+                    <Badge variant="outline" className="h-5 text-xs">{v.type}</Badge>
                     <code className="text-xs font-medium">{v.name}</code>
                     {v.type === "variant" && (
-                      <span className="text-[10px] text-muted-foreground">{v.options.join(", ")}</span>
+                      <span className="text-xs text-muted-foreground">{v.options.join(", ")}</span>
                     )}
                   </div>
                 ))}
@@ -235,7 +235,7 @@ export function DefineView({ tree, onTreeChange }: DefineViewProps) {
             <div className="flex items-center gap-2">
               <h2 className="text-base font-semibold">Sub-components</h2>
               {tree.subComponents.length > 0 && (
-                <Badge variant="secondary" className="text-[10px]">
+                <Badge variant="secondary" className="text-xs">
                   {tree.subComponents.length}
                 </Badge>
               )}
@@ -283,11 +283,11 @@ export function DefineView({ tree, onTreeChange }: DefineViewProps) {
                 <div className="flex items-center gap-2">
                   <span className="cursor-grab text-muted-foreground/40 hover:text-muted-foreground">⠿</span>
                   <h3 className="text-sm font-semibold">{sc.name}</h3>
-                  <Badge variant="secondary" className="text-[10px]">
+                  <Badge variant="secondary" className="text-xs">
                     &lt;{sc.baseElement}&gt;
                   </Badge>
                   {(sc.usecases ?? []).map((uc) => (
-                    <Badge key={uc} variant="outline" className="text-[9px]">
+                    <Badge key={uc} variant="outline" className="text-xs">
                       {uc}
                     </Badge>
                   ))}
@@ -338,7 +338,7 @@ export function DefineView({ tree, onTreeChange }: DefineViewProps) {
 
               {/* Props — stacked rows */}
               <div className="mt-3">
-                <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                <p className="mb-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   Props
                 </p>
                 {sc.props.length === 0 ? (
@@ -347,9 +347,9 @@ export function DefineView({ tree, onTreeChange }: DefineViewProps) {
                   <div className="space-y-1">
                     {sc.props.map((p) => (
                       <div key={p.name} className="flex items-center gap-2 rounded-md border px-3 py-1.5">
-                        <Badge variant="outline" className="h-5 text-[10px]">{p.type}</Badge>
+                        <Badge variant="outline" className="h-5 text-xs">{p.type}</Badge>
                         <code className="text-xs font-medium">{p.name}</code>
-                        {p.required && <Badge variant="secondary" className="h-4 px-1.5 text-[9px]">req</Badge>}
+                        {p.required && <Badge variant="secondary" className="h-4 px-1.5 text-xs">req</Badge>}
                       </div>
                     ))}
                   </div>
@@ -358,7 +358,7 @@ export function DefineView({ tree, onTreeChange }: DefineViewProps) {
 
               {/* Variants — stacked rows */}
               <div className="mt-3">
-                <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                <p className="mb-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   Variants
                 </p>
                 {sc.variants.length === 0 ? (
@@ -367,10 +367,10 @@ export function DefineView({ tree, onTreeChange }: DefineViewProps) {
                   <div className="space-y-1">
                     {sc.variants.map((v) => (
                       <div key={v.name} className="flex items-center gap-2 rounded-md border px-3 py-1.5">
-                        <Badge variant="outline" className="h-5 text-[10px]">{v.type}</Badge>
+                        <Badge variant="outline" className="h-5 text-xs">{v.type}</Badge>
                         <code className="text-xs font-medium">{v.name}</code>
                         {v.type === "variant" && (
-                          <span className="text-[10px] text-muted-foreground">{v.options.join(", ")}</span>
+                          <span className="text-xs text-muted-foreground">{v.options.join(", ")}</span>
                         )}
                       </div>
                     ))}
@@ -414,7 +414,7 @@ function _unused_ComponentCard({
       <div className="mt-3 grid grid-cols-2 gap-4">
         {/* Props column */}
         <div>
-          <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          <p className="mb-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Props
           </p>
           {props.length === 0 ? (
@@ -424,8 +424,8 @@ function _unused_ComponentCard({
               {props.map((p) => (
                 <div key={p.name} className="flex items-center gap-1.5 text-xs">
                   <code className="font-medium">{p.name}</code>
-                  <Badge variant="outline" className="h-4 px-1 text-[9px]">{p.type}</Badge>
-                  {p.required && <span className="text-[9px] text-muted-foreground">req</span>}
+                  <Badge variant="outline" className="h-4 px-1 text-xs">{p.type}</Badge>
+                  {p.required && <span className="text-xs text-muted-foreground">req</span>}
                 </div>
               ))}
             </div>
@@ -434,7 +434,7 @@ function _unused_ComponentCard({
 
         {/* Variants column */}
         <div>
-          <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          <p className="mb-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Variants
           </p>
           {variants.length === 0 ? (
@@ -444,9 +444,9 @@ function _unused_ComponentCard({
               {variants.map((v) => (
                 <div key={v.name} className="flex items-center gap-1.5 text-xs">
                   <code className="font-medium">{v.name}</code>
-                  <Badge variant="outline" className="h-4 px-1 text-[9px]">{v.type}</Badge>
+                  <Badge variant="outline" className="h-4 px-1 text-xs">{v.type}</Badge>
                   {v.type === "variant" && (
-                    <span className="text-[9px] text-muted-foreground">
+                    <span className="text-xs text-muted-foreground">
                       {v.options.join(", ")}
                     </span>
                   )}
@@ -478,11 +478,11 @@ function SubComponentCard({
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-semibold">{sc.name}</h3>
-          <Badge variant="secondary" className="text-[10px]">
+          <Badge variant="secondary" className="text-xs">
             &lt;{sc.baseElement}&gt;
           </Badge>
           {(sc.usecases ?? []).map((uc) => (
-            <Badge key={uc} variant="outline" className="text-[9px]">
+            <Badge key={uc} variant="outline" className="text-xs">
               {uc}
             </Badge>
           ))}
@@ -509,7 +509,7 @@ function SubComponentCard({
 
       <div className="mt-3 grid grid-cols-2 gap-4">
         <div>
-          <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          <p className="mb-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Props
           </p>
           {sc.props.length === 0 ? (
@@ -519,15 +519,15 @@ function SubComponentCard({
               {sc.props.map((p) => (
                 <div key={p.name} className="flex items-center gap-1.5 text-xs">
                   <code className="font-medium">{p.name}</code>
-                  <Badge variant="outline" className="h-4 px-1 text-[9px]">{p.type}</Badge>
-                  {p.required && <span className="text-[9px] text-muted-foreground">req</span>}
+                  <Badge variant="outline" className="h-4 px-1 text-xs">{p.type}</Badge>
+                  {p.required && <span className="text-xs text-muted-foreground">req</span>}
                 </div>
               ))}
             </div>
           )}
         </div>
         <div>
-          <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          <p className="mb-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Variants
           </p>
           {sc.variants.length === 0 ? (
@@ -537,9 +537,9 @@ function SubComponentCard({
               {sc.variants.map((v) => (
                 <div key={v.name} className="flex items-center gap-1.5 text-xs">
                   <code className="font-medium">{v.name}</code>
-                  <Badge variant="outline" className="h-4 px-1 text-[9px]">{v.type}</Badge>
+                  <Badge variant="outline" className="h-4 px-1 text-xs">{v.type}</Badge>
                   {v.type === "variant" && (
-                    <span className="text-[9px] text-muted-foreground">
+                    <span className="text-xs text-muted-foreground">
                       {v.options.join(", ")}
                     </span>
                   )}
@@ -632,7 +632,7 @@ function EditComponentDialog({
               <TabsTrigger value="props" className="flex-1 gap-1 text-xs">
                 Props
                 {props.length > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-4 px-1 text-[9px]">
+                  <Badge variant="secondary" className="ml-1 h-4 px-1 text-xs">
                     {props.length}
                   </Badge>
                 )}
@@ -640,7 +640,7 @@ function EditComponentDialog({
               <TabsTrigger value="variants" className="flex-1 gap-1 text-xs">
                 Variants
                 {variants.length > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-4 px-1 text-[9px]">
+                  <Badge variant="secondary" className="ml-1 h-4 px-1 text-xs">
                     {variants.length}
                   </Badge>
                 )}
@@ -695,7 +695,7 @@ function EditComponentDialog({
                       type="button"
                       onClick={() => toggleUsecase(value)}
                       className={cn(
-                        "rounded-md border px-2 py-1 text-[10px] font-medium transition-colors",
+                        "rounded-md border px-2 py-1 text-xs font-medium transition-colors",
                         usecases.includes(value)
                           ? "border-blue-500 bg-blue-500/10 text-blue-500"
                           : "border-border text-muted-foreground hover:bg-muted/50",
@@ -895,7 +895,7 @@ function AddSubComponentDialog({
                   type="button"
                   onClick={() => toggleUsecase(value)}
                   className={cn(
-                    "rounded-md border px-2 py-1 text-[10px] font-medium transition-colors",
+                    "rounded-md border px-2 py-1 text-xs font-medium transition-colors",
                     usecases.includes(value)
                       ? "border-blue-500 bg-blue-500/10 text-blue-500"
                       : "border-border text-muted-foreground hover:bg-muted/50",
@@ -912,7 +912,7 @@ function AddSubComponentDialog({
             <Label className="text-xs">Props (optional)</Label>
             {props.map((p, i) => (
               <div key={i} className="flex items-center gap-2 text-xs">
-                <Badge variant="outline" className="text-[10px]">{p.type}</Badge>
+                <Badge variant="outline" className="text-xs">{p.type}</Badge>
                 <code className="font-medium">{p.name}</code>
                 <div className="flex-1" />
                 <button
@@ -932,7 +932,7 @@ function AddSubComponentDialog({
             <Label className="text-xs">Variants (optional)</Label>
             {variants.map((v, i) => (
               <div key={i} className="flex items-center gap-2 text-xs">
-                <Badge variant="outline" className="text-[10px]">{v.type}</Badge>
+                <Badge variant="outline" className="text-xs">{v.type}</Badge>
                 <code className="font-medium">{v.name}</code>
                 <div className="flex-1" />
                 <button
@@ -990,7 +990,7 @@ function EditablePropRow({
       <div className="space-y-2 rounded-md border bg-muted/20 p-2">
         <div className="flex items-center gap-2">
           <Select value={editType} onValueChange={(v) => setEditType(v as ComponentProp["type"])}>
-            <SelectTrigger className="h-7 w-20 text-[10px]">
+            <SelectTrigger className="h-7 w-20 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -1002,19 +1002,19 @@ function EditablePropRow({
           <Input
             value={editName}
             onChange={(e) => setEditName(e.target.value)}
-            className="h-7 flex-1 text-[10px]"
+            className="h-7 flex-1 text-xs"
             onKeyDown={(e) => e.key === "Enter" && handleSave()}
           />
           <div className="flex items-center gap-1">
-            <Switch checked={editRequired} onCheckedChange={setEditRequired} className="scale-[0.6]" />
-            <span className="text-[9px] text-muted-foreground">Req</span>
+            <Switch checked={editRequired} onCheckedChange={setEditRequired} />
+            <span className="text-xs text-muted-foreground">Req</span>
           </div>
         </div>
         <div className="flex justify-end gap-1">
-          <Button size="sm" variant="ghost" className="h-6 text-[10px]" onClick={() => setEditing(false)}>
+          <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => setEditing(false)}>
             Cancel
           </Button>
-          <Button size="sm" className="h-6 text-[10px]" onClick={handleSave} disabled={!editName.trim()}>
+          <Button size="sm" className="h-6 text-xs" onClick={handleSave} disabled={!editName.trim()}>
             Save
           </Button>
         </div>
@@ -1024,9 +1024,9 @@ function EditablePropRow({
 
   return (
     <div className="group flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs">
-      <Badge variant="outline" className="h-5 text-[10px]">{prop.type}</Badge>
+      <Badge variant="outline" className="h-5 text-xs">{prop.type}</Badge>
       <code className="font-medium">{prop.name}</code>
-      {prop.required && <Badge variant="secondary" className="h-4 px-1.5 text-[9px]">req</Badge>}
+      {prop.required && <Badge variant="secondary" className="h-4 px-1.5 text-xs">req</Badge>}
       <div className="flex-1" />
       <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
         <button
@@ -1100,7 +1100,7 @@ function EditableVariantRow({
       <div className="space-y-2 rounded-md border bg-muted/20 p-2">
         <div className="flex items-center gap-2">
           <Select value={editType} onValueChange={(v) => setEditType(v as "variant" | "boolean")}>
-            <SelectTrigger className="h-7 w-20 text-[10px]">
+            <SelectTrigger className="h-7 w-20 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -1111,7 +1111,7 @@ function EditableVariantRow({
           <Input
             value={editName}
             onChange={(e) => setEditName(e.target.value)}
-            className="h-7 w-24 shrink-0 text-[10px]"
+            className="h-7 w-24 shrink-0 text-xs"
             placeholder="Name"
           />
           {editType === "variant" && (
@@ -1123,7 +1123,7 @@ function EditableVariantRow({
                 <Badge
                   key={opt}
                   variant={opt === editDefault ? "default" : "secondary"}
-                  className="shrink-0 cursor-pointer gap-0.5 text-[9px] h-4"
+                  className="shrink-0 cursor-pointer gap-0.5 text-xs h-4"
                   onClick={(e) => { e.stopPropagation(); setEditDefault(opt) }}
                 >
                   {opt}
@@ -1148,7 +1148,7 @@ function EditableVariantRow({
                   }
                 }}
                 onBlur={handleAddOptions}
-                className="h-full min-w-[40px] flex-1 bg-transparent text-[10px] outline-none placeholder:text-muted-foreground"
+                className="h-full min-w-[40px] flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground"
               />
             </div>
           )}
@@ -1157,19 +1157,19 @@ function EditableVariantRow({
               <Switch
                 checked={editDefault === "true"}
                 onCheckedChange={(c) => setEditDefault(c ? "true" : "false")}
-                className="scale-[0.6]"
+               
               />
-              <span className="text-[9px] text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 {editDefault === "true" ? "true" : "false"}
               </span>
             </div>
           )}
         </div>
         <div className="flex justify-end gap-1">
-          <Button size="sm" variant="ghost" className="h-6 text-[10px]" onClick={() => setEditing(false)}>
+          <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => setEditing(false)}>
             Cancel
           </Button>
-          <Button size="sm" className="h-6 text-[10px]" onClick={handleSave} disabled={!editName.trim() || (editType === "variant" && editOptions.length < 2)}>
+          <Button size="sm" className="h-6 text-xs" onClick={handleSave} disabled={!editName.trim() || (editType === "variant" && editOptions.length < 2)}>
             Save
           </Button>
         </div>
@@ -1179,10 +1179,10 @@ function EditableVariantRow({
 
   return (
     <div className="group flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs">
-      <Badge variant="outline" className="h-5 text-[10px]">{variant.type}</Badge>
+      <Badge variant="outline" className="h-5 text-xs">{variant.type}</Badge>
       <code className="font-medium">{variant.name}</code>
       {variant.type === "variant" && (
-        <span className="text-[10px] text-muted-foreground">{variant.options.join(", ")}</span>
+        <span className="text-xs text-muted-foreground">{variant.options.join(", ")}</span>
       )}
       <div className="flex-1" />
       <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
@@ -1231,7 +1231,7 @@ function DialogPropAdder({ onAdd }: { onAdd: (prop: ComponentProp) => void }) {
     <div className="flex items-center gap-3">
       <div className="flex flex-1">
         <Select value={type} onValueChange={(v) => setType(v as ComponentProp["type"])}>
-          <SelectTrigger className="h-7 w-20 rounded-r-none border-r-0 text-[10px]">
+          <SelectTrigger className="h-7 w-20 rounded-r-none border-r-0 text-xs">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -1244,13 +1244,13 @@ function DialogPropAdder({ onAdd }: { onAdd: (prop: ComponentProp) => void }) {
           placeholder="Prop name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="h-7 rounded-none border-x-0 text-[10px]"
+          className="h-7 rounded-none border-x-0 text-xs"
           onKeyDown={(e) => e.key === "Enter" && handleAdd()}
         />
         <Button
           size="sm"
           variant="outline"
-          className="h-7 shrink-0 rounded-l-none gap-1 text-[10px]"
+          className="h-7 shrink-0 rounded-l-none gap-1 text-xs"
           onClick={handleAdd}
           disabled={!name.trim()}
         >
@@ -1258,8 +1258,8 @@ function DialogPropAdder({ onAdd }: { onAdd: (prop: ComponentProp) => void }) {
         </Button>
       </div>
       <div className="flex shrink-0 items-center gap-1">
-        <Switch checked={required} onCheckedChange={setRequired} className="scale-[0.6]" />
-        <span className="text-[9px] text-muted-foreground">Req</span>
+        <Switch checked={required} onCheckedChange={setRequired} />
+        <span className="text-xs text-muted-foreground">Req</span>
       </div>
     </div>
   )
@@ -1307,7 +1307,7 @@ function DialogVariantAdder({ onAdd }: { onAdd: (v: CustomVariantDef) => void })
       <div className="flex items-center gap-3">
         <div className="flex flex-1">
           <Select value={variantType} onValueChange={(v) => setVariantType(v as "variant" | "boolean")}>
-            <SelectTrigger className="h-7 w-20 shrink-0 rounded-r-none border-r-0 text-[10px]">
+            <SelectTrigger className="h-7 w-20 shrink-0 rounded-r-none border-r-0 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -1319,7 +1319,7 @@ function DialogVariantAdder({ onAdd }: { onAdd: (v: CustomVariantDef) => void })
             placeholder="Name"
             value={variantName}
             onChange={(e) => setVariantName(e.target.value)}
-            className="h-7 w-24 shrink-0 rounded-none border-x-0 text-[10px]"
+            className="h-7 w-24 shrink-0 rounded-none border-x-0 text-xs"
           />
           {variantType === "variant" && (
             <div
@@ -1330,7 +1330,7 @@ function DialogVariantAdder({ onAdd }: { onAdd: (v: CustomVariantDef) => void })
                 <Badge
                   key={opt}
                   variant={opt === defaultValue ? "default" : "secondary"}
-                  className="shrink-0 cursor-pointer gap-0.5 text-[9px] h-4"
+                  className="shrink-0 cursor-pointer gap-0.5 text-xs h-4"
                   onClick={(e) => { e.stopPropagation(); setDefaultValue(opt) }}
                 >
                   {opt}
@@ -1355,14 +1355,14 @@ function DialogVariantAdder({ onAdd }: { onAdd: (v: CustomVariantDef) => void })
                   }
                 }}
                 onBlur={handleAddOptions}
-                className="h-full min-w-[40px] flex-1 bg-transparent text-[10px] outline-none placeholder:text-muted-foreground"
+                className="h-full min-w-[40px] flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground"
               />
             </div>
           )}
           <Button
             size="sm"
             variant="outline"
-            className="h-7 shrink-0 rounded-l-none gap-1 text-[10px]"
+            className="h-7 shrink-0 rounded-l-none gap-1 text-xs"
             onClick={handleAdd}
             disabled={!variantName.trim() || (variantType === "variant" && options.length < 2)}
           >
@@ -1374,9 +1374,9 @@ function DialogVariantAdder({ onAdd }: { onAdd: (v: CustomVariantDef) => void })
             <Switch
               checked={defaultValue === "true"}
               onCheckedChange={(c) => setDefaultValue(c ? "true" : "false")}
-              className="scale-[0.6]"
+             
             />
-            <span className="text-[9px] text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               {defaultValue === "true" ? "true" : "false"}
             </span>
           </div>

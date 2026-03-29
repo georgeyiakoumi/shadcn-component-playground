@@ -202,7 +202,7 @@ function StatusBadges({
         <Badge
           variant="outline"
           className={cn(
-            "h-4 px-1 text-[10px] font-medium",
+            "h-4 px-1 text-xs font-medium",
             "border-red-500/30 bg-red-500/10 text-red-500",
           )}
         >
@@ -214,7 +214,7 @@ function StatusBadges({
         <Badge
           variant="outline"
           className={cn(
-            "h-4 px-1 text-[10px] font-medium",
+            "h-4 px-1 text-xs font-medium",
             "border-yellow-500/30 bg-yellow-500/10 text-yellow-500",
           )}
         >

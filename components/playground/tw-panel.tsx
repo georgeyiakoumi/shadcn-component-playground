@@ -254,7 +254,7 @@ function CategorySection({ category, classes }: CategorySectionProps) {
         <span>{meta.label}</span>
         <Badge
           variant="secondary"
-          className="ml-auto h-5 min-w-[20px] justify-center px-1.5 text-[10px]"
+          className="ml-auto h-5 min-w-[20px] justify-center px-1.5 text-xs"
         >
           {classes.length}
         </Badge>
@@ -290,7 +290,7 @@ function ClassChip({ info }: ClassChipProps) {
         <Badge
           variant="outline"
           className={cn(
-            "cursor-default select-text font-mono text-[11px] font-normal",
+            "cursor-default select-text font-mono text-xs font-normal",
             badgeVariant,
           )}
         >
@@ -300,7 +300,7 @@ function ClassChip({ info }: ClassChipProps) {
       <TooltipContent side="top" className="max-w-[240px]">
         <p className="text-xs">{description}</p>
         {info.prefix && (
-          <p className="mt-0.5 text-[10px] text-muted-foreground">
+          <p className="mt-0.5 text-xs text-muted-foreground">
             {info.prefixType === "breakpoint" ? "Breakpoint" : "State"}:{" "}
             {info.prefix}
           </p>
@@ -339,7 +339,7 @@ function FilterChip({ label, type, active, onClick }: FilterChipProps) {
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors",
+        "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium transition-colors",
         active
           ? type === "breakpoint"
             ? "border-green-300 bg-green-100 text-green-800 dark:border-green-700 dark:bg-green-900 dark:text-green-200"

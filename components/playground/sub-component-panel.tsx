@@ -138,7 +138,7 @@ function SubComponentRow({
         checked={isActive}
         onCheckedChange={onToggle}
         disabled={isRequired}
-        className="scale-[0.8]"
+       
         aria-label={`Toggle ${name}`}
       />
     </div>
