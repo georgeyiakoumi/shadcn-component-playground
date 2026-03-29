@@ -37,7 +37,19 @@ import {
   toSlug,
   type UserComponent,
 } from "@/lib/component-store"
-import { createComponentTree } from "@/lib/component-tree"
+import { createComponentTree, type ComponentProp } from "@/lib/component-tree"
+import type { CustomVariantDef } from "@/lib/component-state"
+import { Separator } from "@/components/ui/separator"
+import { Badge } from "@/components/ui/badge"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
+import { X, Hash, ToggleLeft } from "lucide-react"
 
 /* ── Constants ──────────────────────────────────────────────────── */
 
@@ -71,6 +83,8 @@ export default function NewComponentPage() {
   const [selectedComponent, setSelectedComponent] = React.useState<string>("")
   const [baseElement, setBaseElement] = React.useState("div")
   const [nameError, setNameError] = React.useState<string | null>(null)
+  const [props, setProps] = React.useState<ComponentProp[]>([])
+  const [variants, setVariants] = React.useState<CustomVariantDef[]>([])
 
   const grouped = React.useMemo(() => getComponentsByCategory(), [])
 
@@ -150,6 +164,8 @@ export default function NewComponentPage() {
     } else {
       // Generate a from-scratch component with a tree structure
       tree = createComponentTree(componentName, baseElement)
+      tree.props = props
+      tree.variants = variants
       source = generateFromTree(tree)
     }
 
@@ -200,7 +216,7 @@ export default function NewComponentPage() {
               <p className="text-xs text-destructive">{nameError}</p>
             )}
             <p className="text-xs text-muted-foreground">
-              Must be PascalCase. This becomes the exported component name.
+              Must be PascalCase. This becomes the exported component name. You can rename it later.
             </p>
           </div>
 
@@ -334,6 +350,86 @@ export default function NewComponentPage() {
             </div>
           )}
 
+          {/* ── Props (optional) ──────────────────────────────── */}
+          {mode === "scratch" && (
+            <>
+              <Separator />
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-sm font-medium">Props</Label>
+                    <p className="text-xs text-muted-foreground">Optional. You can add more later.</p>
+                  </div>
+                  {props.length > 0 && (
+                    <Badge variant="secondary" className="text-[10px]">{props.length}</Badge>
+                  )}
+                </div>
+
+                {props.map((prop, i) => (
+                  <div key={i} className="flex items-center gap-2 rounded-md border bg-muted/20 px-3 py-2">
+                    <code className="text-xs font-medium">{prop.name}</code>
+                    <Badge variant="outline" className="text-[10px]">{prop.type}</Badge>
+                    {prop.required && <Badge variant="secondary" className="text-[10px]">required</Badge>}
+                    <div className="flex-1" />
+                    <button
+                      type="button"
+                      onClick={() => setProps(props.filter((_, idx) => idx !== i))}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </div>
+                ))}
+
+                <InlinePropAdder onAdd={(prop) => setProps([...props, prop])} />
+              </div>
+            </>
+          )}
+
+          {/* ── Variants (optional) ────────────────────────────── */}
+          {mode === "scratch" && (
+            <>
+              <Separator />
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-sm font-medium">Variants</Label>
+                    <p className="text-xs text-muted-foreground">Optional. Define size, intent, or boolean props.</p>
+                  </div>
+                  {variants.length > 0 && (
+                    <Badge variant="secondary" className="text-[10px]">{variants.length}</Badge>
+                  )}
+                </div>
+
+                {variants.map((v, i) => (
+                  <div key={i} className="flex items-center gap-2 rounded-md border bg-muted/20 px-3 py-2">
+                    <code className="text-xs font-medium">{v.name}</code>
+                    <Badge variant="outline" className="text-[10px]">{v.type}</Badge>
+                    {v.type === "variant" && (
+                      <div className="flex flex-wrap gap-1">
+                        {v.options.map((opt) => (
+                          <Badge key={opt} variant="secondary" className="text-[10px]">
+                            {opt}{opt === v.defaultValue ? " ✓" : ""}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex-1" />
+                    <button
+                      type="button"
+                      onClick={() => setVariants(variants.filter((_, idx) => idx !== i))}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </div>
+                ))}
+
+                <InlineVariantAdder onAdd={(v) => setVariants([...variants, v])} />
+              </div>
+            </>
+          )}
+
           {/* ── Create button ──────────────────────────────────── */}
           <Button
             size="lg"
@@ -350,39 +446,170 @@ export default function NewComponentPage() {
   )
 }
 
-/* ── Minimal component generator ─────────────────────────────────── */
+/* ── InlinePropAdder ────────────────────────────────────────────── */
 
-function generateMinimalComponent(name: string, baseElement: string): string {
-  const elementTypeMap: Record<string, { htmlEl: string; attrs: string }> = {
-    button: { htmlEl: "HTMLButtonElement", attrs: "React.ButtonHTMLAttributes<HTMLButtonElement>" },
-    div: { htmlEl: "HTMLDivElement", attrs: "React.HTMLAttributes<HTMLDivElement>" },
-    input: { htmlEl: "HTMLInputElement", attrs: "React.InputHTMLAttributes<HTMLInputElement>" },
-    a: { htmlEl: "HTMLAnchorElement", attrs: "React.AnchorHTMLAttributes<HTMLAnchorElement>" },
-    span: { htmlEl: "HTMLSpanElement", attrs: "React.HTMLAttributes<HTMLSpanElement>" },
-    form: { htmlEl: "HTMLFormElement", attrs: "React.FormHTMLAttributes<HTMLFormElement>" },
-    img: { htmlEl: "HTMLImageElement", attrs: "React.ImgHTMLAttributes<HTMLImageElement>" },
-    textarea: { htmlEl: "HTMLTextAreaElement", attrs: "React.TextareaHTMLAttributes<HTMLTextAreaElement>" },
-    select: { htmlEl: "HTMLSelectElement", attrs: "React.SelectHTMLAttributes<HTMLSelectElement>" },
+const PROP_TYPES = ["string", "number", "boolean", "ReactNode"] as const
+
+function InlinePropAdder({ onAdd }: { onAdd: (prop: ComponentProp) => void }) {
+  const [name, setName] = React.useState("")
+  const [type, setType] = React.useState<ComponentProp["type"]>("string")
+  const [required, setRequired] = React.useState(false)
+
+  function handleAdd() {
+    if (!name.trim()) return
+    onAdd({ name: name.trim(), type, required })
+    setName("")
+    setType("string")
+    setRequired(false)
   }
 
-  const info = elementTypeMap[baseElement] ?? elementTypeMap["div"]
+  return (
+    <div className="flex items-end gap-2">
+      <div className="flex-1 space-y-1">
+        <Input
+          placeholder="Prop name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="h-8 text-xs"
+          onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+        />
+      </div>
+      <Select value={type} onValueChange={(v) => setType(v as ComponentProp["type"])}>
+        <SelectTrigger className="h-8 w-24 text-xs">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {PROP_TYPES.map((t) => (
+            <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <div className="flex items-center gap-1">
+        <Switch checked={required} onCheckedChange={setRequired} className="scale-75" />
+        <span className="text-[10px] text-muted-foreground">Req</span>
+      </div>
+      <Button size="sm" variant="outline" className="h-8 text-xs" onClick={handleAdd} disabled={!name.trim()}>
+        Add
+      </Button>
+    </div>
+  )
+}
 
-  return `import * as React from "react"
+/* ── InlineVariantAdder ────────────────────────────────────────── */
 
-import { cn } from "@/lib/utils"
+function InlineVariantAdder({ onAdd }: { onAdd: (v: CustomVariantDef) => void }) {
+  const [variantName, setVariantName] = React.useState("")
+  const [variantType, setVariantType] = React.useState<"variant" | "boolean">("variant")
+  const [options, setOptions] = React.useState<string[]>([])
+  const [optionInput, setOptionInput] = React.useState("")
+  const [defaultValue, setDefaultValue] = React.useState("")
 
-const ${name} = React.forwardRef<
-  ${info.htmlEl},
-  ${info.attrs}
->(({ className, ...props }, ref) => (
-  <${baseElement}
-    ref={ref}
-    className={cn("", className)}
-    {...props}
-  />
-))
-${name}.displayName = "${name}"
+  function handleAddOption() {
+    const trimmed = optionInput.trim()
+    if (!trimmed || options.includes(trimmed)) return
+    const newOptions = [...options, trimmed]
+    setOptions(newOptions)
+    setOptionInput("")
+    if (newOptions.length === 1) setDefaultValue(trimmed)
+  }
 
-export { ${name} }
-`
+  function handleAdd() {
+    if (!variantName.trim()) return
+    if (variantType === "variant" && options.length < 2) return
+
+    onAdd({
+      name: variantName.trim(),
+      type: variantType,
+      options: variantType === "boolean" ? ["true", "false"] : options,
+      defaultValue: variantType === "boolean" ? (defaultValue || "false") : (defaultValue || options[0] || ""),
+    })
+
+    setVariantName("")
+    setVariantType("variant")
+    setOptions([])
+    setOptionInput("")
+    setDefaultValue("")
+  }
+
+  return (
+    <div className="space-y-2 rounded-md border bg-muted/10 p-3">
+      <div className="flex gap-2">
+        <Input
+          placeholder="Variant name (e.g. size)"
+          value={variantName}
+          onChange={(e) => setVariantName(e.target.value)}
+          className="h-8 flex-1 text-xs"
+        />
+        <Select value={variantType} onValueChange={(v) => setVariantType(v as "variant" | "boolean")}>
+          <SelectTrigger className="h-8 w-28 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="variant" className="text-xs">Variant</SelectItem>
+            <SelectItem value="boolean" className="text-xs">Boolean</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {variantType === "variant" && (
+        <div className="space-y-1.5">
+          <div className="flex gap-1.5">
+            <Input
+              placeholder="Type option and press Enter"
+              value={optionInput}
+              onChange={(e) => setOptionInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddOption())}
+              className="h-7 flex-1 text-xs"
+            />
+          </div>
+          {options.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {options.map((opt) => (
+                <Badge
+                  key={opt}
+                  variant={opt === defaultValue ? "default" : "secondary"}
+                  className="cursor-pointer text-[10px]"
+                  onClick={() => setDefaultValue(opt)}
+                >
+                  {opt}
+                  <button
+                    type="button"
+                    className="ml-1"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setOptions(options.filter((o) => o !== opt))
+                    }}
+                  >
+                    <X className="size-2.5" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+          )}
+          <p className="text-[10px] text-muted-foreground">Click a badge to set default. Min 2 options.</p>
+        </div>
+      )}
+
+      {variantType === "boolean" && (
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Default:</span>
+          <Switch
+            checked={defaultValue === "true"}
+            onCheckedChange={(checked) => setDefaultValue(checked ? "true" : "false")}
+          />
+          <span className="text-xs">{defaultValue === "true" ? "true" : "false"}</span>
+        </div>
+      )}
+
+      <Button
+        size="sm"
+        variant="outline"
+        className="h-7 w-full text-xs"
+        onClick={handleAdd}
+        disabled={!variantName.trim() || (variantType === "variant" && options.length < 2)}
+      >
+        Add variant
+      </Button>
+    </div>
+  )
 }
