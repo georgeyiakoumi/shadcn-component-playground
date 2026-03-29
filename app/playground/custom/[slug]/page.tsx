@@ -416,40 +416,7 @@ export default function CustomComponentPage() {
         {/* ═══════════ PREVIEW MODE ═════════════════════════════ */}
         {mode === "preview" && hasTree && (
           <>
-            {/* Outline + Assembly */}
-            <div
-              className="flex shrink-0 flex-col border-r"
-              style={{ width: `${structurePanelWidth}px` }}
-            >
-              <div className="flex items-center gap-1.5 border-b px-3 py-2">
-                <span className="text-xs font-medium text-muted-foreground">Outline</span>
-              </div>
-              <div className="flex-1 overflow-auto">
-                <StructurePanel slug={slug} customTree={componentTree} onNodeClick={handleOutlineNodeClick} />
-
-                {/* Assembly tree for navigation */}
-                <div className="border-t px-4 py-3">
-                  <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                    Assembly
-                  </p>
-                  <AssemblyOutline
-                    tree={componentTree}
-                    onSelectComponent={setStyledComponentId}
-                    selectedId={styledComponentId}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <DragHandle
-              width={structurePanelWidth}
-              minWidth={150}
-              maxWidth={350}
-              onWidthChange={setStructurePanelWidth}
-              side="left"
-            />
-
-            {/* Code panel */}
+            {/* Code panel (left) */}
             <div
               className="relative flex shrink-0 flex-col border-r"
               style={{ width: `${codePanelWidth}px` }}
@@ -460,18 +427,14 @@ export default function CustomComponentPage() {
             <DragHandle
               width={codePanelWidth}
               minWidth={250}
-              maxWidth={
-                (contentRef.current?.offsetWidth ?? 1200)
-                - structurePanelWidth
-                - 200
-                - 320
-              }
+              maxWidth={(contentRef.current?.offsetWidth ?? 1200) - 200 - 320}
               onWidthChange={setCodePanelWidth}
               side="left"
             />
 
-            {/* Canvas with toolbar */}
-            <div className="flex min-w-[100px] flex-1 flex-col">
+            {/* Canvas section (centre) — self-contained */}
+            <div className="flex min-w-[200px] flex-1 flex-col">
+              {/* Canvas toolbar */}
               <CanvasToolbar
                 theme={theme}
                 onThemeChange={setTheme}
@@ -479,17 +442,42 @@ export default function CustomComponentPage() {
                 onBreakpointChange={setBreakpoint}
                 propSelectors={propSelectors}
               />
-              <ComponentCanvas
-                slug={slug}
-                componentName={userComponent.name}
-                theme={theme}
-                breakpoint={breakpoint}
-                previewProps={previewProps}
-                customPreview={customPreview}
-                mode="edit"
-                onElementSelect={setSelectedElement}
-                onElementHover={() => {}}
-              />
+
+              {/* Canvas + floating assembly panel */}
+              <div className="relative flex-1">
+                <ComponentCanvas
+                  slug={slug}
+                  componentName={userComponent.name}
+                  theme={theme}
+                  breakpoint={breakpoint}
+                  previewProps={previewProps}
+                  customPreview={customPreview}
+                  mode="edit"
+                  onElementSelect={setSelectedElement}
+                  onElementHover={() => {}}
+                />
+
+                {/* Floating assembly panel (bottom-left) */}
+                <div className="absolute bottom-3 left-3 z-10 w-56 rounded-lg border bg-background/95 shadow-lg backdrop-blur-sm">
+                  <div className="flex items-center gap-1.5 border-b px-3 py-1.5">
+                    <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                      Assembly
+                    </span>
+                  </div>
+                  <ScrollArea className="max-h-48">
+                    <div className="p-2">
+                      <AssemblyOutline
+                        tree={componentTree}
+                        onSelectComponent={setStyledComponentId}
+                        selectedId={styledComponentId}
+                      />
+                    </div>
+                  </ScrollArea>
+                </div>
+              </div>
+
+              {/* Status bar (bottom of canvas section) */}
+              <StatusBar source={source} />
             </div>
 
             {/* Right panel: visual styling per component/sub-component */}
@@ -631,8 +619,8 @@ export default function CustomComponentPage() {
         )}
       </div>
 
-      {/* ── Bottom: Status bar (not in Define mode) ──────────────── */}
-      {mode !== "define" && <StatusBar source={source} />}
+      {/* Status bar is now inside the canvas section for Preview mode,
+          and inside the inspect layout for non-tree components */}
     </ComponentEditProvider>
   )
 }
