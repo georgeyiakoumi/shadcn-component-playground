@@ -53,6 +53,7 @@ export default function CustomComponentPage() {
   const [structurePanelWidth, setStructurePanelWidth] = React.useState(200)
   const [codePanelWidth, setCodePanelWidth] = React.useState(350)
   const [highlightLine, setHighlightLine] = React.useState<number | null>(null)
+  const [styledComponentId, setStyledComponentId] = React.useState<string | null>(null)
   const contentRef = React.useRef<HTMLDivElement>(null)
 
   const hasTree = componentTree !== undefined
@@ -345,9 +346,6 @@ export default function CustomComponentPage() {
   // Build preview props from current prop values
   const previewProps: Record<string, string> | undefined =
     Object.keys(propValues).length > 0 ? propValues : undefined
-
-  // Track which sub-component is being styled in Preview mode
-  const [styledComponentId, setStyledComponentId] = React.useState<string | null>(null)
 
   const handleClassChange = React.useCallback((classes: string[]) => {
     setSelectedElement((prev) => {
