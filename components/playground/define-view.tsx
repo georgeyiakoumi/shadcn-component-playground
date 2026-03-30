@@ -12,16 +12,6 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
-  Item,
-  ItemMedia,
-  ItemContent,
-  ItemTitle,
-  ItemDescription,
-  ItemActions,
-  ItemGroup,
-  ItemSeparator,
-} from "@/components/ui/item"
-import {
   Popover,
   PopoverTrigger,
   PopoverContent,
@@ -380,21 +370,23 @@ export function DefineView({ tree, onTreeChange }: DefineViewProps) {
             >
               {/* Header */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+                <div>
                   <h3 className="text-sm font-semibold">{sc.name}</h3>
-                  <Badge variant="secondary" className="text-xs">
-                    &lt;{sc.baseElement}&gt;
-                  </Badge>
-                  {(sc.usecases ?? []).map((uc) => (
-                    <Badge key={uc} variant="outline" className="text-xs">
-                      {uc}
-                    </Badge>
-                  ))}
-                  {sc.nestInside && (
-                    <span className="text-xs text-muted-foreground">
-                      nests inside {sc.nestInside}
-                    </span>
-                  )}
+                  <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                    <span>&lt;{sc.baseElement}&gt;</span>
+                    {(sc.usecases ?? []).length > 0 && (
+                      <>
+                        <span>·</span>
+                        <span>{(sc.usecases ?? []).join(", ")}</span>
+                      </>
+                    )}
+                    {sc.nestInside && (
+                      <>
+                        <span>·</span>
+                        <span>nests inside {sc.nestInside}</span>
+                      </>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover/card:opacity-100">
                   <EditSettingsDialog
@@ -521,18 +513,16 @@ function InlinePropsSection({
       {props.length === 0 ? (
         <p className="py-1 text-xs text-muted-foreground/60">No props defined.</p>
       ) : (
-        <ItemGroup>
+        <div className="divide-y">
           {props.map((p, i) => (
-            <React.Fragment key={`${p.name}-${i}`}>
-              {i > 0 && <ItemSeparator />}
-              <PropRow
-                prop={p}
-                onUpdate={(updated) => onUpdate(i, updated)}
-                onDelete={() => onDelete(i)}
-              />
-            </React.Fragment>
+            <PropRow
+              key={`${p.name}-${i}`}
+              prop={p}
+              onUpdate={(updated) => onUpdate(i, updated)}
+              onDelete={() => onDelete(i)}
+            />
           ))}
-        </ItemGroup>
+        </div>
       )}
     </div>
   )
@@ -558,20 +548,15 @@ function PropRow({
 }) {
   const Icon = PROP_ICONS[prop.type] ?? Type
   return (
-    <Item size="sm" className="group/row">
-      <ItemMedia variant="icon">
-        <Icon className="size-4 text-muted-foreground" />
-      </ItemMedia>
-      <ItemContent>
-        <ItemTitle className="text-xs">
-          {prop.name}
-          {prop.required && (
-            <span className="text-destructive" title="Required">*</span>
-          )}
-        </ItemTitle>
-        <ItemDescription className="text-xs">{prop.type}</ItemDescription>
-      </ItemContent>
-      <ItemActions className="opacity-0 transition-opacity group-hover/row:opacity-100">
+    <div className="group/row flex items-center gap-2 px-1 py-1.5 text-xs">
+      <Icon className="size-3.5 shrink-0 text-muted-foreground" />
+      <span className="font-medium">{prop.name}</span>
+      {prop.required && (
+        <span className="text-destructive" title="Required">*</span>
+      )}
+      <span className="truncate text-muted-foreground">{prop.type}</span>
+      <div className="flex-1" />
+      <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover/row:opacity-100">
         <EditPropPopover prop={prop} onSave={onUpdate} />
         <button
           type="button"
@@ -580,8 +565,8 @@ function PropRow({
         >
           <X className="size-3.5" />
         </button>
-      </ItemActions>
-    </Item>
+      </div>
+    </div>
   )
 }
 
@@ -757,18 +742,16 @@ function InlineVariantsSection({
       {variants.length === 0 ? (
         <p className="py-1 text-xs text-muted-foreground/60">No variants defined.</p>
       ) : (
-        <ItemGroup>
+        <div className="divide-y">
           {variants.map((v, i) => (
-            <React.Fragment key={`${v.name}-${i}`}>
-              {i > 0 && <ItemSeparator />}
-              <VariantRow
-                variant={v}
-                onUpdate={(updated) => onUpdate(i, updated)}
-                onDelete={() => onDelete(i)}
-              />
-            </React.Fragment>
+            <VariantRow
+              key={`${v.name}-${i}`}
+              variant={v}
+              onUpdate={(updated) => onUpdate(i, updated)}
+              onDelete={() => onDelete(i)}
+            />
           ))}
-        </ItemGroup>
+        </div>
       )}
     </div>
   )
@@ -786,38 +769,22 @@ function VariantRow({
   onDelete: () => void
 }) {
   return (
-    <Item size="sm" className="group/row">
-      <ItemMedia variant="icon">
-        {variant.type === "boolean" ? (
-          <ToggleLeft className="size-4 text-muted-foreground" />
-        ) : (
-          <Diamond className="size-4 text-muted-foreground" />
-        )}
-      </ItemMedia>
-      <ItemContent>
-        <ItemTitle className="text-xs">
-          {variant.name}
-          {variant.type === "boolean" && (
-            <span className="font-normal text-muted-foreground">= {variant.defaultValue}</span>
-          )}
-        </ItemTitle>
-        {variant.type === "variant" && variant.options.length > 0 && (
-          <ItemDescription className="text-xs">
-            <span className="flex flex-wrap gap-1">
-              {variant.options.map((opt) => (
-                <Badge
-                  key={opt}
-                  variant={opt === variant.defaultValue ? "default" : "secondary"}
-                  className="text-xs h-5"
-                >
-                  {opt}
-                </Badge>
-              ))}
-            </span>
-          </ItemDescription>
-        )}
-      </ItemContent>
-      <ItemActions className="opacity-0 transition-opacity group-hover/row:opacity-100">
+    <div className="group/row flex items-center gap-2 px-1 py-1.5 text-xs">
+      {variant.type === "boolean" ? (
+        <ToggleLeft className="size-3.5 shrink-0 text-muted-foreground" />
+      ) : (
+        <Diamond className="size-3.5 shrink-0 text-muted-foreground" />
+      )}
+      <span className="font-medium">{variant.name}</span>
+      <span className="truncate text-muted-foreground">
+        {variant.type === "boolean"
+          ? `= ${variant.defaultValue}`
+          : variant.options.map((opt) =>
+              opt === variant.defaultValue ? `${opt} (default)` : opt
+            ).join(", ")}
+      </span>
+      <div className="flex-1" />
+      <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover/row:opacity-100">
         <EditVariantPopover variant={variant} onSave={onUpdate} />
         <button
           type="button"
@@ -826,8 +793,8 @@ function VariantRow({
         >
           <X className="size-3.5" />
         </button>
-      </ItemActions>
-    </Item>
+      </div>
+    </div>
   )
 }
 
