@@ -559,7 +559,7 @@ function InlineVariantAdder({ onAdd }: { onAdd: (v: CustomVariantDef) => void })
           />
           {variantType === "variant" && (
             <div
-              className="flex h-8 min-w-0 flex-1 cursor-text items-center gap-1 overflow-x-auto border-x-0 border-y px-2"
+              className="flex min-h-[32px] min-w-0 flex-1 cursor-text flex-wrap items-center gap-1 border-x-0 border-y px-2 py-0.5"
               onClick={() => {
                 const input = document.getElementById("variant-option-input")
                 input?.focus()

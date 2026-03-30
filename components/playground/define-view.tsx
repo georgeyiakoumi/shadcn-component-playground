@@ -1398,7 +1398,7 @@ function DialogVariantAdder({ onAdd }: { onAdd: (v: CustomVariantDef) => void })
           />
           {variantType === "variant" && (
             <div
-              className="flex h-7 min-w-0 flex-1 cursor-text items-center gap-1 overflow-x-auto border-y border-x-0 px-1.5"
+              className="flex min-h-[28px] min-w-0 flex-1 cursor-text flex-wrap items-center gap-1 border-y border-x-0 px-1.5 py-0.5"
               onClick={() => document.getElementById("dlg-variant-opts")?.focus()}
             >
               {options.map((opt) => (
