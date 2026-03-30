@@ -43,6 +43,8 @@ export interface SubComponentDef {
   classes: string[]
   props: ComponentProp[]
   variants: CustomVariantDef[]
+  /** Name of the parent sub-component this nests inside, or undefined for root level */
+  nestInside?: string
 }
 
 export interface ComponentTree {
