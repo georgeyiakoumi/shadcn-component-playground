@@ -34,16 +34,10 @@ import {
 import { createComponentTree, type ComponentProp } from "@/lib/component-tree"
 import type { CustomVariantDef } from "@/lib/component-state"
 import { Separator } from "@/components/ui/separator"
-import { Badge } from "@/components/ui/badge"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
-import { X, Hash, ToggleLeft } from "lucide-react"
+  InlinePropsSection,
+  InlineVariantsSection,
+} from "@/components/playground/prop-variant-controls"
 
 /* ── Constants ──────────────────────────────────────────────────── */
 
@@ -347,34 +341,14 @@ export default function NewComponentPage() {
           {mode === "scratch" && (
             <>
               <Separator />
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-sm font-medium">Props</Label>
-                    <p className="text-xs text-muted-foreground">Optional. You can add more later.</p>
-                  </div>
-                  {props.length > 0 && (
-                    <Badge variant="secondary" className="text-xs">{props.length}</Badge>
-                  )}
-                </div>
-
-                {props.map((prop, i) => (
-                  <div key={i} className="flex items-center gap-2 rounded-md border bg-muted/20 px-3 py-2">
-                    <code className="text-xs font-medium">{prop.name}</code>
-                    <Badge variant="outline" className="text-xs">{prop.type}</Badge>
-                    {prop.required && <Badge variant="secondary" className="text-xs">required</Badge>}
-                    <div className="flex-1" />
-                    <button
-                      type="button"
-                      onClick={() => setProps(props.filter((_, idx) => idx !== i))}
-                      className="text-muted-foreground hover:text-destructive"
-                    >
-                      <X className="size-3" />
-                    </button>
-                  </div>
-                ))}
-
-                <InlinePropAdder onAdd={(prop) => setProps([...props, prop])} />
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Optional. You can add more later.</p>
+                <InlinePropsSection
+                  props={props}
+                  onUpdate={(i, updated) => setProps(props.map((p, idx) => idx === i ? updated : p))}
+                  onDelete={(i) => setProps(props.filter((_, idx) => idx !== i))}
+                  onAdd={(prop) => setProps([...props, prop])}
+                />
               </div>
             </>
           )}
@@ -383,42 +357,14 @@ export default function NewComponentPage() {
           {mode === "scratch" && (
             <>
               <Separator />
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-sm font-medium">Variants</Label>
-                    <p className="text-xs text-muted-foreground">Optional. Define size, intent, or boolean props.</p>
-                  </div>
-                  {variants.length > 0 && (
-                    <Badge variant="secondary" className="text-xs">{variants.length}</Badge>
-                  )}
-                </div>
-
-                {variants.map((v, i) => (
-                  <div key={i} className="flex items-center gap-2 rounded-md border bg-muted/20 px-3 py-2">
-                    <code className="text-xs font-medium">{v.name}</code>
-                    <Badge variant="outline" className="text-xs">{v.type}</Badge>
-                    {v.type === "variant" && (
-                      <div className="flex flex-wrap gap-1">
-                        {v.options.map((opt) => (
-                          <Badge key={opt} variant="secondary" className="text-xs">
-                            {opt}{opt === v.defaultValue ? " ✓" : ""}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                    <div className="flex-1" />
-                    <button
-                      type="button"
-                      onClick={() => setVariants(variants.filter((_, idx) => idx !== i))}
-                      className="text-muted-foreground hover:text-destructive"
-                    >
-                      <X className="size-3" />
-                    </button>
-                  </div>
-                ))}
-
-                <InlineVariantAdder onAdd={(v) => setVariants([...variants, v])} />
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Optional. Define size, intent, or boolean props.</p>
+                <InlineVariantsSection
+                  variants={variants}
+                  onUpdate={(i, updated) => setVariants(variants.map((v, idx) => idx === i ? updated : v))}
+                  onDelete={(i) => setVariants(variants.filter((_, idx) => idx !== i))}
+                  onAdd={(v) => setVariants([...variants, v])}
+                />
               </div>
             </>
           )}
@@ -439,205 +385,3 @@ export default function NewComponentPage() {
   )
 }
 
-/* ── InlinePropAdder ────────────────────────────────────────────── */
-
-const PROP_TYPES = ["string", "number", "boolean", "ReactNode"] as const
-
-function InlinePropAdder({ onAdd }: { onAdd: (prop: ComponentProp) => void }) {
-  const [name, setName] = React.useState("")
-  const [type, setType] = React.useState<ComponentProp["type"]>("string")
-  const [required, setRequired] = React.useState(false)
-
-  function handleAdd() {
-    if (!name.trim()) return
-    onAdd({ name: name.trim(), type, required })
-    setName("")
-    setType("string")
-    setRequired(false)
-  }
-
-  return (
-    <div className="flex items-center gap-3">
-      {/* Button group: type + name + add */}
-      <div className="flex flex-1">
-        <Select value={type} onValueChange={(v) => setType(v as ComponentProp["type"])}>
-          <SelectTrigger className="h-8 w-24 rounded-r-none border-r-0 text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {PROP_TYPES.map((t) => (
-              <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Input
-          placeholder="Prop name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="h-8 rounded-none border-x-0 text-xs"
-          onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-        />
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-8 shrink-0 rounded-l-none gap-1 text-xs"
-          onClick={handleAdd}
-          disabled={!name.trim()}
-        >
-          <Plus className="size-3" />
-          Add prop
-        </Button>
-      </div>
-      {/* Required switch */}
-      <div className="flex shrink-0 items-center gap-1.5">
-        <Switch checked={required} onCheckedChange={setRequired} className="scale-75" />
-        <span className="text-xs text-muted-foreground">Req</span>
-      </div>
-    </div>
-  )
-}
-
-/* ── InlineVariantAdder ────────────────────────────────────────── */
-
-function InlineVariantAdder({ onAdd }: { onAdd: (v: CustomVariantDef) => void }) {
-  const [variantName, setVariantName] = React.useState("")
-  const [variantType, setVariantType] = React.useState<"variant" | "boolean">("variant")
-  const [options, setOptions] = React.useState<string[]>([])
-  const [optionInput, setOptionInput] = React.useState("")
-  const [defaultValue, setDefaultValue] = React.useState("")
-
-  function handleAddOptions() {
-    // Support comma-separated and Enter
-    const newOpts = optionInput
-      .split(",")
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0 && !options.includes(s))
-    if (newOpts.length === 0) return
-    const updated = [...options, ...newOpts]
-    setOptions(updated)
-    setOptionInput("")
-    if (updated.length >= 1 && !defaultValue) setDefaultValue(updated[0])
-  }
-
-  function handleAdd() {
-    if (!variantName.trim()) return
-    if (variantType === "variant" && options.length < 2) return
-
-    onAdd({
-      name: variantName.trim(),
-      type: variantType,
-      options: variantType === "boolean" ? ["true", "false"] : options,
-      defaultValue: variantType === "boolean" ? (defaultValue || "false") : (defaultValue || options[0] || ""),
-    })
-
-    setVariantName("")
-    setVariantType("variant")
-    setOptions([])
-    setOptionInput("")
-    setDefaultValue("")
-  }
-
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-center gap-3">
-        {/* Button group: type + name + options (variant) + add */}
-        <div className="flex flex-1">
-          <Select value={variantType} onValueChange={(v) => setVariantType(v as "variant" | "boolean")}>
-            <SelectTrigger className="h-8 w-24 shrink-0 rounded-r-none border-r-0 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="variant" className="text-xs">Variant</SelectItem>
-              <SelectItem value="boolean" className="text-xs">Boolean</SelectItem>
-            </SelectContent>
-          </Select>
-          <Input
-            placeholder="Name (e.g. size)"
-            value={variantName}
-            onChange={(e) => setVariantName(e.target.value)}
-            className="h-8 w-32 shrink-0 rounded-none border-x-0 text-xs"
-          />
-          {variantType === "variant" && (
-            <div
-              className="flex min-h-[32px] min-w-0 flex-1 cursor-text flex-wrap items-center gap-1 border-x-0 border-y px-2 py-0.5"
-              onClick={() => {
-                const input = document.getElementById("variant-option-input")
-                input?.focus()
-              }}
-            >
-              {options.map((opt) => (
-                <Badge
-                  key={opt}
-                  variant={opt === defaultValue ? "default" : "secondary"}
-                  className="shrink-0 cursor-pointer gap-0.5 text-xs"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setDefaultValue(opt)
-                  }}
-                >
-                  {opt}
-                  <button
-                    type="button"
-                    className="hover:text-destructive"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setOptions(options.filter((o) => o !== opt))
-                    }}
-                  >
-                    <X className="size-2.5" />
-                  </button>
-                </Badge>
-              ))}
-              <input
-                id="variant-option-input"
-                placeholder={options.length === 0 ? "Options (e.g. sm, md, lg)" : ""}
-                value={optionInput}
-                onChange={(e) => setOptionInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === ",") {
-                    e.preventDefault()
-                    handleAddOptions()
-                  }
-                  if (e.key === "Backspace" && optionInput === "" && options.length > 0) {
-                    setOptions(options.slice(0, -1))
-                  }
-                }}
-                onBlur={handleAddOptions}
-                className="h-full min-w-[60px] flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground"
-              />
-            </div>
-          )}
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-8 shrink-0 rounded-l-none gap-1 text-xs"
-            onClick={handleAdd}
-            disabled={!variantName.trim() || (variantType === "variant" && options.length < 2)}
-          >
-            <Plus className="size-3" />
-            Add variant
-          </Button>
-        </div>
-
-        {/* Boolean default switch */}
-        {variantType === "boolean" && (
-          <div className="flex shrink-0 items-center gap-1.5">
-            <Switch
-              checked={defaultValue === "true"}
-              onCheckedChange={(checked) => setDefaultValue(checked ? "true" : "false")}
-              className="scale-75"
-            />
-            <span className="text-xs text-muted-foreground">
-              {defaultValue === "true" ? "true" : "false"}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Helper text */}
-      {variantType === "variant" && options.length > 0 && (
-        <p className="text-xs text-muted-foreground">Click a badge to set as default. Backspace to remove last.</p>
-      )}
-    </div>
-  )
-}

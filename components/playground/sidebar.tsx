@@ -95,7 +95,9 @@ export function PlaygroundSidebar({
         <span className="text-sm font-semibold tracking-tight">
           Components
         </span>
-        
+        <Badge variant="secondary" className="ml-auto text-xs">
+          {filteredComponents.length}
+        </Badge>
         {onCollapse && (
           <Button
             variant="ghost"
