@@ -359,7 +359,27 @@ interface ControlState {
   // Typography
   fontSize: string
   fontWeight: string
+  fontFamily: string
+  fontStyle: string
   textAlign: string
+  textDecoration: string
+  textDecorationStyle: string
+  textDecorationThickness: string
+  textUnderlineOffset: string
+  textTransform: string
+  textOverflow: string
+  textWrap: string
+  textIndent: string
+  lineHeight: string
+  letterSpacing: string
+  wordBreak: string
+  whitespace: string
+  hyphens: string
+  lineClamp: string
+  verticalAlign: string
+  listStyleType: string
+  listStylePosition: string
+  fontVariantNumeric: string
   // Colours
   textColor: string
   bgColor: string
@@ -559,20 +579,39 @@ const MARGIN_SIDES = {
 } as const
 
 const FONT_SIZE_OPTIONS = [
-  "text-xs",
-  "text-sm",
-  "text-base",
-  "text-lg",
-  "text-xl",
-  "text-2xl",
+  "text-xs", "text-sm", "text-base", "text-lg", "text-xl",
+  "text-2xl", "text-3xl", "text-4xl", "text-5xl", "text-6xl", "text-7xl", "text-8xl", "text-9xl",
 ]
 const FONT_WEIGHT_OPTIONS = [
-  "font-normal",
-  "font-medium",
-  "font-semibold",
-  "font-bold",
+  "font-thin", "font-extralight", "font-light", "font-normal", "font-medium",
+  "font-semibold", "font-bold", "font-extrabold", "font-black",
 ]
-const TEXT_ALIGN_OPTIONS = ["text-left", "text-center", "text-right"]
+const FONT_FAMILY_OPTIONS = ["font-sans", "font-serif", "font-mono"]
+const FONT_STYLE_OPTIONS = ["italic", "not-italic"]
+const TEXT_ALIGN_OPTIONS = ["text-left", "text-center", "text-right", "text-justify", "text-start", "text-end"]
+const TEXT_DECORATION_OPTIONS = ["underline", "overline", "line-through", "no-underline"]
+const TEXT_DECORATION_STYLE_OPTIONS = ["decoration-solid", "decoration-double", "decoration-dotted", "decoration-dashed", "decoration-wavy"]
+const TEXT_DECORATION_THICKNESS_OPTIONS = ["decoration-auto", "decoration-from-font", "decoration-0", "decoration-1", "decoration-2", "decoration-4", "decoration-8"]
+const TEXT_UNDERLINE_OFFSET_OPTIONS = ["underline-offset-auto", "underline-offset-0", "underline-offset-1", "underline-offset-2", "underline-offset-4", "underline-offset-8"]
+const TEXT_TRANSFORM_OPTIONS = ["uppercase", "lowercase", "capitalize", "normal-case"]
+const TEXT_OVERFLOW_OPTIONS = ["truncate", "text-ellipsis", "text-clip"]
+const TEXT_WRAP_OPTIONS = ["text-wrap", "text-nowrap", "text-balance", "text-pretty"]
+const TEXT_INDENT_OPTIONS = [
+  "indent-0", "indent-px", "indent-0.5", "indent-1", "indent-1.5", "indent-2", "indent-4", "indent-6", "indent-8", "indent-10", "indent-12", "indent-16", "indent-20",
+]
+const LINE_HEIGHT_OPTIONS = [
+  "leading-none", "leading-tight", "leading-snug", "leading-normal", "leading-relaxed", "leading-loose",
+  "leading-3", "leading-4", "leading-5", "leading-6", "leading-7", "leading-8", "leading-9", "leading-10",
+]
+const LETTER_SPACING_OPTIONS = ["tracking-tighter", "tracking-tight", "tracking-normal", "tracking-wide", "tracking-wider", "tracking-widest"]
+const WORD_BREAK_OPTIONS = ["break-normal", "break-words", "break-all", "break-keep"]
+const WHITESPACE_OPTIONS = ["whitespace-normal", "whitespace-nowrap", "whitespace-pre", "whitespace-pre-line", "whitespace-pre-wrap", "whitespace-break-spaces"]
+const HYPHENS_OPTIONS = ["hyphens-none", "hyphens-manual", "hyphens-auto"]
+const LINE_CLAMP_OPTIONS = ["line-clamp-1", "line-clamp-2", "line-clamp-3", "line-clamp-4", "line-clamp-5", "line-clamp-6", "line-clamp-none"]
+const VERTICAL_ALIGN_OPTIONS = ["align-baseline", "align-top", "align-middle", "align-bottom", "align-text-top", "align-text-bottom", "align-sub", "align-super"]
+const LIST_STYLE_TYPE_OPTIONS = ["list-none", "list-disc", "list-decimal"]
+const LIST_STYLE_POSITION_OPTIONS = ["list-inside", "list-outside"]
+const FONT_VARIANT_NUMERIC_OPTIONS = ["normal-nums", "ordinal", "slashed-zero", "lining-nums", "oldstyle-nums", "proportional-nums", "tabular-nums"]
 
 const TEXT_COLOR_OPTIONS = [
   { label: "Foreground", value: "text-foreground" },
@@ -729,7 +768,27 @@ function classesToControlState(classes: string[], context: StyleContext = "defau
     marginLeft: findMatch(classes, [...MARGIN_SIDES.marginLeft]),
     fontSize: findMatch(classes, FONT_SIZE_OPTIONS),
     fontWeight: findMatch(classes, FONT_WEIGHT_OPTIONS),
+    fontFamily: findMatch(classes, FONT_FAMILY_OPTIONS),
+    fontStyle: findMatch(classes, FONT_STYLE_OPTIONS),
     textAlign: findMatch(classes, TEXT_ALIGN_OPTIONS),
+    textDecoration: findMatch(classes, TEXT_DECORATION_OPTIONS),
+    textDecorationStyle: findMatch(classes, TEXT_DECORATION_STYLE_OPTIONS),
+    textDecorationThickness: findMatch(classes, TEXT_DECORATION_THICKNESS_OPTIONS),
+    textUnderlineOffset: findMatch(classes, TEXT_UNDERLINE_OFFSET_OPTIONS),
+    textTransform: findMatch(classes, TEXT_TRANSFORM_OPTIONS),
+    textOverflow: findMatch(classes, TEXT_OVERFLOW_OPTIONS),
+    textWrap: findMatch(classes, TEXT_WRAP_OPTIONS),
+    textIndent: findMatch(classes, TEXT_INDENT_OPTIONS),
+    lineHeight: findMatch(classes, LINE_HEIGHT_OPTIONS),
+    letterSpacing: findMatch(classes, LETTER_SPACING_OPTIONS),
+    wordBreak: findMatch(classes, WORD_BREAK_OPTIONS),
+    whitespace: findMatch(classes, WHITESPACE_OPTIONS),
+    hyphens: findMatch(classes, HYPHENS_OPTIONS),
+    lineClamp: findMatch(classes, LINE_CLAMP_OPTIONS),
+    verticalAlign: findMatch(classes, VERTICAL_ALIGN_OPTIONS),
+    listStyleType: findMatch(classes, LIST_STYLE_TYPE_OPTIONS),
+    listStylePosition: findMatch(classes, LIST_STYLE_POSITION_OPTIONS),
+    fontVariantNumeric: findMatch(classes, FONT_VARIANT_NUMERIC_OPTIONS),
     textColor: findColorMatch(classes, TEXT_COLOR_OPTIONS),
     bgColor: findColorMatch(classes, BG_COLOR_OPTIONS),
     borderRadius: findMatch(classes, BORDER_RADIUS_OPTIONS),
@@ -806,7 +865,27 @@ const MANAGED_PREFIXES = [
   ...Object.values(MARGIN_SIDES).flat(),
   ...FONT_SIZE_OPTIONS,
   ...FONT_WEIGHT_OPTIONS,
+  ...FONT_FAMILY_OPTIONS,
+  ...FONT_STYLE_OPTIONS,
   ...TEXT_ALIGN_OPTIONS,
+  ...TEXT_DECORATION_OPTIONS,
+  ...TEXT_DECORATION_STYLE_OPTIONS,
+  ...TEXT_DECORATION_THICKNESS_OPTIONS,
+  ...TEXT_UNDERLINE_OFFSET_OPTIONS,
+  ...TEXT_TRANSFORM_OPTIONS,
+  ...TEXT_OVERFLOW_OPTIONS,
+  ...TEXT_WRAP_OPTIONS,
+  ...TEXT_INDENT_OPTIONS,
+  ...LINE_HEIGHT_OPTIONS,
+  ...LETTER_SPACING_OPTIONS,
+  ...WORD_BREAK_OPTIONS,
+  ...WHITESPACE_OPTIONS,
+  ...HYPHENS_OPTIONS,
+  ...LINE_CLAMP_OPTIONS,
+  ...VERTICAL_ALIGN_OPTIONS,
+  ...LIST_STYLE_TYPE_OPTIONS,
+  ...LIST_STYLE_POSITION_OPTIONS,
+  ...FONT_VARIANT_NUMERIC_OPTIONS,
   ...TEXT_COLOR_OPTIONS.map((o) => o.value),
   ...BG_COLOR_OPTIONS.map((o) => o.value),
   ...BORDER_RADIUS_OPTIONS,
@@ -912,7 +991,27 @@ function controlStateToClasses(state: ControlState, context: StyleContext = "def
   push(state.marginLeft)
   push(state.fontSize)
   push(state.fontWeight)
+  push(state.fontFamily)
+  push(state.fontStyle)
   push(state.textAlign)
+  push(state.textDecoration)
+  push(state.textDecorationStyle)
+  push(state.textDecorationThickness)
+  push(state.textUnderlineOffset)
+  push(state.textTransform)
+  push(state.textOverflow)
+  push(state.textWrap)
+  push(state.textIndent)
+  push(state.lineHeight)
+  push(state.letterSpacing)
+  push(state.wordBreak)
+  push(state.whitespace)
+  push(state.hyphens)
+  push(state.lineClamp)
+  push(state.verticalAlign)
+  push(state.listStyleType)
+  push(state.listStylePosition)
+  push(state.fontVariantNumeric)
   push(state.textColor)
   push(state.bgColor)
   push(state.borderRadius)
@@ -935,6 +1034,8 @@ const PROPERTY_GROUP_PREFIXES = [
   "w-", "h-", "min-w-", "max-w-", "min-h-", "max-h-", "size-",
   "space-x-", "space-y-",
   "px-", "py-", "mx-", "my-",
+  "font-", "leading-", "tracking-", "indent-", "decoration-", "underline-offset-",
+  "line-clamp-", "align-", "list-", "whitespace-", "hyphens-",
   "-m-", "-mt-", "-mr-", "-mb-", "-ml-", "-mx-", "-my-",
   "z-",
   "inset-x-", "inset-y-", "inset-",
@@ -2862,28 +2963,221 @@ export function VisualEditor({
 
           {/* ── Typography ───────────────────────────────── */}
           <ControlSection icon={Type} title="Typography">
-            <ControlRow label="Size">
-              <div className="flex flex-wrap gap-0.5">
-                {FONT_SIZE_OPTIONS.map((opt) => (
-                  <TextToggle key={opt} value={opt} label={opt.replace("text-", "")} tooltip={opt} isActive={state.fontSize === opt} onClick={(v) => update("fontSize", v)} />
+            <ControlRow label="Family">
+              <div className="flex gap-0.5">
+                {FONT_FAMILY_OPTIONS.map((opt) => (
+                  <TextToggle key={opt} value={opt} label={opt.replace("font-", "")} tooltip={opt} isActive={state.fontFamily === opt} onClick={(v) => update("fontFamily", state.fontFamily === v ? "" : v)} />
                 ))}
               </div>
             </ControlRow>
 
+            <ControlRow label="Size">
+              <Select value={state.fontSize || "__none__"} onValueChange={(v) => update("fontSize", v === "__none__" ? "" : v)}>
+                <SelectTrigger className="h-6 w-20 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">–</SelectItem>
+                  {FONT_SIZE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt} value={opt} className="text-xs">{opt.replace("text-", "")}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </ControlRow>
+
             <ControlRow label="Weight">
-              <div className="flex flex-wrap gap-0.5">
-                {FONT_WEIGHT_OPTIONS.map((opt) => (
-                  <TextToggle key={opt} value={opt} label={opt.replace("font-", "")} tooltip={opt} isActive={state.fontWeight === opt} onClick={(v) => update("fontWeight", v)} />
+              <Select value={state.fontWeight || "__none__"} onValueChange={(v) => update("fontWeight", v === "__none__" ? "" : v)}>
+                <SelectTrigger className="h-6 w-24 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">–</SelectItem>
+                  {FONT_WEIGHT_OPTIONS.map((opt) => (
+                    <SelectItem key={opt} value={opt} className="text-xs">{opt.replace("font-", "")}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </ControlRow>
+
+            <ControlRow label="Style">
+              <div className="flex gap-0.5">
+                {FONT_STYLE_OPTIONS.map((opt) => (
+                  <TextToggle key={opt} value={opt} label={opt} tooltip={opt} isActive={state.fontStyle === opt} onClick={(v) => update("fontStyle", state.fontStyle === v ? "" : v)} />
                 ))}
               </div>
             </ControlRow>
 
             <ControlRow label="Align">
-              <div className="flex gap-0.5">
-                <IconToggle value="text-left" icon={AlignLeft} tooltip="text-left" isActive={state.textAlign === "text-left"} onClick={(v) => update("textAlign", v)} />
-                <IconToggle value="text-center" icon={AlignCenter} tooltip="text-center" isActive={state.textAlign === "text-center"} onClick={(v) => update("textAlign", v)} />
-                <IconToggle value="text-right" icon={AlignRight} tooltip="text-right" isActive={state.textAlign === "text-right"} onClick={(v) => update("textAlign", v)} />
+              <div className="flex flex-wrap gap-0.5">
+                <IconToggle value="text-left" icon={AlignLeft} tooltip="text-left" isActive={state.textAlign === "text-left"} onClick={(v) => update("textAlign", state.textAlign === v ? "" : v)} />
+                <IconToggle value="text-center" icon={AlignCenter} tooltip="text-center" isActive={state.textAlign === "text-center"} onClick={(v) => update("textAlign", state.textAlign === v ? "" : v)} />
+                <IconToggle value="text-right" icon={AlignRight} tooltip="text-right" isActive={state.textAlign === "text-right"} onClick={(v) => update("textAlign", state.textAlign === v ? "" : v)} />
+                {["text-justify", "text-start", "text-end"].map((opt) => (
+                  <TextToggle key={opt} value={opt} label={opt.replace("text-", "")} tooltip={opt} isActive={state.textAlign === opt} onClick={(v) => update("textAlign", state.textAlign === v ? "" : v)} />
+                ))}
               </div>
+            </ControlRow>
+
+            <ControlRow label="Decoration">
+              <div className="flex flex-wrap gap-0.5">
+                {TEXT_DECORATION_OPTIONS.map((opt) => (
+                  <TextToggle key={opt} value={opt} label={opt.replace("no-", "none").replace("line-through", "strike")} tooltip={opt} isActive={state.textDecoration === opt} onClick={(v) => update("textDecoration", state.textDecoration === v ? "" : v)} />
+                ))}
+              </div>
+            </ControlRow>
+
+            {state.textDecoration && state.textDecoration !== "no-underline" && (
+              <>
+                <ControlRow label="Dec. style">
+                  <div className="flex flex-wrap gap-0.5">
+                    {TEXT_DECORATION_STYLE_OPTIONS.map((opt) => (
+                      <TextToggle key={opt} value={opt} label={opt.replace("decoration-", "")} tooltip={opt} isActive={state.textDecorationStyle === opt} onClick={(v) => update("textDecorationStyle", state.textDecorationStyle === v ? "" : v)} />
+                    ))}
+                  </div>
+                </ControlRow>
+                <ControlRow label="Dec. thick">
+                  <div className="flex flex-wrap gap-0.5">
+                    {TEXT_DECORATION_THICKNESS_OPTIONS.map((opt) => (
+                      <TextToggle key={opt} value={opt} label={opt.replace("decoration-", "")} tooltip={opt} isActive={state.textDecorationThickness === opt} onClick={(v) => update("textDecorationThickness", state.textDecorationThickness === v ? "" : v)} />
+                    ))}
+                  </div>
+                </ControlRow>
+                <ControlRow label="Underline offset">
+                  <div className="flex flex-wrap gap-0.5">
+                    {TEXT_UNDERLINE_OFFSET_OPTIONS.map((opt) => (
+                      <TextToggle key={opt} value={opt} label={opt.replace("underline-offset-", "")} tooltip={opt} isActive={state.textUnderlineOffset === opt} onClick={(v) => update("textUnderlineOffset", state.textUnderlineOffset === v ? "" : v)} />
+                    ))}
+                  </div>
+                </ControlRow>
+              </>
+            )}
+
+            <ControlRow label="Transform">
+              <div className="flex flex-wrap gap-0.5">
+                {TEXT_TRANSFORM_OPTIONS.map((opt) => (
+                  <TextToggle key={opt} value={opt} label={opt.replace("normal-case", "none")} tooltip={opt} isActive={state.textTransform === opt} onClick={(v) => update("textTransform", state.textTransform === v ? "" : v)} />
+                ))}
+              </div>
+            </ControlRow>
+
+            <ControlRow label="Line height">
+              <Select value={state.lineHeight || "__none__"} onValueChange={(v) => update("lineHeight", v === "__none__" ? "" : v)}>
+                <SelectTrigger className="h-6 w-28 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">–</SelectItem>
+                  {LINE_HEIGHT_OPTIONS.map((opt) => (
+                    <SelectItem key={opt} value={opt} className="text-xs">{opt.replace("leading-", "")}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </ControlRow>
+
+            <ControlRow label="Letter space">
+              <div className="flex flex-wrap gap-0.5">
+                {LETTER_SPACING_OPTIONS.map((opt) => (
+                  <TextToggle key={opt} value={opt} label={opt.replace("tracking-", "")} tooltip={opt} isActive={state.letterSpacing === opt} onClick={(v) => update("letterSpacing", state.letterSpacing === v ? "" : v)} />
+                ))}
+              </div>
+            </ControlRow>
+
+            <ControlRow label="Overflow">
+              <div className="flex flex-wrap gap-0.5">
+                {TEXT_OVERFLOW_OPTIONS.map((opt) => (
+                  <TextToggle key={opt} value={opt} label={opt.replace("text-", "")} tooltip={opt} isActive={state.textOverflow === opt} onClick={(v) => update("textOverflow", state.textOverflow === v ? "" : v)} />
+                ))}
+              </div>
+            </ControlRow>
+
+            <ControlRow label="Wrap">
+              <div className="flex flex-wrap gap-0.5">
+                {TEXT_WRAP_OPTIONS.map((opt) => (
+                  <TextToggle key={opt} value={opt} label={opt.replace("text-", "")} tooltip={opt} isActive={state.textWrap === opt} onClick={(v) => update("textWrap", state.textWrap === v ? "" : v)} />
+                ))}
+              </div>
+            </ControlRow>
+
+            <ControlRow label="Whitespace">
+              <Select value={state.whitespace || "__none__"} onValueChange={(v) => update("whitespace", v === "__none__" ? "" : v)}>
+                <SelectTrigger className="h-6 w-28 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">–</SelectItem>
+                  {WHITESPACE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt} value={opt} className="text-xs">{opt.replace("whitespace-", "")}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </ControlRow>
+
+            <ControlRow label="Word break">
+              <div className="flex flex-wrap gap-0.5">
+                {WORD_BREAK_OPTIONS.map((opt) => (
+                  <TextToggle key={opt} value={opt} label={opt.replace("break-", "")} tooltip={opt} isActive={state.wordBreak === opt} onClick={(v) => update("wordBreak", state.wordBreak === v ? "" : v)} />
+                ))}
+              </div>
+            </ControlRow>
+
+            <ControlRow label="Hyphens">
+              <div className="flex flex-wrap gap-0.5">
+                {HYPHENS_OPTIONS.map((opt) => (
+                  <TextToggle key={opt} value={opt} label={opt.replace("hyphens-", "")} tooltip={opt} isActive={state.hyphens === opt} onClick={(v) => update("hyphens", state.hyphens === v ? "" : v)} />
+                ))}
+              </div>
+            </ControlRow>
+
+            <ControlRow label="Line clamp">
+              <div className="flex flex-wrap gap-0.5">
+                {LINE_CLAMP_OPTIONS.map((opt) => (
+                  <TextToggle key={opt} value={opt} label={opt.replace("line-clamp-", "")} tooltip={opt} isActive={state.lineClamp === opt} onClick={(v) => update("lineClamp", state.lineClamp === v ? "" : v)} />
+                ))}
+              </div>
+            </ControlRow>
+
+            <ControlRow label="Indent">
+              <Select value={state.textIndent || "__none__"} onValueChange={(v) => update("textIndent", v === "__none__" ? "" : v)}>
+                <SelectTrigger className="h-6 w-20 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">–</SelectItem>
+                  {TEXT_INDENT_OPTIONS.map((opt) => (
+                    <SelectItem key={opt} value={opt} className="text-xs">{opt.replace("indent-", "")}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </ControlRow>
+
+            <ControlRow label="V-align">
+              <Select value={state.verticalAlign || "__none__"} onValueChange={(v) => update("verticalAlign", v === "__none__" ? "" : v)}>
+                <SelectTrigger className="h-6 w-24 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">–</SelectItem>
+                  {VERTICAL_ALIGN_OPTIONS.map((opt) => (
+                    <SelectItem key={opt} value={opt} className="text-xs">{opt.replace("align-", "")}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </ControlRow>
+
+            <ControlRow label="List type">
+              <div className="flex flex-wrap gap-0.5">
+                {LIST_STYLE_TYPE_OPTIONS.map((opt) => (
+                  <TextToggle key={opt} value={opt} label={opt.replace("list-", "")} tooltip={opt} isActive={state.listStyleType === opt} onClick={(v) => update("listStyleType", state.listStyleType === v ? "" : v)} />
+                ))}
+              </div>
+            </ControlRow>
+
+            <ControlRow label="List pos">
+              <div className="flex gap-0.5">
+                {LIST_STYLE_POSITION_OPTIONS.map((opt) => (
+                  <TextToggle key={opt} value={opt} label={opt.replace("list-", "")} tooltip={opt} isActive={state.listStylePosition === opt} onClick={(v) => update("listStylePosition", state.listStylePosition === v ? "" : v)} />
+                ))}
+              </div>
+            </ControlRow>
+
+            <ControlRow label="Num variant">
+              <Select value={state.fontVariantNumeric || "__none__"} onValueChange={(v) => update("fontVariantNumeric", v === "__none__" ? "" : v)}>
+                <SelectTrigger className="h-6 w-32 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">–</SelectItem>
+                  {FONT_VARIANT_NUMERIC_OPTIONS.map((opt) => (
+                    <SelectItem key={opt} value={opt} className="text-xs">{opt}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </ControlRow>
           </ControlSection>
 
