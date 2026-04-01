@@ -21,17 +21,20 @@ import {
   StretchHorizontal,
   ArrowRight,
   ArrowDown,
+  ArrowLeft,
+  ArrowUp,
   Minus,
   Plus,
   X,
   ChevronDown,
   ChevronRight,
-  ArrowLeft,
   Columns3,
   LayoutGrid,
   EyeOff,
   Minus as MinusIcon,
   PanelTop,
+  WrapText,
+  Maximize2,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -278,7 +281,9 @@ interface ControlState {
   gapY: string
   // Layout — flex container
   flexWrap: string
+  alignContent: string
   // Layout — flex child
+  flexShorthand: string
   flexGrow: string
   flexShrink: string
   flexBasis: string
@@ -328,6 +333,11 @@ const SPACE_Y_OPTIONS = [
 ]
 
 const FLEX_WRAP_OPTIONS = ["flex-wrap", "flex-wrap-reverse", "flex-nowrap"]
+const FLEX_SHORTHAND_OPTIONS = ["flex-1", "flex-auto", "flex-initial", "flex-none"]
+const ALIGN_CONTENT_OPTIONS = [
+  "content-start", "content-center", "content-end",
+  "content-between", "content-around", "content-evenly", "content-stretch",
+]
 const FLEX_GROW_OPTIONS = ["grow", "grow-0"]
 const FLEX_SHRINK_OPTIONS = ["shrink", "shrink-0"]
 const FLEX_BASIS_OPTIONS = [
@@ -357,12 +367,15 @@ const JUSTIFY_OPTIONS = [
   "justify-center",
   "justify-end",
   "justify-between",
+  "justify-around",
+  "justify-evenly",
 ]
 const ALIGN_OPTIONS = [
   "items-start",
   "items-center",
   "items-end",
   "items-stretch",
+  "items-baseline",
 ]
 const GAP_OPTIONS = GAP_SLIDER_VALUES.map((v) => `gap-${v}`)
 
@@ -499,6 +512,8 @@ function classesToControlState(classes: string[], context: StyleContext = "defau
     gapX: findMatch(classes, GAP_X_OPTIONS),
     gapY: findMatch(classes, GAP_Y_OPTIONS),
     flexWrap: findMatch(classes, FLEX_WRAP_OPTIONS),
+    alignContent: findMatch(classes, ALIGN_CONTENT_OPTIONS),
+    flexShorthand: findMatch(classes, FLEX_SHORTHAND_OPTIONS),
     flexGrow: findMatch(classes, FLEX_GROW_OPTIONS),
     flexShrink: findMatch(classes, FLEX_SHRINK_OPTIONS),
     flexBasis: findMatch(classes, FLEX_BASIS_OPTIONS),
@@ -538,6 +553,8 @@ const MANAGED_PREFIXES = [
   ...GAP_X_OPTIONS,
   ...GAP_Y_OPTIONS,
   ...FLEX_WRAP_OPTIONS,
+  ...FLEX_SHORTHAND_OPTIONS,
+  ...ALIGN_CONTENT_OPTIONS,
   ...FLEX_GROW_OPTIONS,
   ...FLEX_SHRINK_OPTIONS,
   ...FLEX_BASIS_OPTIONS,
@@ -593,6 +610,8 @@ function controlStateToClasses(state: ControlState, context: StyleContext = "def
   push(state.gapX)
   push(state.gapY)
   push(state.flexWrap)
+  push(state.alignContent)
+  push(state.flexShorthand)
   push(state.flexGrow)
   push(state.flexShrink)
   push(state.flexBasis)
@@ -734,8 +753,8 @@ function PositionGrid({
   onAlignChange: (v: string) => void
 }) {
   const isGrid = display === "grid"
-  const isBetween = justify === "justify-between"
-  const isStretch = align === "items-stretch"
+  const isBetween = justify === "justify-between" || justify === "justify-around" || justify === "justify-evenly"
+  const isStretch = align === "items-stretch" || align === "items-baseline"
 
   function getTooltip(j: string, a: string): string {
     if (isGrid) {
@@ -824,49 +843,67 @@ function PositionGrid({
         )}
       </div>
 
-      {/* Between + Stretch toggles */}
-      <div className="flex gap-1">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              className={cn(
-                "flex h-6 items-center gap-1 rounded-md border px-2 text-xs transition-colors",
-                isBetween
-                  ? "border-blue-500 bg-blue-500/10 text-blue-500"
-                  : "text-muted-foreground hover:bg-muted",
-              )}
-              onClick={() => onJustifyChange(isBetween ? "justify-start" : "justify-between")}
-            >
-              <StretchHorizontal className="size-3" />
-              between
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-xs font-mono">
-            justify-between
-          </TooltipContent>
-        </Tooltip>
+      {/* Justify extras (between, around, evenly) */}
+      <div className="flex flex-wrap gap-1">
+        {([
+          { value: "justify-between", label: "between", icon: StretchHorizontal },
+          { value: "justify-around", label: "around" },
+          { value: "justify-evenly", label: "evenly" },
+        ] as const).map((opt) => {
+          const isActive = justify === opt.value
+          return (
+            <Tooltip key={opt.value}>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className={cn(
+                    "flex h-6 items-center gap-1 rounded-md border px-2 text-xs transition-colors",
+                    isActive
+                      ? "border-blue-500 bg-blue-500/10 text-blue-500"
+                      : "text-muted-foreground hover:bg-muted",
+                  )}
+                  onClick={() => onJustifyChange(isActive ? "justify-start" : opt.value)}
+                >
+                  {"icon" in opt && opt.icon && <opt.icon className="size-3" />}
+                  {opt.label}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs font-mono">
+                {opt.value}
+              </TooltipContent>
+            </Tooltip>
+          )
+        })}
 
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              className={cn(
-                "flex h-6 items-center gap-1 rounded-md border px-2 text-xs transition-colors",
-                isStretch
-                  ? "border-blue-500 bg-blue-500/10 text-blue-500"
-                  : "text-muted-foreground hover:bg-muted",
-              )}
-              onClick={() => onAlignChange(isStretch ? "items-start" : "items-stretch")}
-            >
-              <StretchVertical className="size-3" />
-              stretch
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-xs font-mono">
-            items-stretch
-          </TooltipContent>
-        </Tooltip>
+        {/* Align axis extras (stretch, baseline) */}
+        {([
+          { value: "items-stretch", label: "stretch", icon: StretchVertical },
+          { value: "items-baseline", label: "baseline" },
+        ] as const).map((opt) => {
+          const isActive = align === opt.value
+          return (
+            <Tooltip key={opt.value}>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className={cn(
+                    "flex h-6 items-center gap-1 rounded-md border px-2 text-xs transition-colors",
+                    isActive
+                      ? "border-blue-500 bg-blue-500/10 text-blue-500"
+                      : "text-muted-foreground hover:bg-muted",
+                  )}
+                  onClick={() => onAlignChange(isActive ? "items-start" : opt.value)}
+                >
+                  {"icon" in opt && opt.icon && <opt.icon className="size-3" />}
+                  {opt.label}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs font-mono">
+                {opt.value}
+              </TooltipContent>
+            </Tooltip>
+          )
+        })}
       </div>
     </div>
   )
@@ -1653,18 +1690,20 @@ export function VisualEditor({
                   {/* ══════ FLEX-SPECIFIC ═══════════════════ */}
                   {isFlex && (
                     <>
-                      {/* Container controls */}
+                      {/* ── Flex container controls ────────────── */}
                       <ControlRow label="Direction">
                         <div className="flex gap-0.5">
-                          <IconToggle value="flex-row" icon={ArrowRight} tooltip="flex-row" isActive={state.direction === "flex-row" || !state.direction} onClick={(v) => update("direction", state.direction === v ? "" : v)} />
+                          <IconToggle value="flex-row" icon={ArrowRight} tooltip="flex-row (default)" isActive={state.direction === "flex-row" || !state.direction} onClick={() => update("direction", "")} />
                           <IconToggle value="flex-col" icon={ArrowDown} tooltip="flex-col" isActive={state.direction === "flex-col"} onClick={(v) => update("direction", v)} />
+                          <IconToggle value="flex-row-reverse" icon={ArrowLeft} tooltip="flex-row-reverse" isActive={state.direction === "flex-row-reverse"} onClick={(v) => update("direction", v)} />
+                          <IconToggle value="flex-col-reverse" icon={ArrowUp} tooltip="flex-col-reverse" isActive={state.direction === "flex-col-reverse"} onClick={(v) => update("direction", v)} />
                         </div>
                       </ControlRow>
 
                       <ControlRow label="Wrap">
                         <div className="flex gap-0.5">
-                          <TextToggle value="flex-nowrap" label="nowrap" tooltip="flex-nowrap (default)" isActive={!state.flexWrap || state.flexWrap === "flex-nowrap"} onClick={() => update("flexWrap", "")} />
-                          <TextToggle value="flex-wrap" label="wrap" tooltip="flex-wrap" isActive={state.flexWrap === "flex-wrap"} onClick={(v) => update("flexWrap", v)} />
+                          <IconToggle value="flex-nowrap" icon={X} tooltip="flex-nowrap (default)" isActive={!state.flexWrap || state.flexWrap === "flex-nowrap"} onClick={() => update("flexWrap", "")} />
+                          <IconToggle value="flex-wrap" icon={WrapText} tooltip="flex-wrap" isActive={state.flexWrap === "flex-wrap"} onClick={(v) => update("flexWrap", v)} />
                           <TextToggle value="flex-wrap-reverse" label="reverse" tooltip="flex-wrap-reverse" isActive={state.flexWrap === "flex-wrap-reverse"} onClick={(v) => update("flexWrap", v)} />
                         </div>
                       </ControlRow>
@@ -1678,6 +1717,24 @@ export function VisualEditor({
                           onAlignChange={(v) => update("align", v)}
                         />
                       </ControlRow>
+
+                      {/* Align content — only relevant when wrapping */}
+                      {(state.flexWrap === "flex-wrap" || state.flexWrap === "flex-wrap-reverse") && (
+                        <ControlRow label="Content">
+                          <div className="flex flex-wrap gap-0.5">
+                            {ALIGN_CONTENT_OPTIONS.map((opt) => (
+                              <TextToggle
+                                key={opt}
+                                value={opt}
+                                label={opt.replace("content-", "")}
+                                tooltip={opt}
+                                isActive={state.alignContent === opt}
+                                onClick={(v) => update("alignContent", state.alignContent === v ? "" : v)}
+                              />
+                            ))}
+                          </div>
+                        </ControlRow>
+                      )}
 
                       <GapControl
                         gap={state.gap}
@@ -1697,24 +1754,34 @@ export function VisualEditor({
                         }}
                       />
 
-                      {/* Flex child controls */}
+                      {/* ── Flex child controls ──────────────── */}
                       <div className="border-t px-3 py-1.5">
                         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground/60">Flex child</p>
                       </div>
 
+                      <ControlRow label="Flex">
+                        <div className="flex gap-0.5">
+                          <TextToggle value="" label="–" tooltip="default (no shorthand)" isActive={!state.flexShorthand} onClick={() => update("flexShorthand", "")} />
+                          <TextToggle value="flex-1" label="1" tooltip="flex-1 (grow + shrink, basis 0%)" isActive={state.flexShorthand === "flex-1"} onClick={(v) => update("flexShorthand", v)} />
+                          <TextToggle value="flex-auto" label="auto" tooltip="flex-auto (grow + shrink, basis auto)" isActive={state.flexShorthand === "flex-auto"} onClick={(v) => update("flexShorthand", v)} />
+                          <TextToggle value="flex-initial" label="initial" tooltip="flex-initial (shrink only, basis auto)" isActive={state.flexShorthand === "flex-initial"} onClick={(v) => update("flexShorthand", v)} />
+                          <TextToggle value="flex-none" label="none" tooltip="flex-none (no grow, no shrink)" isActive={state.flexShorthand === "flex-none"} onClick={(v) => update("flexShorthand", v)} />
+                        </div>
+                      </ControlRow>
+
                       <ControlRow label="Grow">
                         <div className="flex gap-0.5">
-                          <TextToggle value="" label="default" tooltip="default (no grow)" isActive={!state.flexGrow} onClick={() => update("flexGrow", "")} />
-                          <TextToggle value="grow" label="grow" tooltip="grow" isActive={state.flexGrow === "grow"} onClick={(v) => update("flexGrow", v)} />
-                          <TextToggle value="grow-0" label="grow-0" tooltip="grow-0" isActive={state.flexGrow === "grow-0"} onClick={(v) => update("flexGrow", v)} />
+                          <TextToggle value="" label="–" tooltip="default" isActive={!state.flexGrow} onClick={() => update("flexGrow", "")} />
+                          <IconToggle value="grow" icon={Maximize2} tooltip="grow" isActive={state.flexGrow === "grow"} onClick={(v) => update("flexGrow", v)} />
+                          <TextToggle value="grow-0" label="0" tooltip="grow-0" isActive={state.flexGrow === "grow-0"} onClick={(v) => update("flexGrow", v)} />
                         </div>
                       </ControlRow>
 
                       <ControlRow label="Shrink">
                         <div className="flex gap-0.5">
-                          <TextToggle value="" label="default" tooltip="default (shrink)" isActive={!state.flexShrink} onClick={() => update("flexShrink", "")} />
+                          <TextToggle value="" label="–" tooltip="default" isActive={!state.flexShrink} onClick={() => update("flexShrink", "")} />
                           <TextToggle value="shrink" label="shrink" tooltip="shrink" isActive={state.flexShrink === "shrink"} onClick={(v) => update("flexShrink", v)} />
-                          <TextToggle value="shrink-0" label="shrink-0" tooltip="shrink-0" isActive={state.flexShrink === "shrink-0"} onClick={(v) => update("flexShrink", v)} />
+                          <TextToggle value="shrink-0" label="0" tooltip="shrink-0" isActive={state.flexShrink === "shrink-0"} onClick={(v) => update("flexShrink", v)} />
                         </div>
                       </ControlRow>
 
