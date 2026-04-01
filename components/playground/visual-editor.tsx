@@ -38,6 +38,19 @@ import { cn } from "@/lib/utils"
 import type { ElementInfo } from "@/components/playground/element-selector"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Slider } from "@/components/ui/slider"
@@ -59,75 +72,111 @@ import {
 
 /* ── Types ──────────────────────────────────────────────────────── */
 
+interface VariantOption {
+  variantName: string
+  optionValue: string
+}
+
 interface VisualEditorProps {
   selectedElement: ElementInfo | null
   onClassChange: (classes: string[]) => void
   onDeselect: () => void
+  /** Component's defined variants for the context picker */
+  variants?: Array<{ name: string; options: string[] }>
 }
 
 /* ── Context (prefix) types ──────────────────────────────────────── */
 
-type StyleContext =
-  | "default"
-  | "sm" | "md" | "lg" | "xl" | "2xl"
-  | "hover" | "focus" | "active" | "disabled"
-  | "focus-visible" | "focus-within"
-  | "group-hover" | "group-focus"
-  | "dark"
+type StyleContext = string // "default", "sm", "hover", or "variant:size:sm" etc.
 
-const CONTEXT_GROUPS = [
-  {
+function buildContextGroups(
+  variants?: Array<{ name: string; options: string[] }>,
+): Array<{ label: string; options: Array<{ value: string; label: string }> }> {
+  const groups: Array<{ label: string; options: Array<{ value: string; label: string }> }> = []
+
+  // Variants — always show "default" plus any defined variants
+  if (variants && variants.length > 0) {
+    for (const v of variants) {
+      groups.push({
+        label: v.name,
+        options: v.options.map((opt) => ({
+          value: `variant:${v.name}:${opt}`,
+          label: opt,
+        })),
+      })
+    }
+  }
+
+  // Default (no prefix)
+  groups.unshift({
     label: "Base",
-    options: [{ value: "default" as StyleContext, label: "Default" }],
-  },
-  {
+    options: [{ value: "default", label: "Default" }],
+  })
+
+  // Responsive
+  groups.push({
     label: "Responsive",
     options: [
-      { value: "sm" as StyleContext, label: "sm" },
-      { value: "md" as StyleContext, label: "md" },
-      { value: "lg" as StyleContext, label: "lg" },
-      { value: "xl" as StyleContext, label: "xl" },
-      { value: "2xl" as StyleContext, label: "2xl" },
+      { value: "sm", label: "sm" },
+      { value: "md", label: "md" },
+      { value: "lg", label: "lg" },
+      { value: "xl", label: "xl" },
+      { value: "2xl", label: "2xl" },
     ],
-  },
-  {
+  })
+
+  // States
+  groups.push({
     label: "States",
     options: [
-      { value: "hover" as StyleContext, label: "hover" },
-      { value: "focus" as StyleContext, label: "focus" },
-      { value: "focus-visible" as StyleContext, label: "focus-visible" },
-      { value: "focus-within" as StyleContext, label: "focus-within" },
-      { value: "active" as StyleContext, label: "active" },
-      { value: "disabled" as StyleContext, label: "disabled" },
-      { value: "dark" as StyleContext, label: "dark" },
+      { value: "hover", label: "hover" },
+      { value: "focus", label: "focus" },
+      { value: "focus-visible", label: "focus-visible" },
+      { value: "focus-within", label: "focus-within" },
+      { value: "active", label: "active" },
+      { value: "disabled", label: "disabled" },
+      { value: "dark", label: "dark" },
     ],
-  },
-  {
+  })
+
+  // Group
+  groups.push({
     label: "Group",
     options: [
-      { value: "group-hover" as StyleContext, label: "group-hover" },
-      { value: "group-focus" as StyleContext, label: "group-focus" },
+      { value: "group-hover", label: "group-hover" },
+      { value: "group-focus", label: "group-focus" },
     ],
-  },
-]
+  })
+
+  return groups
+}
+
+/** Get the CSS prefix for a context. Variant contexts have no CSS prefix. */
+function getCssPrefix(context: string): string {
+  if (context === "default" || context.startsWith("variant:")) return "default"
+  return context
+}
 
 /** Strip a context prefix from a class, e.g. "hover:bg-muted" → "bg-muted" */
 function stripPrefix(cls: string, prefix: string): string | null {
-  if (prefix === "default") return cls.includes(":") ? null : cls
-  if (cls.startsWith(`${prefix}:`)) return cls.slice(prefix.length + 1)
+  const cssPrefix = getCssPrefix(prefix)
+  if (cssPrefix === "default") return cls.includes(":") ? null : cls
+  if (cls.startsWith(`${cssPrefix}:`)) return cls.slice(cssPrefix.length + 1)
   return null
 }
 
 /** Add a context prefix to a class, e.g. "bg-muted" + "hover" → "hover:bg-muted" */
 function addPrefix(cls: string, prefix: string): string {
-  if (prefix === "default") return cls
-  return `${prefix}:${cls}`
+  const cssPrefix = getCssPrefix(prefix)
+  if (cssPrefix === "default") return cls
+  return `${cssPrefix}:${cls}`
 }
 
 /** Check if a class belongs to a specific context */
 function hasPrefix(cls: string, prefix: string): boolean {
-  if (prefix === "default") return !cls.includes(":")
-  return cls.startsWith(`${prefix}:`)
+  const cssPrefix = getCssPrefix(prefix)
+  if (cssPrefix === "default") return !cls.includes(":")
+  return cls.startsWith(`${cssPrefix}:`)
 }
 
 interface ControlState {
@@ -965,12 +1014,86 @@ function ColorSwatchGrid({
   )
 }
 
+/* ── Context picker (Command-based) ──────────────────────────────── */
+
+function ContextPicker({
+  context,
+  onContextChange,
+  variants,
+}: {
+  context: StyleContext
+  onContextChange: (ctx: StyleContext) => void
+  variants?: Array<{ name: string; options: string[] }>
+}) {
+  const [open, setOpen] = React.useState(false)
+  const groups = React.useMemo(() => buildContextGroups(variants), [variants])
+
+  // Display label for the current context
+  const contextLabel = React.useMemo(() => {
+    if (context === "default") return "Default"
+    if (context.startsWith("variant:")) {
+      const parts = context.split(":")
+      return `${parts[1]}: ${parts[2]}`
+    }
+    return `${context}:`
+  }, [context])
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className={cn(
+            "h-7 gap-1 text-xs",
+            context !== "default" && "border-blue-500/50 text-blue-500",
+          )}
+        >
+          {contextLabel}
+          <ChevronDown className="size-3 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-52 p-0" align="end">
+        <Command className="[&_[cmdk-list]]:max-h-[280px]">
+          <CommandInput placeholder="Search context..." className="h-8 text-xs" />
+          <CommandList>
+            <CommandEmpty className="py-3 text-center text-xs">No match.</CommandEmpty>
+            {groups.map((group) => (
+              <CommandGroup key={group.label} heading={group.label}>
+                {group.options.map((opt) => (
+                  <CommandItem
+                    key={opt.value}
+                    value={`${opt.label} ${group.label}`}
+                    onSelect={() => {
+                      onContextChange(opt.value)
+                      setOpen(false)
+                    }}
+                    className={cn(
+                      "gap-2 text-xs",
+                      context === opt.value && "bg-blue-500/10 text-blue-500",
+                    )}
+                  >
+                    <code className="font-mono text-xs">
+                      {opt.label}
+                    </code>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            ))}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
 /* ── Main component ──────────────────────────────────────────────── */
 
 export function VisualEditor({
   selectedElement,
   onClassChange,
   onDeselect,
+  variants,
 }: VisualEditorProps) {
   const [context, setContext] = React.useState<StyleContext>("default")
   const [state, setState] = React.useState<ControlState>(() =>
@@ -1032,67 +1155,29 @@ export function VisualEditor({
 
   return (
     <div className="flex h-full w-full flex-col">
-      {/* ── Header ───────────────────────────────────────── */}
+      {/* ── Header with context selector ────────────────── */}
       <div className="flex items-center gap-2 border-b px-3 py-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-7"
-          onClick={onDeselect}
-        >
-          <ArrowLeft className="size-3.5" />
-        </Button>
         <div className="min-w-0 flex-1">
           <p className="truncate text-xs font-medium">
             {"<"}
             {selectedElement.tagName}
             {">"}
+            {selectedElement.textContent && (
+              <span className="ml-1 font-normal text-muted-foreground">
+                {selectedElement.textContent.slice(0, 15)}
+              </span>
+            )}
           </p>
-          {selectedElement.textContent && (
-            <p className="truncate text-xs text-muted-foreground">
-              {selectedElement.textContent}
-            </p>
-          )}
         </div>
+        <ContextPicker context={context} onContextChange={setContext} variants={variants} />
         <Button
           variant="ghost"
           size="icon"
-          className="size-7"
+          className="size-7 shrink-0"
           onClick={onDeselect}
         >
           <X className="size-3.5" />
         </Button>
-      </div>
-
-      {/* ── Context selector ──────────────────────────────── */}
-      <div className="border-b px-3 py-2">
-        <div className="flex flex-wrap items-center gap-1">
-          {CONTEXT_GROUPS.map((group) => (
-            <React.Fragment key={group.label}>
-              {group.options.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setContext(opt.value)}
-                  className={cn(
-                    "rounded px-1.5 py-0.5 text-xs transition-colors",
-                    context === opt.value
-                      ? "bg-blue-500/10 font-medium text-blue-500"
-                      : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-                  )}
-                >
-                  {opt.label}
-                </button>
-              ))}
-              <div className="mx-0.5 h-3 w-px bg-border" />
-            </React.Fragment>
-          ))}
-        </div>
-        {context !== "default" && (
-          <p className="mt-1 text-xs text-muted-foreground">
-            Editing <code className="rounded bg-muted px-1 font-mono text-xs">{context}:</code> styles
-          </p>
-        )}
       </div>
 
       {/* ── Controls ─────────────────────────────────────── */}

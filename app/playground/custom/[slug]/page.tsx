@@ -587,6 +587,11 @@ export default function CustomComponentPage() {
                       handleTreeClassChange(targetId, classes)
                     }}
                     onDeselect={() => setSelectedNodeId(null)}
+                    variants={
+                      isMain
+                        ? componentTree.variants.map((v) => ({ name: v.name, options: v.options }))
+                        : matchedSc?.variants.map((v) => ({ name: v.name, options: v.options })) ?? []
+                    }
                   />
                   )
                 })() : (
