@@ -65,6 +65,71 @@ interface VisualEditorProps {
   onDeselect: () => void
 }
 
+/* ── Context (prefix) types ──────────────────────────────────────── */
+
+type StyleContext =
+  | "default"
+  | "sm" | "md" | "lg" | "xl" | "2xl"
+  | "hover" | "focus" | "active" | "disabled"
+  | "focus-visible" | "focus-within"
+  | "group-hover" | "group-focus"
+  | "dark"
+
+const CONTEXT_GROUPS = [
+  {
+    label: "Base",
+    options: [{ value: "default" as StyleContext, label: "Default" }],
+  },
+  {
+    label: "Responsive",
+    options: [
+      { value: "sm" as StyleContext, label: "sm" },
+      { value: "md" as StyleContext, label: "md" },
+      { value: "lg" as StyleContext, label: "lg" },
+      { value: "xl" as StyleContext, label: "xl" },
+      { value: "2xl" as StyleContext, label: "2xl" },
+    ],
+  },
+  {
+    label: "States",
+    options: [
+      { value: "hover" as StyleContext, label: "hover" },
+      { value: "focus" as StyleContext, label: "focus" },
+      { value: "focus-visible" as StyleContext, label: "focus-visible" },
+      { value: "focus-within" as StyleContext, label: "focus-within" },
+      { value: "active" as StyleContext, label: "active" },
+      { value: "disabled" as StyleContext, label: "disabled" },
+      { value: "dark" as StyleContext, label: "dark" },
+    ],
+  },
+  {
+    label: "Group",
+    options: [
+      { value: "group-hover" as StyleContext, label: "group-hover" },
+      { value: "group-focus" as StyleContext, label: "group-focus" },
+    ],
+  },
+]
+
+/** Strip a context prefix from a class, e.g. "hover:bg-muted" → "bg-muted" */
+function stripPrefix(cls: string, prefix: string): string | null {
+  if (prefix === "default") return cls.includes(":") ? null : cls
+  if (cls.startsWith(`${prefix}:`)) return cls.slice(prefix.length + 1)
+  return null
+}
+
+/** Add a context prefix to a class, e.g. "bg-muted" + "hover" → "hover:bg-muted" */
+function addPrefix(cls: string, prefix: string): string {
+  if (prefix === "default") return cls
+  return `${prefix}:${cls}`
+}
+
+/** Check if a class belongs to a specific context */
+function hasPrefix(cls: string, prefix: string): boolean {
+  if (prefix === "default") return !cls.includes(":")
+  return cls.startsWith(`${prefix}:`)
+}
+
 interface ControlState {
   // Layout
   display: string
@@ -236,7 +301,11 @@ function findColorMatch(
   return classes.find((c) => values.includes(c)) ?? ""
 }
 
-function classesToControlState(classes: string[]): ControlState {
+function classesToControlState(classes: string[], context: StyleContext = "default"): ControlState {
+  // Filter to only classes matching the current context, then strip the prefix
+  classes = classes
+    .map((c) => stripPrefix(c, context))
+    .filter((c): c is string => c !== null)
   // Parse place-items shorthand back into justify + align
   const placeItems = classes.find((c) => c.startsWith("place-items-"))
   let parsedJustify = findMatch(classes, JUSTIFY_OPTIONS)
@@ -300,10 +369,10 @@ const MANAGED_PREFIXES = [
   "place-items-stretch",
 ]
 
-function controlStateToClasses(state: ControlState): string[] {
+function controlStateToClasses(state: ControlState, context: StyleContext = "default"): string[] {
   const result: string[] = []
   const push = (v: string) => {
-    if (v) result.push(v)
+    if (v) result.push(addPrefix(v, context))
   }
 
   push(state.display)
@@ -351,17 +420,25 @@ function controlStateToClasses(state: ControlState): string[] {
 function mergeClasses(
   original: string[],
   state: ControlState,
+  context: StyleContext = "default",
 ): string[] {
   const managed = new Set(MANAGED_PREFIXES)
-  const editorClasses = controlStateToClasses(state)
+  const editorClasses = controlStateToClasses(state, context)
   const editorSet = new Set(editorClasses)
 
-  // Remove any original class that's in the managed set OR in the new editor classes
-  // This prevents duplicates and ensures old values are replaced
-  const unmanaged = original.filter((c) => !managed.has(c) && !editorSet.has(c))
+  // Keep classes that either:
+  // 1. Don't belong to the current context (preserve other contexts)
+  // 2. Belong to current context but aren't managed by the editor
+  const kept = original.filter((c) => {
+    if (editorSet.has(c)) return false // will be re-added from editorClasses
+    if (!hasPrefix(c, context)) return true // different context, keep it
+    const stripped = stripPrefix(c, context)
+    if (stripped && managed.has(stripped)) return false // managed class in this context, will be replaced
+    return true // unmanaged class in this context, keep it
+  })
 
   // Deduplicate the result
-  return [...new Set([...unmanaged, ...editorClasses])]
+  return [...new Set([...kept, ...editorClasses])]
 }
 
 /* ── Collapsible section ─────────────────────────────────────────── */
@@ -895,8 +972,9 @@ export function VisualEditor({
   onClassChange,
   onDeselect,
 }: VisualEditorProps) {
+  const [context, setContext] = React.useState<StyleContext>("default")
   const [state, setState] = React.useState<ControlState>(() =>
-    classesToControlState(selectedElement?.currentClasses ?? []),
+    classesToControlState(selectedElement?.currentClasses ?? [], "default"),
   )
   const [showPaddingSides, setShowPaddingSides] = React.useState(false)
   const [showMarginSides, setShowMarginSides] = React.useState(false)
@@ -904,14 +982,14 @@ export function VisualEditor({
   // Original classes that the editor does not manage
   const originalClasses = React.useRef<string[]>([])
 
-  // Sync state when selected element changes
+  // Sync state when selected element or context changes
   React.useEffect(() => {
     const classes = selectedElement?.currentClasses ?? []
     originalClasses.current = classes
-    setState(classesToControlState(classes))
+    setState(classesToControlState(classes, context))
     setShowPaddingSides(false)
     setShowMarginSides(false)
-  }, [selectedElement])
+  }, [selectedElement, context])
 
   // Emit class changes whenever state updates (skip initial mount)
   const isInitial = React.useRef(true)
@@ -920,8 +998,8 @@ export function VisualEditor({
       isInitial.current = false
       return
     }
-    onClassChange(mergeClasses(originalClasses.current, state))
-  }, [state, onClassChange])
+    onClassChange(mergeClasses(originalClasses.current, state, context))
+  }, [state, context, onClassChange])
 
   // Reset initial flag when element changes
   React.useEffect(() => {
@@ -987,6 +1065,37 @@ export function VisualEditor({
         >
           <X className="size-3.5" />
         </Button>
+      </div>
+
+      {/* ── Context selector ──────────────────────────────── */}
+      <div className="border-b px-3 py-2">
+        <div className="flex flex-wrap items-center gap-1">
+          {CONTEXT_GROUPS.map((group) => (
+            <React.Fragment key={group.label}>
+              {group.options.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setContext(opt.value)}
+                  className={cn(
+                    "rounded px-1.5 py-0.5 text-xs transition-colors",
+                    context === opt.value
+                      ? "bg-blue-500/10 font-medium text-blue-500"
+                      : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+              <div className="mx-0.5 h-3 w-px bg-border" />
+            </React.Fragment>
+          ))}
+        </div>
+        {context !== "default" && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            Editing <code className="rounded bg-muted px-1 font-mono text-xs">{context}:</code> styles
+          </p>
+        )}
       </div>
 
       {/* ── Controls ─────────────────────────────────────── */}
@@ -1183,8 +1292,6 @@ export function VisualEditor({
         </TooltipProvider>
       </ScrollArea>
 
-      {/* ── Applied classes (pinned to bottom, collapsible) ── */}
-      <AppliedClassesSection classes={allClasses} />
     </div>
   )
 }
