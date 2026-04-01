@@ -982,8 +982,12 @@ export function VisualEditor({
   // Original classes that the editor does not manage
   const originalClasses = React.useRef<string[]>([])
 
+  // Track whether state changes are from user interaction
+  const isUserChange = React.useRef(false)
+
   // Sync state when selected element or context changes
   React.useEffect(() => {
+    isUserChange.current = false
     const classes = selectedElement?.currentClasses ?? []
     originalClasses.current = classes
     setState(classesToControlState(classes, context))
@@ -991,23 +995,15 @@ export function VisualEditor({
     setShowMarginSides(false)
   }, [selectedElement, context])
 
-  // Emit class changes whenever state updates (skip initial mount)
-  const isInitial = React.useRef(true)
+  // Emit class changes only when user interacts with controls
   React.useEffect(() => {
-    if (isInitial.current) {
-      isInitial.current = false
-      return
-    }
+    if (!isUserChange.current) return
     onClassChange(mergeClasses(originalClasses.current, state, context))
   }, [state, context, onClassChange])
 
-  // Reset initial flag when element changes
-  React.useEffect(() => {
-    isInitial.current = true
-  }, [selectedElement])
-
   const update = React.useCallback(
     <K extends keyof ControlState>(key: K, value: ControlState[K]) => {
+      isUserChange.current = true
       setState((prev) => ({ ...prev, [key]: value }))
     },
     [],
@@ -1018,6 +1014,7 @@ export function VisualEditor({
       key: K,
       value: string,
     ) => {
+      isUserChange.current = true
       setState((prev) => ({
         ...prev,
         [key]: prev[key] === value ? "" : value,
