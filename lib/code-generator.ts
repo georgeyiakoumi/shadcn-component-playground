@@ -688,97 +688,74 @@ export function generateFromTree(tree: ComponentTree): string {
 
   sections.push(importLines.join("\n"))
 
-  // ── Props interface ──────────────────────────────────────────────
-  // Using CSS data-attribute pattern for variants (no cva)
-  const propsInterfaceParts: string[] = []
-
-  // Variant props as typed union props
+  // ── Inline type for variant + custom props ─────────────────────
+  const extraProps: string[] = []
   for (const v of variants) {
     const unionType = v.type === "boolean"
       ? "boolean"
       : v.options.map((o) => `"${o}"`).join(" | ")
-    const defaultVal = v.defaultValue
-    propsInterfaceParts.push(`  ${v.name}?: ${unionType}`)
-    void defaultVal // used in destructuring below
+    extraProps.push(`${v.name}?: ${unionType}`)
+  }
+  for (const prop of props) {
+    const tsType = propTypeToTs(prop.type, hasReactNode)
+    const optional = prop.required ? "" : "?"
+    extraProps.push(`${prop.name}${optional}: ${tsType}`)
   }
 
-  // Custom props
-  if (hasProps) {
-    for (const prop of props) {
-      const tsType = propTypeToTs(prop.type, hasReactNode)
-      const optional = prop.required ? "" : "?"
-      propsInterfaceParts.push(`  ${prop.name}${optional}: ${tsType}`)
-    }
-  }
+  const typeAnnotation = extraProps.length > 0
+    ? `React.ComponentProps<"${tree.baseElement}"> & { ${extraProps.join("; ")} }`
+    : `React.ComponentProps<"${tree.baseElement}">`
 
-  const extensions: string[] = [elementInfo.htmlAttributes]
-  const extendClause = extensions.join(",\n    ")
-
-  const propsBody =
-    propsInterfaceParts.length > 0
-      ? ` {\n${propsInterfaceParts.join("\n")}\n}`
-      : " {}"
-
-  sections.push(
-    `export interface ${name}Props\n  extends ${extendClause}${propsBody}`,
-  )
-
-  // ── Main component ───────────────────────────────────────────────
-  const variantPropNames = variants.map((v) => v.name)
-  const customPropNames = props.map((p) => p.name)
-  const allDestructured = [
+  // ── Main component (plain function, modern shadcn style) ──────
+  const destructured = [
     "className",
-    // Variant props with defaults
     ...variants.map((v) => {
       const def = v.defaultValue
-      if (v.type === "boolean") {
-        return `${v.name} = ${def === "true" ? "true" : "false"}`
-      }
+      if (v.type === "boolean") return `${v.name} = ${def === "true" ? "true" : "false"}`
       return def ? `${v.name} = "${def}"` : v.name
     }),
-    // Custom props with defaults
-    ...customPropNames.map((p) => {
-      const prop = props.find((pr) => pr.name === p)
-      if (prop?.defaultValue !== undefined && prop.defaultValue !== "") {
-        return `${p} = ${formatDefaultValue(prop)}`
+    ...props.map((p) => {
+      if (p.defaultValue !== undefined && p.defaultValue !== "") {
+        return `${p.name} = ${formatDefaultValue(p)}`
       }
-      return p
+      return p.name
     }),
-    "children",
     "...props",
   ]
 
   const userClasses = (tree.classes ?? []).join(" ")
-  const classNameExpr = userClasses
-    ? `cn(\n        "${userClasses}",\n        className\n      )`
+
+  // Add group/name class for Tailwind group targeting by children
+  const groupClass = hasSubComponents ? `group/${toCamelCase(name)}` : ""
+  const allBaseClasses = [groupClass, userClasses].filter(Boolean).join(" ")
+
+  const classNameExpr = allBaseClasses
+    ? `cn(\n      "${allBaseClasses}",\n      className\n    )`
     : "cn(className)"
 
-  // Build data-* attributes for each variant prop (CSS data-attribute pattern)
+  // Build data-* attributes for each variant prop
   const dataAttrs = variants.map((v) => {
     const kebab = v.name.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase()
     return `data-${kebab}={${v.name}}`
   })
 
-  // Build JSX body
   const attrLines = [
-    "ref={ref}",
     tree.dataSlot ? `data-slot="${tree.dataSlot}"` : "",
     ...dataAttrs,
     `className={${classNameExpr}}`,
     "{...props}",
   ].filter(Boolean)
 
-  const jsxBody = `      <${tree.baseElement}\n        ${attrLines.join("\n        ")}\n      >\n        {children}\n      </${tree.baseElement}>`
-
   sections.push(
-    `const ${name} = React.forwardRef<${elementInfo.htmlElement}, ${name}Props>(
-  ({ ${allDestructured.join(", ")} }, ref) => {
-    return (
-${jsxBody}
-    )
-  }
-)
-${name}.displayName = "${name}"`,
+    `function ${name}({
+  ${destructured.join(",\n  ")},
+}: ${typeAnnotation}) {
+  return (
+    <${tree.baseElement}
+      ${attrLines.join("\n      ")}
+    />
+  )
+}`,
   )
 
   // ── Sub-components ───────────────────────────────────────────────
@@ -790,11 +767,10 @@ ${name}.displayName = "${name}"`,
 
   // ── Exports ──────────────────────────────────────────────────────
   const exportNames = [name]
-  if (hasVariants) exportNames.push(variantsName)
   for (const sub of subComponents) {
     exportNames.push(sub.name)
   }
-  sections.push(`export { ${exportNames.join(", ")} }`)
+  sections.push(`export {\n  ${exportNames.join(",\n  ")},\n}`)
 
   return (
     "// Generated by shadcn Playground\n\n" +
@@ -890,55 +866,33 @@ function generateSubComponent(
   const hasProps = sub.props.length > 0
   const variantsName = `${toCamelCase(sub.name)}Variants`
 
-  const parts: string[] = []
-
-  // Props interface — CSS data-attribute pattern (no cva)
-  const propsInterfaceParts: string[] = []
-
-  // Variant props as typed unions
+  // Inline type for sub-component
+  const extraProps: string[] = []
   for (const v of sub.variants) {
     const unionType = v.type === "boolean"
       ? "boolean"
       : v.options.map((o) => `"${o}"`).join(" | ")
-    propsInterfaceParts.push(`  ${v.name}?: ${unionType}`)
+    extraProps.push(`${v.name}?: ${unionType}`)
+  }
+  for (const prop of sub.props) {
+    const tsType = propTypeToTs(prop.type, false)
+    const optional = prop.required ? "" : "?"
+    extraProps.push(`${prop.name}${optional}: ${tsType}`)
   }
 
-  // Custom props
-  if (hasProps) {
-    for (const prop of sub.props) {
-      const tsType = propTypeToTs(prop.type, false)
-      const optional = prop.required ? "" : "?"
-      propsInterfaceParts.push(`  ${prop.name}${optional}: ${tsType}`)
-    }
-  }
+  const typeAnnotation = extraProps.length > 0
+    ? `React.ComponentProps<"${sub.baseElement}"> & { ${extraProps.join("; ")} }`
+    : `React.ComponentProps<"${sub.baseElement}">`
 
-  const extensions: string[] = [elementInfo.htmlAttributes]
-  const extendClause = extensions.join(", ")
-
-  const propsBody =
-    propsInterfaceParts.length > 0
-      ? ` {\n${propsInterfaceParts.join("\n")}\n}`
-      : " {}"
-
-  parts.push(
-    `export interface ${sub.name}Props\n  extends ${extendClause}${propsBody}`,
-  )
-
-  // Build destructured props with defaults
-  const customPropNames = sub.props.map((p) => p.name)
-  const allDestructured = [
+  // Destructured props
+  const destructured = [
     "className",
-    // Variant props with defaults
     ...sub.variants.map((v) => {
       const def = v.defaultValue
-      if (v.type === "boolean") {
-        return `${v.name} = ${def === "true" ? "true" : "false"}`
-      }
+      if (v.type === "boolean") return `${v.name} = ${def === "true" ? "true" : "false"}`
       return def ? `${v.name} = "${def}"` : v.name
     }),
-    // Custom props
-    ...customPropNames,
-    "children",
+    ...sub.props.map((p) => p.name),
     "...props",
   ]
 
@@ -954,28 +908,19 @@ function generateSubComponent(
   })
 
   const attrLines = [
-    "ref={ref}",
     sub.dataSlot ? `data-slot="${sub.dataSlot}"` : "",
     ...dataAttrs,
     `className={${classNameExpr}}`,
     "{...props}",
   ].filter(Boolean)
 
-  // Sub-component renders {children} pass-through
-  const jsxBody = `    <${sub.baseElement}\n      ${attrLines.join("\n      ")}\n    >\n      {children}\n    </${sub.baseElement}>`
-
-  parts.push(
-    `const ${sub.name} = React.forwardRef<${elementInfo.htmlElement}, ${sub.name}Props>(
-  ({ ${allDestructured.join(", ")} }, ref) => {
-    return (
-${jsxBody}
-    )
-  }
-)
-${sub.name}.displayName = "${sub.name}"`,
+  return `function ${sub.name}({ ${destructured.join(", ")} }: ${typeAnnotation}) {
+  return (
+    <${sub.baseElement}
+      ${attrLines.join("\n      ")}
+    />
   )
-
-  return parts.join("\n\n")
+}`
 }
 
 /** Converts a ComponentProp type to its TypeScript equivalent. */
