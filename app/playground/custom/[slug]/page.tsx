@@ -13,7 +13,6 @@ import {
   saveUserComponent,
 } from "@/lib/component-store"
 import type { ComponentTree, ElementNode } from "@/lib/component-tree"
-import type { ElementInfo } from "@/components/playground/element-selector"
 import {
   PlaygroundToolbar,
   type Breakpoint,
@@ -50,12 +49,10 @@ export default function CustomComponentPage() {
   const [breakpoint, setBreakpoint] = React.useState<Breakpoint>("2xl")
   const [propValues, setPropValues] = React.useState<Record<string, string>>({})
   const [mode, setMode] = React.useState<PlaygroundMode>("define")
-  const [selectedElement, setSelectedElement] =
-    React.useState<ElementInfo | null>(null)
+  const [selectedNodeId, setSelectedNodeId] = React.useState<string | null>(null)
   const [structurePanelWidth, setStructurePanelWidth] = React.useState(200)
   const [codePanelWidth, setCodePanelWidth] = React.useState(350)
   const [highlightLine, setHighlightLine] = React.useState<number | null>(null)
-  const [styledComponentId, setStyledComponentId] = React.useState<string | null>(null)
   const [hiddenIds, setHiddenIds] = React.useState<Set<string>>(new Set())
   const [saveState, setSaveState] = React.useState<"idle" | "saving" | "saved">("idle")
   const [isDirty, setIsDirty] = React.useState(false)
@@ -104,7 +101,7 @@ export default function CustomComponentPage() {
   // Clear selection when leaving edit mode
   React.useEffect(() => {
     if (mode !== "edit") {
-      setSelectedElement(null)
+      setSelectedNodeId(null)
     }
   }, [mode])
 
@@ -164,7 +161,7 @@ export default function CustomComponentPage() {
     [],
   )
 
-  // Resolve a styledComponentId (which might be a node ID or sc.id or "main")
+  // Resolve a selectedNodeId (which might be a node ID or sc.id or "main")
   // to find the sub-component definition it belongs to
   function findSubComponentForNodeId(nodeId: string | null): import("@/lib/component-tree").SubComponentDef | null {
     if (!nodeId || nodeId === "main" || !componentTree) return null
@@ -207,8 +204,14 @@ export default function CustomComponentPage() {
     }
 
     const tag = node.tag as keyof React.JSX.IntrinsicElements
-    const className = node.classes.length > 0
-      ? node.classes.join(" ")
+    const isNodeSelected = selectedNodeId === node.id ||
+      (selectedNodeId === "main" && componentTree?.assemblyTree.id === node.id)
+    const nodeClasses = [
+      ...node.classes,
+      isNodeSelected ? "ring-2 ring-blue-500 ring-offset-1" : "",
+    ].filter(Boolean)
+    const className = nodeClasses.length > 0
+      ? nodeClasses.join(" ")
       : undefined
 
     const children: React.ReactNode[] = []
@@ -243,8 +246,11 @@ export default function CustomComponentPage() {
     assemblyChildren?: ElementNode[],
   ): React.ReactNode {
     const tag = sc.baseElement as keyof React.JSX.IntrinsicElements
-    // Use classes from the definition tree root (these are the styled classes)
-    const allClasses = sc.classes.filter(Boolean)
+    const isScSelected = selectedNodeId === key
+    const allClasses = [
+      ...sc.classes.filter(Boolean),
+      isScSelected ? "ring-2 ring-blue-500 ring-offset-1" : "",
+    ].filter(Boolean)
     const className = allClasses.length > 0
       ? allClasses.join(" ")
       : undefined
@@ -308,16 +314,6 @@ export default function CustomComponentPage() {
   const previewProps: Record<string, string> | undefined =
     Object.keys(propValues).length > 0 ? propValues : undefined
 
-  const handleClassChange = React.useCallback((classes: string[]) => {
-    setSelectedElement((prev) => {
-      if (!prev) return null
-      if (prev.domElement && prev.domElement.isConnected) {
-        prev.domElement.className = classes.join(" ")
-      }
-      return { ...prev, currentClasses: classes }
-    })
-  }, [])
-
   // Update classes on a specific component/sub-component in the tree
   const handleTreeClassChange = React.useCallback(
     (targetId: string, classes: string[]) => {
@@ -336,9 +332,6 @@ export default function CustomComponentPage() {
     [componentTree, handleTreeChange],
   )
 
-  const handleDeselect = React.useCallback(() => {
-    setSelectedElement(null)
-  }, [])
 
   const handleOutlineNodeClick = React.useCallback(
     (name: string) => {
@@ -448,7 +441,9 @@ export default function CustomComponentPage() {
                   }
                   const nodeId = el?.getAttribute("data-node-id")
                   if (nodeId) {
-                    setStyledComponentId(nodeId)
+                    // Map root assembly node ID to "main" for consistency
+                    const resolvedId = nodeId === componentTree.assemblyTree.id ? "main" : nodeId
+                    setSelectedNodeId(resolvedId)
                   }
                 }}
               >
@@ -459,18 +454,19 @@ export default function CustomComponentPage() {
                   breakpoint={breakpoint}
                   previewProps={previewProps}
                   customPreview={customPreview}
-                  mode="edit"
-                  onElementSelect={setSelectedElement}
-                  onElementHover={() => {}}
+                  mode="inspect"
                 />
 
                 {/* Floating assembly panel (bottom-left) */}
-                <div className="absolute bottom-3 left-3 z-10 w-72 rounded-lg border bg-background/95 shadow-lg backdrop-blur-sm">
+                <div
+                  className="absolute bottom-3 left-3 z-10 w-72 rounded-lg border bg-background/95 shadow-lg backdrop-blur-sm"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <AssemblyPanel
                     tree={componentTree}
                     onTreeChange={handleTreeChange}
-                    onSelectComponent={setStyledComponentId}
-                    selectedId={styledComponentId}
+                    onSelectComponent={setSelectedNodeId}
+                    selectedId={selectedNodeId}
                     hiddenIds={hiddenIds}
                     onHiddenChange={setHiddenIds}
                   />
@@ -497,10 +493,10 @@ export default function CustomComponentPage() {
               <div className="flex flex-wrap items-center gap-1 border-b px-2 py-1.5">
                 <button
                   type="button"
-                  onClick={() => setStyledComponentId("main")}
+                  onClick={() => setSelectedNodeId("main")}
                   className={cn(
                     "rounded-md px-2 py-0.5 text-xs font-medium transition-colors",
-                    (styledComponentId === "main" || styledComponentId === componentTree.assemblyTree.id)
+                    (selectedNodeId === "main" || selectedNodeId === componentTree.assemblyTree.id)
                       ? "bg-blue-500/10 text-blue-500"
                       : "text-muted-foreground hover:bg-muted/50",
                   )}
@@ -511,10 +507,10 @@ export default function CustomComponentPage() {
                   <button
                     key={sc.id}
                     type="button"
-                    onClick={() => setStyledComponentId(sc.id)}
+                    onClick={() => setSelectedNodeId(sc.id)}
                     className={cn(
                       "rounded-md px-2 py-0.5 text-xs font-medium transition-colors",
-                      styledComponentId === sc.id || findSubComponentForNodeId(styledComponentId)?.id === sc.id
+                      selectedNodeId === sc.id || findSubComponentForNodeId(selectedNodeId)?.id === sc.id
                         ? "bg-blue-500/10 text-blue-500"
                         : "text-muted-foreground hover:bg-muted/50",
                     )}
@@ -526,9 +522,9 @@ export default function CustomComponentPage() {
 
               {/* Visual editor for selected component */}
               <ScrollArea className="flex-1">
-                {styledComponentId ? (() => {
-                  const matchedSc = findSubComponentForNodeId(styledComponentId)
-                  const isMain = styledComponentId === "main" || (!matchedSc && styledComponentId === componentTree.assemblyTree.id)
+                {selectedNodeId ? (() => {
+                  const matchedSc = findSubComponentForNodeId(selectedNodeId)
+                  const isMain = selectedNodeId === "main" || (!matchedSc && selectedNodeId === componentTree.assemblyTree.id)
                   return (
                   <VisualEditor
                     selectedElement={{
@@ -547,10 +543,10 @@ export default function CustomComponentPage() {
                     }}
                     onClassChange={(classes) => {
                       // Route to the correct target: main or sub-component
-                      const targetId = isMain ? "main" : matchedSc?.id ?? styledComponentId
+                      const targetId = isMain ? "main" : matchedSc?.id ?? selectedNodeId
                       handleTreeClassChange(targetId, classes)
                     }}
-                    onDeselect={() => setStyledComponentId(null)}
+                    onDeselect={() => setSelectedNodeId(null)}
                   />
                   )
                 })() : (
@@ -610,17 +606,15 @@ export default function CustomComponentPage() {
               breakpoint={breakpoint}
               previewProps={previewProps}
               mode={mode}
-              onElementSelect={setSelectedElement}
-              onElementHover={() => {}}
             />
 
             <RightPanel
               isOpen={mode === "edit"}
               source={source}
               isCompound={false}
-              selectedElement={selectedElement}
-              onClassChange={handleClassChange}
-              onDeselect={handleDeselect}
+              selectedElement={null}
+              onClassChange={() => {}}
+              onDeselect={() => {}}
             />
           </>
         )}

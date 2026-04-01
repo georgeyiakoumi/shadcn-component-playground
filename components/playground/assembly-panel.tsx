@@ -258,12 +258,9 @@ function AssemblyNode({
                 : "text-muted-foreground hover:text-foreground/70",
           )}
           onClick={() => {
-            if (isSubComponent && onSelectComponent) {
-              onSelectComponent(subComponent.id)
-            } else if (isRoot && onSelectComponent) {
-              onSelectComponent("main")
-            } else if (onSelectComponent) {
-              onSelectComponent(node.id)
+            if (onSelectComponent) {
+              // Always pass the assembly node ID for unified selection
+              onSelectComponent(isRoot ? "main" : node.id)
             }
           }}
         >
