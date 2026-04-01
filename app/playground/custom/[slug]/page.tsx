@@ -54,6 +54,7 @@ export default function CustomComponentPage() {
   const [structurePanelWidth, setStructurePanelWidth] = React.useState(200)
   const [codePanelWidth, setCodePanelWidth] = React.useState(350)
   const [highlightLine, setHighlightLine] = React.useState<number | null>(null)
+  const [focusRange, setFocusRange] = React.useState<{ start: number; end: number } | null>(null)
   const [hiddenIds, setHiddenIds] = React.useState<Set<string>>(new Set())
   const [saveState, setSaveState] = React.useState<"idle" | "saving" | "saved">("idle")
   const [isDirty, setIsDirty] = React.useState(false)
@@ -391,6 +392,53 @@ export default function CustomComponentPage() {
     [displaySource],
   )
 
+  // Scroll code panel to selected component and compute focus range
+  React.useEffect(() => {
+    if (!selectedNodeId || !componentTree) {
+      setFocusRange(null)
+      return
+    }
+    let name: string | null = null
+    if (selectedNodeId === "main") {
+      name = componentTree.name
+    } else {
+      const sc = findSubComponentForNodeId(selectedNodeId)
+      if (sc) name = sc.name
+    }
+    if (name) {
+      handleOutlineNodeClick(name)
+
+      // Find the function block range in the source
+      const lines = displaySource.split("\n")
+      const startIdx = lines.findIndex(
+        (line) =>
+          line.includes(`const ${name} =`) ||
+          line.includes(`function ${name}(`) ||
+          line.includes(`function ${name} (`),
+      )
+      if (startIdx !== -1) {
+        // Find the end: track brace depth from the start line
+        let depth = 0
+        let endIdx = startIdx
+        for (let i = startIdx; i < lines.length; i++) {
+          for (const ch of lines[i]) {
+            if (ch === "(") depth++
+            if (ch === ")") depth--
+          }
+          endIdx = i
+          // The forwardRef pattern ends with `)` that brings depth to 0 or below
+          if (depth <= 0 && i > startIdx) break
+        }
+        // Include the displayName line if it follows
+        if (endIdx + 1 < lines.length && lines[endIdx + 1]?.includes(".displayName")) {
+          endIdx++
+        }
+        setFocusRange({ start: startIdx + 1, end: endIdx + 1 })
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedNodeId, displaySource])
+
   // ── Early returns (after all hooks) ─────────────────────────────
 
   if (!mounted) {
@@ -451,7 +499,7 @@ export default function CustomComponentPage() {
               className="relative flex shrink-0 flex-col border-r"
               style={{ width: `${codePanelWidth}px` }}
             >
-              <CodePanel code={displaySource} highlightLine={highlightLine} />
+              <CodePanel code={displaySource} highlightLine={highlightLine} focusRange={focusRange} />
             </div>
 
             <DragHandle
@@ -483,7 +531,11 @@ export default function CustomComponentPage() {
                   if (nodeId) {
                     // Map root assembly node ID to "main" for consistency
                     const resolvedId = nodeId === componentTree.assemblyTree.id ? "main" : nodeId
-                    setSelectedNodeId(resolvedId)
+                    // Toggle: click same node to deselect
+                    setSelectedNodeId(selectedNodeId === resolvedId ? null : resolvedId)
+                  } else {
+                    // Clicked empty canvas space — deselect
+                    setSelectedNodeId(null)
                   }
                 }}
               >
@@ -639,7 +691,7 @@ export default function CustomComponentPage() {
               className="relative flex shrink-0 flex-col border-r"
               style={{ width: `${codePanelWidth}px` }}
             >
-              <CodePanel code={displaySource} highlightLine={highlightLine} />
+              <CodePanel code={displaySource} highlightLine={highlightLine} focusRange={focusRange} />
             </div>
 
             <DragHandle

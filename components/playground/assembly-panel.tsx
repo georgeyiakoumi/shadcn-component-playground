@@ -37,7 +37,7 @@ import {
 interface AssemblyPanelProps {
   tree: ComponentTree
   onTreeChange: (tree: ComponentTree) => void
-  onSelectComponent?: (id: string) => void
+  onSelectComponent?: (id: string | null) => void
   selectedId?: string | null
   /** Set of node IDs that are hidden in the canvas */
   hiddenIds: Set<string>
@@ -132,7 +132,7 @@ interface AssemblyNodeProps {
   subComponents: ComponentTree["subComponents"]
   hiddenIds: Set<string>
   selectedId?: string | null
-  onSelectComponent?: (id: string) => void
+  onSelectComponent?: (id: string | null) => void
   onToggleHidden: (id: string) => void
   onRemove: (id: string) => void
   onMove: (dragId: string, targetId: string, position: DropPosition) => void
@@ -257,8 +257,9 @@ function AssemblyNode({
           )}
           onClick={() => {
             if (onSelectComponent) {
-              // Always pass the assembly node ID for unified selection
-              onSelectComponent(isRoot ? "main" : node.id)
+              const nodeIdToSet = isRoot ? "main" : node.id
+              // Toggle: click again to deselect
+              onSelectComponent(selectedId === nodeIdToSet ? null : nodeIdToSet)
             }
           }}
         >

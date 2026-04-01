@@ -21,12 +21,14 @@ interface CodePanelProps {
   language?: string
   /** Line number to scroll to and highlight (1-based) */
   highlightLine?: number | null
+  /** Range of lines to focus — dims everything outside this range */
+  focusRange?: { start: number; end: number } | null
   className?: string
 }
 
 /* ── Component ──────────────────────────────────────────────────── */
 
-export function CodePanel({ code, language = "tsx", highlightLine, className }: CodePanelProps) {
+export function CodePanel({ code, language = "tsx", highlightLine, focusRange, className }: CodePanelProps) {
   const [highlightedHtml, setHighlightedHtml] = React.useState<string>("")
   const [isLoading, setIsLoading] = React.useState(true)
   const [copied, setCopied] = React.useState(false)
@@ -52,6 +54,16 @@ export function CodePanel({ code, language = "tsx", highlightLine, className }: 
 
     return () => clearTimeout(timer)
   }, [highlightLine])
+
+  // Build a CSS style string for focus range dimming
+  // Using a <style> tag approach instead of inline styles so it survives re-renders
+  const focusStyle = React.useMemo(() => {
+    if (!focusRange) return ""
+    const { start, end } = focusRange
+    // CSS nth-child selectors to dim lines outside the range
+    return `.code-panel-shiki .line { opacity: 0.2; transition: opacity 0.3s; }
+.code-panel-shiki .line:nth-child(n+${start}):nth-child(-n+${end}) { opacity: 1; }`
+  }, [focusRange])
 
   React.useEffect(() => {
     let cancelled = false
@@ -84,6 +96,9 @@ export function CodePanel({ code, language = "tsx", highlightLine, className }: 
 
   return (
     <div className={cn("flex h-full flex-col", className)}>
+      {/* Focus range dimming via CSS (survives re-renders) */}
+      {focusStyle && <style dangerouslySetInnerHTML={{ __html: focusStyle }} />}
+
       {/* ── Header ────────────────────────────────────────────── */}
       <div className="flex h-10 shrink-0 items-center justify-between border-b px-3">
         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
