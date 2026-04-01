@@ -274,6 +274,16 @@ interface ControlState {
   justify: string
   align: string
   gap: string
+  gapX: string
+  gapY: string
+  // Layout — flex container
+  flexWrap: string
+  // Layout — flex child
+  flexGrow: string
+  flexShrink: string
+  flexBasis: string
+  alignSelf: string
+  order: string
   // Layout — positioning
   position: string
   overflow: string
@@ -317,6 +327,25 @@ const SPACE_Y_OPTIONS = [
   "space-y-3", "space-y-3.5", "space-y-4", "space-y-5", "space-y-6", "space-y-8", "space-y-10", "space-y-12",
 ]
 
+const FLEX_WRAP_OPTIONS = ["flex-wrap", "flex-wrap-reverse", "flex-nowrap"]
+const FLEX_GROW_OPTIONS = ["grow", "grow-0"]
+const FLEX_SHRINK_OPTIONS = ["shrink", "shrink-0"]
+const FLEX_BASIS_OPTIONS = [
+  "basis-0", "basis-auto", "basis-full",
+  "basis-1/2", "basis-1/3", "basis-2/3", "basis-1/4", "basis-3/4",
+  "basis-1/5", "basis-2/5", "basis-3/5", "basis-4/5",
+  "basis-1/6", "basis-5/6", "basis-1/12",
+]
+const ALIGN_SELF_OPTIONS = ["self-auto", "self-start", "self-center", "self-end", "self-stretch", "self-baseline"]
+const ORDER_OPTIONS = [
+  "order-first", "order-last", "order-none",
+  "order-1", "order-2", "order-3", "order-4", "order-5", "order-6",
+  "order-7", "order-8", "order-9", "order-10", "order-11", "order-12",
+]
+const GAP_SLIDER_VALUES = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16]
+const GAP_X_OPTIONS = GAP_SLIDER_VALUES.map((v) => `gap-x-${v}`)
+const GAP_Y_OPTIONS = GAP_SLIDER_VALUES.map((v) => `gap-y-${v}`)
+
 const DIRECTION_OPTIONS = [
   "flex-row",
   "flex-col",
@@ -335,15 +364,7 @@ const ALIGN_OPTIONS = [
   "items-end",
   "items-stretch",
 ]
-const GAP_OPTIONS = [
-  "gap-0",
-  "gap-1",
-  "gap-2",
-  "gap-3",
-  "gap-4",
-  "gap-6",
-  "gap-8",
-]
+const GAP_OPTIONS = GAP_SLIDER_VALUES.map((v) => `gap-${v}`)
 
 const PADDING_SCALE = [
   "p-0", "p-0.5", "p-1", "p-1.5", "p-2", "p-2.5", "p-3", "p-3.5",
@@ -475,6 +496,14 @@ function classesToControlState(classes: string[], context: StyleContext = "defau
     justify: parsedJustify,
     align: parsedAlign,
     gap: findMatch(classes, GAP_OPTIONS),
+    gapX: findMatch(classes, GAP_X_OPTIONS),
+    gapY: findMatch(classes, GAP_Y_OPTIONS),
+    flexWrap: findMatch(classes, FLEX_WRAP_OPTIONS),
+    flexGrow: findMatch(classes, FLEX_GROW_OPTIONS),
+    flexShrink: findMatch(classes, FLEX_SHRINK_OPTIONS),
+    flexBasis: findMatch(classes, FLEX_BASIS_OPTIONS),
+    alignSelf: findMatch(classes, ALIGN_SELF_OPTIONS),
+    order: findMatch(classes, ORDER_OPTIONS),
     position: findMatch(classes, POSITION_OPTIONS),
     overflow: findMatch(classes, OVERFLOW_OPTIONS),
     spaceY: findMatch(classes, SPACE_Y_OPTIONS),
@@ -506,6 +535,14 @@ const MANAGED_PREFIXES = [
   ...JUSTIFY_OPTIONS,
   ...ALIGN_OPTIONS,
   ...GAP_OPTIONS,
+  ...GAP_X_OPTIONS,
+  ...GAP_Y_OPTIONS,
+  ...FLEX_WRAP_OPTIONS,
+  ...FLEX_GROW_OPTIONS,
+  ...FLEX_SHRINK_OPTIONS,
+  ...FLEX_BASIS_OPTIONS,
+  ...ALIGN_SELF_OPTIONS,
+  ...ORDER_OPTIONS,
   ...POSITION_OPTIONS,
   ...OVERFLOW_OPTIONS,
   ...SPACE_Y_OPTIONS,
@@ -553,6 +590,14 @@ function controlStateToClasses(state: ControlState, context: StyleContext = "def
     push(state.align)
   }
   push(state.gap)
+  push(state.gapX)
+  push(state.gapY)
+  push(state.flexWrap)
+  push(state.flexGrow)
+  push(state.flexShrink)
+  push(state.flexBasis)
+  push(state.alignSelf)
+  push(state.order)
   // Positioning (don't emit "static" — it's the default)
   if (state.position && state.position !== "static") push(state.position)
   push(state.overflow)
@@ -1134,6 +1179,112 @@ function ColorSwatchGrid({
 
 /* ── Context picker (Command-based) ──────────────────────────────── */
 
+/* ── Gap control with slider + split toggle ────────────────────── */
+
+function gapValueToIndex(val: string, prefix: string): number {
+  if (!val) return 0
+  const num = parseFloat(val.replace(`${prefix}-`, ""))
+  const idx = GAP_SLIDER_VALUES.indexOf(num)
+  return idx >= 0 ? idx : 0
+}
+
+function indexToGapValue(idx: number, prefix: string): string {
+  if (idx === 0) return ""
+  const val = GAP_SLIDER_VALUES[idx]
+  return val !== undefined ? `${prefix}-${val}` : ""
+}
+
+function GapControl({
+  gap,
+  gapX,
+  gapY,
+  onGapChange,
+  onGapXChange,
+  onGapYChange,
+}: {
+  gap: string
+  gapX: string
+  gapY: string
+  onGapChange: (v: string) => void
+  onGapXChange: (v: string) => void
+  onGapYChange: (v: string) => void
+}) {
+  const [split, setSplit] = React.useState(!!gapX || !!gapY)
+
+  const handleToggleSplit = () => {
+    if (split) {
+      // Merging back to single gap — clear x/y
+      onGapXChange("")
+      onGapYChange("")
+      setSplit(false)
+    } else {
+      // Splitting — copy gap to both x and y, clear gap
+      onGapXChange(gap ? gap.replace("gap-", "gap-x-") : "")
+      onGapYChange(gap ? gap.replace("gap-", "gap-y-") : "")
+      onGapChange("")
+      setSplit(true)
+    }
+  }
+
+  return (
+    <ControlRow label="Gap">
+      <div className="space-y-2">
+        {!split ? (
+          <div className="flex items-center gap-2">
+            <Slider
+              value={[gapValueToIndex(gap, "gap")]}
+              onValueChange={([v]) => onGapChange(indexToGapValue(v, "gap"))}
+              max={GAP_SLIDER_VALUES.length - 1}
+              step={1}
+              className="flex-1"
+            />
+            <span className="w-8 text-right text-xs text-muted-foreground">
+              {gap ? gap.replace("gap-", "") : "0"}
+            </span>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center gap-2">
+              <span className="w-3 text-xs text-muted-foreground">x</span>
+              <Slider
+                value={[gapValueToIndex(gapX, "gap-x")]}
+                onValueChange={([v]) => onGapXChange(indexToGapValue(v, "gap-x"))}
+                max={GAP_SLIDER_VALUES.length - 1}
+                step={1}
+                className="flex-1"
+              />
+              <span className="w-8 text-right text-xs text-muted-foreground">
+                {gapX ? gapX.replace("gap-x-", "") : "0"}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-3 text-xs text-muted-foreground">y</span>
+              <Slider
+                value={[gapValueToIndex(gapY, "gap-y")]}
+                onValueChange={([v]) => onGapYChange(indexToGapValue(v, "gap-y"))}
+                max={GAP_SLIDER_VALUES.length - 1}
+                step={1}
+                className="flex-1"
+              />
+              <span className="w-8 text-right text-xs text-muted-foreground">
+                {gapY ? gapY.replace("gap-y-", "") : "0"}
+              </span>
+            </div>
+          </>
+        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-5 w-full gap-1 text-xs text-muted-foreground"
+          onClick={handleToggleSplit}
+        >
+          {split ? "Merge to single gap" : "Split x / y"}
+        </Button>
+      </div>
+    </ControlRow>
+  )
+}
+
 function ContextPicker({
   contexts,
   onContextsChange,
@@ -1502,10 +1653,19 @@ export function VisualEditor({
                   {/* ══════ FLEX-SPECIFIC ═══════════════════ */}
                   {isFlex && (
                     <>
+                      {/* Container controls */}
                       <ControlRow label="Direction">
                         <div className="flex gap-0.5">
                           <IconToggle value="flex-row" icon={ArrowRight} tooltip="flex-row" isActive={state.direction === "flex-row" || !state.direction} onClick={(v) => update("direction", state.direction === v ? "" : v)} />
                           <IconToggle value="flex-col" icon={ArrowDown} tooltip="flex-col" isActive={state.direction === "flex-col"} onClick={(v) => update("direction", v)} />
+                        </div>
+                      </ControlRow>
+
+                      <ControlRow label="Wrap">
+                        <div className="flex gap-0.5">
+                          <TextToggle value="flex-nowrap" label="nowrap" tooltip="flex-nowrap (default)" isActive={!state.flexWrap || state.flexWrap === "flex-nowrap"} onClick={() => update("flexWrap", "")} />
+                          <TextToggle value="flex-wrap" label="wrap" tooltip="flex-wrap" isActive={state.flexWrap === "flex-wrap"} onClick={(v) => update("flexWrap", v)} />
+                          <TextToggle value="flex-wrap-reverse" label="reverse" tooltip="flex-wrap-reverse" isActive={state.flexWrap === "flex-wrap-reverse"} onClick={(v) => update("flexWrap", v)} />
                         </div>
                       </ControlRow>
 
@@ -1519,26 +1679,92 @@ export function VisualEditor({
                         />
                       </ControlRow>
 
-                      <ControlRow label="Gap">
-                        <div className={cn(state.justify === "justify-between" && "opacity-40 pointer-events-none")}>
-                          <Select
-                            value={state.gap ? state.gap.replace("gap-", "") : "__none__"}
-                            onValueChange={(v) => update("gap", v === "__none__" ? "" : `gap-${v}`)}
-                            disabled={state.justify === "justify-between"}
-                          >
-                            <SelectTrigger className="h-6 w-20 text-xs">
-                              <SelectValue placeholder="–" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="__none__">–</SelectItem>
-                              {["0", "1", "2", "3", "4", "5", "6", "8", "10", "12"].map((v) => (
-                                <SelectItem key={v} value={v}>
-                                  {v} ({SPACING_PX[v] ?? ""})
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                      <GapControl
+                        gap={state.gap}
+                        gapX={state.gapX}
+                        gapY={state.gapY}
+                        onGapChange={(v) => {
+                          isUserChange.current = true
+                          setState((prev) => ({ ...prev, gap: v, gapX: "", gapY: "" }))
+                        }}
+                        onGapXChange={(v) => {
+                          isUserChange.current = true
+                          setState((prev) => ({ ...prev, gapX: v, gap: "" }))
+                        }}
+                        onGapYChange={(v) => {
+                          isUserChange.current = true
+                          setState((prev) => ({ ...prev, gapY: v, gap: "" }))
+                        }}
+                      />
+
+                      {/* Flex child controls */}
+                      <div className="border-t px-3 py-1.5">
+                        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground/60">Flex child</p>
+                      </div>
+
+                      <ControlRow label="Grow">
+                        <div className="flex gap-0.5">
+                          <TextToggle value="" label="default" tooltip="default (no grow)" isActive={!state.flexGrow} onClick={() => update("flexGrow", "")} />
+                          <TextToggle value="grow" label="grow" tooltip="grow" isActive={state.flexGrow === "grow"} onClick={(v) => update("flexGrow", v)} />
+                          <TextToggle value="grow-0" label="grow-0" tooltip="grow-0" isActive={state.flexGrow === "grow-0"} onClick={(v) => update("flexGrow", v)} />
                         </div>
+                      </ControlRow>
+
+                      <ControlRow label="Shrink">
+                        <div className="flex gap-0.5">
+                          <TextToggle value="" label="default" tooltip="default (shrink)" isActive={!state.flexShrink} onClick={() => update("flexShrink", "")} />
+                          <TextToggle value="shrink" label="shrink" tooltip="shrink" isActive={state.flexShrink === "shrink"} onClick={(v) => update("flexShrink", v)} />
+                          <TextToggle value="shrink-0" label="shrink-0" tooltip="shrink-0" isActive={state.flexShrink === "shrink-0"} onClick={(v) => update("flexShrink", v)} />
+                        </div>
+                      </ControlRow>
+
+                      <ControlRow label="Basis">
+                        <Select
+                          value={state.flexBasis || "__none__"}
+                          onValueChange={(v) => update("flexBasis", v === "__none__" ? "" : v)}
+                        >
+                          <SelectTrigger className="h-6 w-24 text-xs">
+                            <SelectValue placeholder="–" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">–</SelectItem>
+                            {FLEX_BASIS_OPTIONS.map((v) => (
+                              <SelectItem key={v} value={v} className="text-xs">{v.replace("basis-", "")}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </ControlRow>
+
+                      <ControlRow label="Align self">
+                        <div className="flex flex-wrap gap-0.5">
+                          {ALIGN_SELF_OPTIONS.map((opt) => (
+                            <TextToggle
+                              key={opt}
+                              value={opt}
+                              label={opt.replace("self-", "")}
+                              tooltip={opt}
+                              isActive={state.alignSelf === opt}
+                              onClick={(v) => update("alignSelf", state.alignSelf === v ? "" : v)}
+                            />
+                          ))}
+                        </div>
+                      </ControlRow>
+
+                      <ControlRow label="Order">
+                        <Select
+                          value={state.order || "__none__"}
+                          onValueChange={(v) => update("order", v === "__none__" ? "" : v)}
+                        >
+                          <SelectTrigger className="h-6 w-24 text-xs">
+                            <SelectValue placeholder="–" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">–</SelectItem>
+                            {ORDER_OPTIONS.map((v) => (
+                              <SelectItem key={v} value={v} className="text-xs">{v.replace("order-", "")}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </ControlRow>
                     </>
                   )}
@@ -1556,24 +1782,23 @@ export function VisualEditor({
                         />
                       </ControlRow>
 
-                      <ControlRow label="Gap">
-                        <Select
-                          value={state.gap ? state.gap.replace("gap-", "") : "__none__"}
-                          onValueChange={(v) => update("gap", v === "__none__" ? "" : `gap-${v}`)}
-                        >
-                          <SelectTrigger className="h-6 w-20 text-xs">
-                            <SelectValue placeholder="–" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none__">–</SelectItem>
-                            {["0", "1", "2", "3", "4", "5", "6", "8", "10", "12"].map((v) => (
-                              <SelectItem key={v} value={v}>
-                                {v} ({SPACING_PX[v] ?? ""})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </ControlRow>
+                      <GapControl
+                        gap={state.gap}
+                        gapX={state.gapX}
+                        gapY={state.gapY}
+                        onGapChange={(v) => {
+                          isUserChange.current = true
+                          setState((prev) => ({ ...prev, gap: v, gapX: "", gapY: "" }))
+                        }}
+                        onGapXChange={(v) => {
+                          isUserChange.current = true
+                          setState((prev) => ({ ...prev, gapX: v, gap: "" }))
+                        }}
+                        onGapYChange={(v) => {
+                          isUserChange.current = true
+                          setState((prev) => ({ ...prev, gapY: v, gap: "" }))
+                        }}
+                      />
                     </>
                   )}
 
