@@ -9,6 +9,7 @@ import {
   AlertCircle,
   Sun,
   Moon,
+  Diamond,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -30,7 +31,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { breakpoints, type Breakpoint } from "@/components/playground/toolbar"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import { breakpoints, type Breakpoint, type PropSelector } from "@/components/playground/toolbar"
 
 interface StatusBarProps {
   source: string
@@ -38,6 +48,7 @@ interface StatusBarProps {
   onThemeChange?: (theme: "light" | "dark") => void
   breakpoint?: Breakpoint
   onBreakpointChange?: (breakpoint: Breakpoint) => void
+  propSelectors?: PropSelector[]
 }
 
 export function StatusBar({
@@ -46,6 +57,7 @@ export function StatusBar({
   onThemeChange,
   breakpoint = "2xl",
   onBreakpointChange,
+  propSelectors,
 }: StatusBarProps) {
   const a11yIssues = React.useMemo(() => checkAccessibility(source), [source])
   const semanticIssues = React.useMemo(
@@ -132,6 +144,62 @@ export function StatusBar({
               })}
             </div>
 
+            <Separator orientation="vertical" className="h-5" />
+          </>
+        )}
+
+        {/* Variants popover */}
+        {propSelectors && propSelectors.length > 0 && (
+          <>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 text-xs text-muted-foreground"
+                >
+                  <Diamond className="size-3.5" />
+                  <span>Variants</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 space-y-3 p-3" align="end" side="top">
+                <p className="text-xs font-medium">Variants</p>
+                {propSelectors.map((ps) => {
+                  const isBoolean = ps.options.length === 2 &&
+                    ps.options.includes("true") && ps.options.includes("false")
+
+                  return (
+                    <div key={ps.label} className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">{ps.label}</Label>
+                      {isBoolean ? (
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={ps.value === "true"}
+                            onCheckedChange={(checked) => ps.onChange(checked ? "true" : "false")}
+                          />
+                          <span className="text-xs text-muted-foreground">
+                            {ps.value === "true" ? "true" : "false"}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap gap-1">
+                          {ps.options.map((opt) => (
+                            <Badge
+                              key={opt}
+                              variant={ps.value === opt ? "default" : "outline"}
+                              className="cursor-pointer text-xs"
+                              onClick={() => ps.onChange(opt)}
+                            >
+                              {opt}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </PopoverContent>
+            </Popover>
             <Separator orientation="vertical" className="h-5" />
           </>
         )}

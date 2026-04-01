@@ -157,6 +157,7 @@ function buildContextGroups(
     section: "Responsive",
     label: "Breakpoints",
     options: [
+      { value: "bp-none", label: "None" },
       { value: "sm", label: "sm" },
       { value: "md", label: "md" },
       { value: "lg", label: "lg" },
@@ -1092,11 +1093,42 @@ function ContextPicker({
     }).join(":") + ":"
   }, [contexts, isDefault])
 
+  const BREAKPOINTS = new Set(["sm", "md", "lg", "xl", "2xl"])
+
   function toggleContext(value: string) {
-    if (contexts.includes(value)) {
-      onContextsChange(contexts.filter((c) => c !== value))
-    } else {
-      onContextsChange([...contexts, value])
+    // Variant options are mutually exclusive within their variant group
+    if (value.startsWith("variant:")) {
+      const parts = value.split(":")
+      const variantGroup = `variant:${parts[1]}:`
+
+      if (contexts.includes(value)) {
+        onContextsChange(contexts.filter((c) => c !== value))
+      } else {
+        const filtered = contexts.filter((c) => !c.startsWith(variantGroup))
+        onContextsChange([...filtered, value])
+      }
+    }
+    // Breakpoints are mutually exclusive (can't be sm AND md)
+    // "bp-none" clears any breakpoint
+    else if (value === "bp-none") {
+      onContextsChange(contexts.filter((c) => !BREAKPOINTS.has(c)))
+    }
+    else if (BREAKPOINTS.has(value)) {
+      if (contexts.includes(value)) {
+        // Deselecting a breakpoint — back to none
+        onContextsChange(contexts.filter((c) => c !== value))
+      } else {
+        const filtered = contexts.filter((c) => !BREAKPOINTS.has(c))
+        onContextsChange([...filtered, value])
+      }
+    }
+    // States, dark, group-* are stackable
+    else {
+      if (contexts.includes(value)) {
+        onContextsChange(contexts.filter((c) => c !== value))
+      } else {
+        onContextsChange([...contexts, value])
+      }
     }
   }
 
@@ -1151,7 +1183,25 @@ function ContextPicker({
                 )}
                 <CommandGroup heading={group.section ? group.label : group.label}>
                   {group.options.map((opt) => {
-                    const isActive = contexts.includes(opt.value)
+                    const isVariant = opt.value.startsWith("variant:")
+                    const isBreakpoint = BREAKPOINTS.has(opt.value) || opt.value === "bp-none"
+                    const isRadio = isVariant || isBreakpoint
+                    let isActive = opt.value === "bp-none"
+                      ? !contexts.some((c) => BREAKPOINTS.has(c))
+                      : contexts.includes(opt.value)
+
+                    // For variants: if none in this group is selected, highlight the default
+                    if (isVariant && !isActive) {
+                      const parts = opt.value.split(":")
+                      const groupPrefix = `variant:${parts[1]}:`
+                      const anyInGroupSelected = contexts.some((c) => c.startsWith(groupPrefix))
+                      if (!anyInGroupSelected) {
+                        const variantDef = variants?.find((v) => v.name === parts[1])
+                        if (variantDef && parts[2] === variantDef.options[0]) {
+                          isActive = true
+                        }
+                      }
+                    }
                     return (
                       <CommandItem
                         key={opt.value}
@@ -1162,12 +1212,23 @@ function ContextPicker({
                           isActive && "bg-blue-500/10 text-blue-500",
                         )}
                       >
-                        <div className={cn(
-                          "flex size-3.5 items-center justify-center rounded-sm border",
-                          isActive ? "border-blue-500 bg-blue-500 text-white" : "border-muted-foreground/30",
-                        )}>
-                          {isActive && <span className="text-xs leading-none">✓</span>}
-                        </div>
+                        {isRadio ? (
+                          /* Radio for variants + breakpoints (mutually exclusive) */
+                          <div className={cn(
+                            "flex size-3.5 items-center justify-center rounded-full border",
+                            isActive ? "border-blue-500" : "border-muted-foreground/30",
+                          )}>
+                            {isActive && <div className="size-2 rounded-full bg-blue-500" />}
+                          </div>
+                        ) : (
+                          /* Checkbox for states (stackable) */
+                          <div className={cn(
+                            "flex size-3.5 items-center justify-center rounded-sm border",
+                            isActive ? "border-blue-500 bg-blue-500 text-white" : "border-muted-foreground/30",
+                          )}>
+                            {isActive && <span className="text-xs leading-none">✓</span>}
+                          </div>
+                        )}
                         <code className="font-mono text-xs">{opt.label}</code>
                       </CommandItem>
                     )

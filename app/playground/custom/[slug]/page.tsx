@@ -25,7 +25,6 @@ import { StructurePanel } from "@/components/playground/structure-panel"
 import { StatusBar } from "@/components/playground/status-bar"
 import { RightPanel } from "@/components/playground/right-panel"
 import { DefineView } from "@/components/playground/define-view"
-import { CanvasToolbar } from "@/components/playground/canvas-toolbar"
 import { VisualEditor } from "@/components/playground/visual-editor"
 import { DragHandle } from "@/components/playground/drag-handle"
 import { AssemblyPanel } from "@/components/playground/assembly-panel"
@@ -53,6 +52,7 @@ export default function CustomComponentPage() {
   const [selectedNodeId, setSelectedNodeId] = React.useState<string | null>(null)
   const [structurePanelWidth, setStructurePanelWidth] = React.useState(200)
   const [codePanelWidth, setCodePanelWidth] = React.useState(350)
+  const [editPanelWidth, setEditPanelWidth] = React.useState(320)
   const [highlightLine, setHighlightLine] = React.useState<number | null>(null)
   const [focusRange, setFocusRange] = React.useState<{ start: number; end: number } | null>(null)
   const [hiddenIds, setHiddenIds] = React.useState<Set<string>>(new Set())
@@ -193,7 +193,7 @@ export default function CustomComponentPage() {
 
   // Render the component tree as live JSX for the canvas preview
   // Not memoized — needs to re-render when assemblyTree changes
-  function renderTreePreview(node: ElementNode): React.ReactNode {
+  function renderTreePreview(node: ElementNode, extraProps?: Record<string, string>): React.ReactNode {
     // Skip hidden nodes
     if (hiddenIds.has(node.id)) return null
 
@@ -225,8 +225,9 @@ export default function CustomComponentPage() {
     const tag = (isPascalCase ? "div" : node.tag) as keyof React.JSX.IntrinsicElements
     const isNodeSelected = selectedNodeId === node.id ||
       (selectedNodeId === "main" && componentTree?.assemblyTree.id === node.id)
+    const resolvedClasses = resolveVariantClasses(node.classes)
     const nodeClasses = [
-      ...node.classes,
+      ...resolvedClasses,
       isNodeSelected ? "ring-2 ring-blue-500 ring-offset-1" : "",
     ].filter(Boolean)
     const className = nodeClasses.length > 0
@@ -269,7 +270,7 @@ export default function CustomComponentPage() {
       )
     }
 
-    return React.createElement(tag, { key: node.id, className, "data-node-id": node.id }, ...children)
+    return React.createElement(tag, { key: node.id, className, "data-node-id": node.id, ...extraProps }, ...children)
   }
 
   // Render a sub-component using its own tree
@@ -283,8 +284,9 @@ export default function CustomComponentPage() {
     const ShadcnComp = isShadcnBase ? shadcnComponentMap[sc.baseElement] : null
     const tag = (isShadcnBase ? "div" : sc.baseElement) as keyof React.JSX.IntrinsicElements
     const isScSelected = selectedNodeId === key
+    const resolvedScClasses = resolveVariantClasses(sc.classes.filter(Boolean))
     const allClasses = [
-      ...sc.classes.filter(Boolean),
+      ...resolvedScClasses,
       isScSelected ? "ring-2 ring-blue-500 ring-offset-1" : "",
     ].filter(Boolean)
     const className = allClasses.length > 0
@@ -323,6 +325,84 @@ export default function CustomComponentPage() {
     return element
   }
 
+  // Build data-* attributes for variant props on the root element
+  const variantDataAttrs = React.useMemo(() => {
+    const attrs: Record<string, string> = {}
+    for (const v of (componentTree?.variants ?? [])) {
+      const kebab = v.name.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase()
+      attrs[`data-${kebab}`] = propValues[v.name] ?? v.defaultValue
+    }
+    return attrs
+  }, [componentTree?.variants, propValues])
+
+  /**
+   * Resolve data-attribute variant classes based on active prop values.
+   * e.g. "p-4 bg-background data-[size=sm]:p-9 data-[size=sm]:bg-destructive"
+   * with propValues.size === "sm" → "p-9 bg-destructive bg-background"
+   *
+   * This runs at render time so we don't need Tailwind to compile data-* selectors.
+   */
+  function resolveVariantClasses(classes: string[]): string[] {
+    if (!componentTree) return classes
+
+    // Build active data-attribute prefixes from current prop values
+    const activePrefixes = new Set<string>()
+    const inactivePrefixes = new Set<string>()
+
+    for (const v of componentTree.variants) {
+      const activeValue = propValues[v.name] ?? v.defaultValue
+      const kebab = v.name.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase()
+      for (const opt of v.options) {
+        const prefix = `data-[${kebab}=${opt}]:`
+        if (opt === activeValue) {
+          activePrefixes.add(prefix)
+        } else {
+          inactivePrefixes.add(prefix)
+        }
+      }
+    }
+
+    // Also handle group-data prefixes from parent variants
+    // (these would need the parent's active values — skip for now)
+
+    const baseClasses: string[] = []
+    const activatedClasses: string[] = []
+    const activatedBaseNames = new Set<string>() // track which property prefixes are overridden
+
+    // First pass: collect activated classes
+    for (const cls of classes) {
+      for (const prefix of activePrefixes) {
+        if (cls.startsWith(prefix)) {
+          const baseClass = cls.slice(prefix.length)
+          activatedClasses.push(baseClass)
+          // Track the "property" prefix for conflict resolution (e.g. "p" from "p-9", "bg" from "bg-destructive")
+          const propPrefix = baseClass.split("-")[0]
+          activatedBaseNames.add(propPrefix)
+        }
+      }
+    }
+
+    // Second pass: keep base classes that aren't overridden by activated variants
+    for (const cls of classes) {
+      // Skip any data-[...]: prefixed class (both active and inactive)
+      let isDataPrefixed = false
+      for (const prefix of activePrefixes) {
+        if (cls.startsWith(prefix)) { isDataPrefixed = true; break }
+      }
+      for (const prefix of inactivePrefixes) {
+        if (cls.startsWith(prefix)) { isDataPrefixed = true; break }
+      }
+      if (isDataPrefixed) continue
+
+      // Skip group-data-[...] prefixed classes too
+      if (cls.startsWith("group-data-[")) continue
+
+      baseClasses.push(cls)
+    }
+
+    return [...baseClasses, ...activatedClasses]
+  }
+
   // Re-render on every tree change — no memoization needed
   const customPreview = React.useMemo(() => {
     if (!componentTree) return null
@@ -334,15 +414,21 @@ export default function CustomComponentPage() {
         ...componentTree.assemblyTree.classes,
       ].filter(Boolean),
     }
-    return renderTreePreview(assemblyWithClasses)
-  }, [componentTree, renderTreePreview])
+    return renderTreePreview(assemblyWithClasses, variantDataAttrs)
+  }, [componentTree, renderTreePreview, variantDataAttrs])
 
   const displaySource = source || `// Source code for ${userComponent?.name ?? "Component"}`
 
-  // Build prop selectors from parsed variant definitions
+  // Build prop selectors from component tree variants (CSS data-attribute pattern)
+  // Falls back to cva-parsed variants for non-tree components
+  const treeVariants = componentTree?.variants ?? []
+  const allVariants = treeVariants.length > 0
+    ? treeVariants.map((v) => ({ name: v.name, options: v.options, defaultValue: v.defaultValue }))
+    : variantDefs
+
   const propSelectors: PropSelector[] | undefined =
-    variantDefs.length > 0
-      ? variantDefs.map((v) => ({
+    allVariants.length > 0
+      ? allVariants.map((v) => ({
           label: v.name.charAt(0).toUpperCase() + v.name.slice(1),
           options: v.options,
           value: propValues[v.name] ?? v.defaultValue,
@@ -417,17 +503,18 @@ export default function CustomComponentPage() {
           line.includes(`function ${name} (`),
       )
       if (startIdx !== -1) {
-        // Find the end: track brace depth from the start line
+        // Find the end: track curly brace depth from the start line
         let depth = 0
         let endIdx = startIdx
+        let foundOpen = false
         for (let i = startIdx; i < lines.length; i++) {
           for (const ch of lines[i]) {
-            if (ch === "(") depth++
-            if (ch === ")") depth--
+            if (ch === "{") { depth++; foundOpen = true }
+            if (ch === "}") depth--
           }
           endIdx = i
-          // The forwardRef pattern ends with `)` that brings depth to 0 or below
-          if (depth <= 0 && i > startIdx) break
+          // Function ends when all curly braces are closed
+          if (foundOpen && depth <= 0) break
         }
         // Include the displayName line if it follows
         if (endIdx + 1 < lines.length && lines[endIdx + 1]?.includes(".displayName")) {
@@ -512,11 +599,6 @@ export default function CustomComponentPage() {
 
             {/* Canvas section (centre) — self-contained */}
             <div className="flex min-w-[200px] flex-1 flex-col">
-              {/* Canvas toolbar */}
-              <CanvasToolbar
-                propSelectors={propSelectors}
-              />
-
               {/* Canvas + floating assembly panel */}
               <div
                 className="relative flex flex-1 flex-col"
@@ -572,11 +654,24 @@ export default function CustomComponentPage() {
                 onThemeChange={setTheme}
                 breakpoint={breakpoint}
                 onBreakpointChange={setBreakpoint}
+                propSelectors={propSelectors}
               />
             </div>
 
+            {/* Right panel resize handle */}
+            <DragHandle
+              width={editPanelWidth}
+              minWidth={280}
+              maxWidth={600}
+              onWidthChange={setEditPanelWidth}
+              side="right"
+            />
+
             {/* Right panel: visual styling per component/sub-component */}
-            <div className="flex w-[320px] shrink-0 flex-col border-l bg-background">
+            <div
+              className="flex shrink-0 flex-col border-l bg-background"
+              style={{ width: `${editPanelWidth}px` }}
+            >
               <div className="flex items-center gap-1.5 border-b px-3 py-2">
                 <span className="text-xs font-medium text-muted-foreground">Style</span>
               </div>
