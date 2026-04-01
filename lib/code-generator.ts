@@ -707,7 +707,7 @@ export function generateFromTree(tree: ComponentTree): string {
     : `React.ComponentProps<"${tree.baseElement}">`
 
   // ── Main component (plain function, modern shadcn style) ──────
-  const destructured = [
+  const namedProps = [
     "className",
     ...variants.map((v) => {
       const def = v.defaultValue
@@ -720,18 +720,18 @@ export function generateFromTree(tree: ComponentTree): string {
       }
       return p.name
     }),
-    "...props",
   ]
 
   const userClasses = (tree.classes ?? []).join(" ")
 
   // Add group/name class for Tailwind group targeting by children
-  const groupClass = hasSubComponents ? `group/${toCamelCase(name)}` : ""
+  const kebabName = name.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase()
+  const groupClass = hasSubComponents ? `group/${kebabName}` : ""
   const allBaseClasses = [groupClass, userClasses].filter(Boolean).join(" ")
 
   const classNameExpr = allBaseClasses
-    ? `cn(\n      "${allBaseClasses}",\n      className\n    )`
-    : "cn(className)"
+    ? `cn("${allBaseClasses}", className)`
+    : "className"
 
   // Build data-* attributes for each variant prop
   const dataAttrs = variants.map((v) => {
@@ -746,9 +746,13 @@ export function generateFromTree(tree: ComponentTree): string {
     "{...props}",
   ].filter(Boolean)
 
+  const destructuredStr = namedProps.length > 0
+    ? `${namedProps.join(",\n  ")},\n  ...props`
+    : "...props"
+
   sections.push(
     `function ${name}({
-  ${destructured.join(",\n  ")},
+  ${destructuredStr}
 }: ${typeAnnotation}) {
   return (
     <${tree.baseElement}
@@ -884,8 +888,8 @@ function generateSubComponent(
     ? `React.ComponentProps<"${sub.baseElement}"> & { ${extraProps.join("; ")} }`
     : `React.ComponentProps<"${sub.baseElement}">`
 
-  // Destructured props
-  const destructured = [
+  // Destructured props (separate ...props from named props to avoid trailing comma)
+  const subNamedProps = [
     "className",
     ...sub.variants.map((v) => {
       const def = v.defaultValue
@@ -893,13 +897,12 @@ function generateSubComponent(
       return def ? `${v.name} = "${def}"` : v.name
     }),
     ...sub.props.map((p) => p.name),
-    "...props",
   ]
 
   const subUserClasses = (sub.classes ?? []).join(" ")
   const classNameExpr = subUserClasses
-    ? `cn(\n      "${subUserClasses}",\n      className\n    )`
-    : "cn(className)"
+    ? `cn("${subUserClasses}", className)`
+    : "className"
 
   // Build data-* attributes for each variant prop
   const dataAttrs = sub.variants.map((v) => {
@@ -914,7 +917,7 @@ function generateSubComponent(
     "{...props}",
   ].filter(Boolean)
 
-  return `function ${sub.name}({ ${destructured.join(", ")} }: ${typeAnnotation}) {
+  return `function ${sub.name}({ ${subNamedProps.join(", ")}, ...props }: ${typeAnnotation}) {
   return (
     <${sub.baseElement}
       ${attrLines.join("\n      ")}
