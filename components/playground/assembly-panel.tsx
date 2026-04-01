@@ -161,11 +161,9 @@ function AssemblyNode({
   const hasChildren = node.children.length > 0
   const subComponent = subComponents.find((sc) => sc.name === node.tag)
   const isSubComponent = !!subComponent
-  const isSelected = subComponent
-    ? selectedId === subComponent.id
-    : isRoot
-      ? selectedId === "main"
-      : selectedId === node.id
+  const isSelected = isRoot
+    ? selectedId === "main"
+    : selectedId === node.id
 
   // Display name — root shows component name, sub-components show their name
   const displayName = isRoot && rootName ? rootName : node.tag
@@ -264,11 +262,14 @@ function AssemblyNode({
             }
           }}
         >
-          &lt;{displayName}{!hasChildren && !node.text ? " /" : ""}&gt;
-          {node.text && (
-            <span className="ml-1 font-sans text-foreground/50 italic">
-              {node.text.length > 20 ? node.text.slice(0, 20) + "…" : node.text}
+          {node.text && !hasChildren ? (
+            <span className="font-sans text-foreground/50 italic">
+              &quot;{node.text.length > 20 ? node.text.slice(0, 20) + "…" : node.text}&quot;
             </span>
+          ) : (
+            <>
+              &lt;{displayName}{!hasChildren && !node.text ? " /" : ""}&gt;
+            </>
           )}
         </button>
 

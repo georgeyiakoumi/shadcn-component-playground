@@ -30,6 +30,7 @@ import { VisualEditor } from "@/components/playground/visual-editor"
 import { DragHandle } from "@/components/playground/drag-handle"
 import { AssemblyPanel } from "@/components/playground/assembly-panel"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { shadcnPreviewMap } from "@/lib/shadcn-preview-map"
 
 export default function CustomComponentPage() {
   const params = useParams<{ slug: string }>()
@@ -203,7 +204,24 @@ export default function CustomComponentPage() {
       return renderSubComponentPreview(subComponent, node.id, node.children)
     }
 
-    const tag = node.tag as keyof React.JSX.IntrinsicElements
+    // PascalCase tags that aren't sub-components are shadcn/preview-only elements
+    const isPascalCase = /^[A-Z]/.test(node.tag)
+
+    // If it's a known shadcn component, render the actual component
+    if (isPascalCase && shadcnPreviewMap[node.tag]) {
+      const isNodeSelected = selectedNodeId === node.id
+      return React.createElement(
+        "div",
+        {
+          key: node.id,
+          "data-node-id": node.id,
+          className: isNodeSelected ? "ring-2 ring-blue-500 ring-offset-1 rounded" : undefined,
+        },
+        shadcnPreviewMap[node.tag](),
+      )
+    }
+
+    const tag = (isPascalCase ? "div" : node.tag) as keyof React.JSX.IntrinsicElements
     const isNodeSelected = selectedNodeId === node.id ||
       (selectedNodeId === "main" && componentTree?.assemblyTree.id === node.id)
     const nodeClasses = [
@@ -218,6 +236,20 @@ export default function CustomComponentPage() {
 
     if (node.text) {
       children.push(node.text)
+    }
+
+    // For PascalCase preview-only elements (shadcn), show a styled label
+    if (isPascalCase && children.length === 0 && !node.text) {
+      children.push(
+        React.createElement(
+          "span",
+          {
+            key: "__preview_label__",
+            className: "rounded bg-purple-500/10 px-2 py-1 text-xs font-medium text-purple-500",
+          },
+          node.tag,
+        ),
+      )
     }
 
     children.push(...node.children.map((child) => renderTreePreview(child)))
