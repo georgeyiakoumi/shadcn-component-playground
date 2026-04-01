@@ -327,8 +327,17 @@ interface ControlState {
   isolation: string
   objectFit: string
   objectPosition: string
-  // Layout — block children
+  // Layout — block children / flex spacing
   spaceY: string
+  spaceX: string
+  // Sizing
+  width: string
+  height: string
+  minWidth: string
+  maxWidth: string
+  minHeight: string
+  maxHeight: string
+  size: string
   // Spacing
   padding: string
   paddingTop: string
@@ -385,9 +394,41 @@ const OBJECT_POSITION_OPTIONS = [
   "object-left-top", "object-right-top", "object-left-bottom", "object-right-bottom",
 ]
 const OVERFLOW_OPTIONS = ["overflow-visible", "overflow-hidden", "overflow-scroll", "overflow-auto"]
-const SPACE_Y_OPTIONS = [
-  "space-y-0", "space-y-0.5", "space-y-1", "space-y-1.5", "space-y-2", "space-y-2.5",
-  "space-y-3", "space-y-3.5", "space-y-4", "space-y-5", "space-y-6", "space-y-8", "space-y-10", "space-y-12",
+const SPACING_SCALE_FULL = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16]
+const SPACE_Y_OPTIONS = SPACING_SCALE_FULL.map((v) => `space-y-${v}`)
+const SPACE_X_OPTIONS = SPACING_SCALE_FULL.map((v) => `space-x-${v}`)
+
+const WIDTH_OPTIONS = [
+  "w-0", "w-0.5", "w-1", "w-1.5", "w-2", "w-2.5", "w-3", "w-3.5", "w-4", "w-5", "w-6", "w-7", "w-8", "w-9",
+  "w-10", "w-11", "w-12", "w-14", "w-16", "w-20", "w-24", "w-28", "w-32", "w-36", "w-40", "w-44", "w-48",
+  "w-52", "w-56", "w-60", "w-64", "w-72", "w-80", "w-96",
+  "w-auto", "w-full", "w-screen", "w-min", "w-max", "w-fit",
+  "w-1/2", "w-1/3", "w-2/3", "w-1/4", "w-3/4", "w-1/5", "w-2/5", "w-3/5", "w-4/5",
+]
+const HEIGHT_OPTIONS = [
+  "h-0", "h-0.5", "h-1", "h-1.5", "h-2", "h-2.5", "h-3", "h-3.5", "h-4", "h-5", "h-6", "h-7", "h-8", "h-9",
+  "h-10", "h-11", "h-12", "h-14", "h-16", "h-20", "h-24", "h-28", "h-32", "h-36", "h-40", "h-44", "h-48",
+  "h-52", "h-56", "h-60", "h-64", "h-72", "h-80", "h-96",
+  "h-auto", "h-full", "h-screen", "h-min", "h-max", "h-fit",
+  "h-1/2", "h-1/3", "h-2/3", "h-1/4", "h-3/4", "h-1/5", "h-2/5", "h-3/5", "h-4/5",
+]
+const MIN_WIDTH_OPTIONS = ["min-w-0", "min-w-full", "min-w-min", "min-w-max", "min-w-fit"]
+const MAX_WIDTH_OPTIONS = [
+  "max-w-none", "max-w-0", "max-w-xs", "max-w-sm", "max-w-md", "max-w-lg", "max-w-xl",
+  "max-w-2xl", "max-w-3xl", "max-w-4xl", "max-w-5xl", "max-w-6xl", "max-w-7xl",
+  "max-w-full", "max-w-min", "max-w-max", "max-w-fit", "max-w-prose", "max-w-screen-sm",
+  "max-w-screen-md", "max-w-screen-lg", "max-w-screen-xl", "max-w-screen-2xl",
+]
+const MIN_HEIGHT_OPTIONS = ["min-h-0", "min-h-full", "min-h-screen", "min-h-min", "min-h-max", "min-h-fit"]
+const MAX_HEIGHT_OPTIONS = [
+  "max-h-none", "max-h-0", "max-h-full", "max-h-screen", "max-h-min", "max-h-max", "max-h-fit",
+  ...SPACING_SCALE_FULL.filter((v) => v >= 1).map((v) => `max-h-${v}`),
+]
+const SIZE_OPTIONS = [
+  "size-0", "size-0.5", "size-1", "size-1.5", "size-2", "size-2.5", "size-3", "size-3.5",
+  "size-4", "size-5", "size-6", "size-7", "size-8", "size-9", "size-10", "size-11", "size-12",
+  "size-14", "size-16", "size-20", "size-24", "size-28", "size-32", "size-36", "size-40",
+  "size-auto", "size-full", "size-min", "size-max", "size-fit",
 ]
 
 const GRID_COLS_OPTIONS = [
@@ -635,6 +676,14 @@ function classesToControlState(classes: string[], context: StyleContext = "defau
     objectFit: findMatch(classes, OBJECT_FIT_OPTIONS),
     objectPosition: findMatch(classes, OBJECT_POSITION_OPTIONS),
     spaceY: findMatch(classes, SPACE_Y_OPTIONS),
+    spaceX: findMatch(classes, SPACE_X_OPTIONS),
+    width: findMatch(classes, WIDTH_OPTIONS),
+    height: findMatch(classes, HEIGHT_OPTIONS),
+    minWidth: findMatch(classes, MIN_WIDTH_OPTIONS),
+    maxWidth: findMatch(classes, MAX_WIDTH_OPTIONS),
+    minHeight: findMatch(classes, MIN_HEIGHT_OPTIONS),
+    maxHeight: findMatch(classes, MAX_HEIGHT_OPTIONS),
+    size: findMatch(classes, SIZE_OPTIONS),
     padding: findMatch(classes, PADDING_SCALE),
     paddingTop: findMatch(classes, [...PADDING_SIDES.paddingTop]),
     paddingRight: findMatch(classes, [...PADDING_SIDES.paddingRight]),
@@ -704,6 +753,14 @@ const MANAGED_PREFIXES = [
   ...OBJECT_FIT_OPTIONS,
   ...OBJECT_POSITION_OPTIONS,
   ...SPACE_Y_OPTIONS,
+  ...SPACE_X_OPTIONS,
+  ...WIDTH_OPTIONS,
+  ...HEIGHT_OPTIONS,
+  ...MIN_WIDTH_OPTIONS,
+  ...MAX_WIDTH_OPTIONS,
+  ...MIN_HEIGHT_OPTIONS,
+  ...MAX_HEIGHT_OPTIONS,
+  ...SIZE_OPTIONS,
   ...PADDING_SCALE,
   ...Object.values(PADDING_SIDES).flat(),
   ...MARGIN_SCALE,
@@ -790,6 +847,14 @@ function controlStateToClasses(state: ControlState, context: StyleContext = "def
   push(state.objectFit)
   push(state.objectPosition)
   push(state.spaceY)
+  push(state.spaceX)
+  push(state.width)
+  push(state.height)
+  push(state.minWidth)
+  push(state.maxWidth)
+  push(state.minHeight)
+  push(state.maxHeight)
+  push(state.size)
   push(state.padding)
   push(state.paddingTop)
   push(state.paddingRight)
@@ -822,6 +887,8 @@ function controlStateToClasses(state: ControlState, context: StyleContext = "def
  * e.g. grid-cols-[1fr_auto] replaces grid-cols-3 and vice versa.
  */
 const PROPERTY_GROUP_PREFIXES = [
+  "w-", "h-", "min-w-", "max-w-", "min-h-", "max-h-", "size-",
+  "space-x-", "space-y-",
   "z-",
   "inset-x-", "inset-y-", "inset-",
   "top-", "right-", "bottom-", "left-",
@@ -2532,26 +2599,9 @@ export function VisualEditor({
                     </>
                   )}
 
-                  {/* ══════ BLOCK-SPECIFIC ══════════════════ */}
-                  {isBlock && (
-                    <ControlRow label="Space-Y">
-                      <Select
-                        value={state.spaceY ? state.spaceY.replace("space-y-", "") : "__none__"}
-                        onValueChange={(v) => update("spaceY", v === "__none__" ? "" : `space-y-${v}`)}
-                      >
-                        <SelectTrigger className="h-6 w-20 text-xs">
-                          <SelectValue placeholder="–" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__none__">–</SelectItem>
-                          {["0", "0.5", "1", "1.5", "2", "2.5", "3", "3.5", "4", "5", "6", "8", "10", "12"].map((v) => (
-                            <SelectItem key={v} value={v}>
-                              {v} ({SPACING_PX[v] ?? ""})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </ControlRow>
+                  {/* ══════ BLOCK-SPECIFIC (space-y moved to Spacing section) ══ */}
+                  {false && isBlock && (
+                    <div />
                   )}
                 </>
               )
@@ -2563,41 +2613,155 @@ export function VisualEditor({
           <>
           {/* ── Spacing ──────────────────────────────────── */}
           <ControlSection icon={Box} title="Spacing">
-            <ControlRow label="Padding">
-              <BoxModelControl
-                label="Padding"
-                allPrefix="p"
-                allValue={state.padding}
-                onAllChange={(v) => update("padding", v)}
-                sides={[
-                  { prefix: "pt", label: "Top", value: state.paddingTop, onChange: (v) => update("paddingTop", v) },
-                  { prefix: "pr", label: "Right", value: state.paddingRight, onChange: (v) => update("paddingRight", v) },
-                  { prefix: "pb", label: "Bottom", value: state.paddingBottom, onChange: (v) => update("paddingBottom", v) },
-                  { prefix: "pl", label: "Left", value: state.paddingLeft, onChange: (v) => update("paddingLeft", v) },
-                ]}
-                expanded={showPaddingSides}
-                onToggleExpand={() => setShowPaddingSides((v) => !v)}
-              />
-            </ControlRow>
+            {(() => {
+              const isInline = effectiveDisplay === "inline"
+              const isBlockDisplay = effectiveDisplay === "block" || effectiveDisplay === "inline-block"
+              const acceptsSize = !isInline && effectiveDisplay !== "hidden" && effectiveDisplay !== "contents"
+              const isFlexRow = isFlex && (state.direction === "flex-row" || state.direction === "flex-row-reverse" || !state.direction)
+              const isFlexCol = isFlex && (state.direction === "flex-col" || state.direction === "flex-col-reverse")
 
-            <Separator className="my-1" />
+              return (
+                <>
+                  {/* Padding */}
+                  <ControlRow label="Padding">
+                    <BoxModelControl
+                      label="Padding"
+                      allPrefix="p"
+                      allValue={state.padding}
+                      onAllChange={(v) => update("padding", v)}
+                      sides={[
+                        { prefix: "pt", label: "Top", value: state.paddingTop, onChange: (v) => update("paddingTop", v) },
+                        { prefix: "pr", label: "Right", value: state.paddingRight, onChange: (v) => update("paddingRight", v) },
+                        { prefix: "pb", label: "Bottom", value: state.paddingBottom, onChange: (v) => update("paddingBottom", v) },
+                        { prefix: "pl", label: "Left", value: state.paddingLeft, onChange: (v) => update("paddingLeft", v) },
+                      ]}
+                      expanded={showPaddingSides}
+                      onToggleExpand={() => setShowPaddingSides((v) => !v)}
+                    />
+                  </ControlRow>
 
-            <ControlRow label="Margin">
-              <BoxModelControl
-                label="Margin"
-                allPrefix="m"
-                allValue={state.margin}
-                onAllChange={(v) => update("margin", v)}
-                sides={[
-                  { prefix: "mt", label: "Top", value: state.marginTop, onChange: (v) => update("marginTop", v) },
-                  { prefix: "mr", label: "Right", value: state.marginRight, onChange: (v) => update("marginRight", v) },
-                  { prefix: "mb", label: "Bottom", value: state.marginBottom, onChange: (v) => update("marginBottom", v) },
-                  { prefix: "ml", label: "Left", value: state.marginLeft, onChange: (v) => update("marginLeft", v) },
-                ]}
-                expanded={showMarginSides}
-                onToggleExpand={() => setShowMarginSides((v) => !v)}
-              />
-            </ControlRow>
+                  {/* Margin */}
+                  <ControlRow label="Margin">
+                    <BoxModelControl
+                      label="Margin"
+                      allPrefix="m"
+                      allValue={state.margin}
+                      onAllChange={(v) => update("margin", v)}
+                      sides={[
+                        { prefix: "mt", label: "Top", value: state.marginTop, onChange: (v) => update("marginTop", v) },
+                        { prefix: "mr", label: "Right", value: state.marginRight, onChange: (v) => update("marginRight", v) },
+                        { prefix: "mb", label: "Bottom", value: state.marginBottom, onChange: (v) => update("marginBottom", v) },
+                        { prefix: "ml", label: "Left", value: state.marginLeft, onChange: (v) => update("marginLeft", v) },
+                      ]}
+                      expanded={showMarginSides}
+                      onToggleExpand={() => setShowMarginSides((v) => !v)}
+                    />
+                  </ControlRow>
+
+                  {/* Space between — conditional on display/direction */}
+                  {isFlexRow && (
+                    <ControlRow label="Space-X">
+                      <Select value={state.spaceX ? state.spaceX.replace("space-x-", "") : "__none__"} onValueChange={(v) => update("spaceX", v === "__none__" ? "" : `space-x-${v}`)}>
+                        <SelectTrigger className="h-6 w-20 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">–</SelectItem>
+                          {SPACING_SCALE_FULL.map((v) => (<SelectItem key={v} value={String(v)} className="text-xs">{v}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                    </ControlRow>
+                  )}
+                  {(isBlockDisplay || isFlexCol) && (
+                    <ControlRow label="Space-Y">
+                      <Select value={state.spaceY ? state.spaceY.replace("space-y-", "") : "__none__"} onValueChange={(v) => update("spaceY", v === "__none__" ? "" : `space-y-${v}`)}>
+                        <SelectTrigger className="h-6 w-20 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">–</SelectItem>
+                          {SPACING_SCALE_FULL.map((v) => (<SelectItem key={v} value={String(v)} className="text-xs">{v}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                    </ControlRow>
+                  )}
+
+                  {/* Width / Height — not for inline */}
+                  {acceptsSize && (
+                    <>
+                      <Separator className="my-1" />
+                      <ControlRow label="Width">
+                        <Select value={state.width || "__none__"} onValueChange={(v) => update("width", v === "__none__" ? "" : v)}>
+                          <SelectTrigger className="h-6 w-24 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">–</SelectItem>
+                            {WIDTH_OPTIONS.map((v) => (<SelectItem key={v} value={v} className="text-xs">{v.replace("w-", "")}</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                      </ControlRow>
+
+                      <ControlRow label="Height">
+                        <Select value={state.height || "__none__"} onValueChange={(v) => update("height", v === "__none__" ? "" : v)}>
+                          <SelectTrigger className="h-6 w-24 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">–</SelectItem>
+                            {HEIGHT_OPTIONS.map((v) => (<SelectItem key={v} value={v} className="text-xs">{v.replace("h-", "")}</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                      </ControlRow>
+
+                      <ControlRow label="Size">
+                        <Select value={state.size || "__none__"} onValueChange={(v) => update("size", v === "__none__" ? "" : v)}>
+                          <SelectTrigger className="h-6 w-24 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">–</SelectItem>
+                            {SIZE_OPTIONS.map((v) => (<SelectItem key={v} value={v} className="text-xs">{v.replace("size-", "")}</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                      </ControlRow>
+
+                      <Separator className="my-1" />
+
+                      <ControlRow label="Min W">
+                        <Select value={state.minWidth || "__none__"} onValueChange={(v) => update("minWidth", v === "__none__" ? "" : v)}>
+                          <SelectTrigger className="h-6 w-24 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">–</SelectItem>
+                            {MIN_WIDTH_OPTIONS.map((v) => (<SelectItem key={v} value={v} className="text-xs">{v.replace("min-w-", "")}</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                      </ControlRow>
+
+                      <ControlRow label="Max W">
+                        <Select value={state.maxWidth || "__none__"} onValueChange={(v) => update("maxWidth", v === "__none__" ? "" : v)}>
+                          <SelectTrigger className="h-6 w-24 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">–</SelectItem>
+                            {MAX_WIDTH_OPTIONS.map((v) => (<SelectItem key={v} value={v} className="text-xs">{v.replace("max-w-", "")}</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                      </ControlRow>
+
+                      <ControlRow label="Min H">
+                        <Select value={state.minHeight || "__none__"} onValueChange={(v) => update("minHeight", v === "__none__" ? "" : v)}>
+                          <SelectTrigger className="h-6 w-24 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">–</SelectItem>
+                            {MIN_HEIGHT_OPTIONS.map((v) => (<SelectItem key={v} value={v} className="text-xs">{v.replace("min-h-", "")}</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                      </ControlRow>
+
+                      <ControlRow label="Max H">
+                        <Select value={state.maxHeight || "__none__"} onValueChange={(v) => update("maxHeight", v === "__none__" ? "" : v)}>
+                          <SelectTrigger className="h-6 w-24 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">–</SelectItem>
+                            {MAX_HEIGHT_OPTIONS.map((v) => (<SelectItem key={v} value={v} className="text-xs">{v.replace("max-h-", "")}</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                      </ControlRow>
+                    </>
+                  )}
+                </>
+              )
+            })()}
           </ControlSection>
 
           {/* ── Typography ───────────────────────────────── */}
