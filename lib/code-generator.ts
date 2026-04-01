@@ -672,11 +672,6 @@ export function generateFromTree(tree: ComponentTree): string {
 
   // ── Imports ──────────────────────────────────────────────────────
   const importLines: string[] = ['import * as React from "react"']
-  if (hasVariants) {
-    importLines.push(
-      'import { cva, type VariantProps } from "class-variance-authority"',
-    )
-  }
   importLines.push("")
   importLines.push('import { cn } from "@/lib/utils"')
 
@@ -693,15 +688,21 @@ export function generateFromTree(tree: ComponentTree): string {
 
   sections.push(importLines.join("\n"))
 
-  // ── CVA block ────────────────────────────────────────────────────
-  // cva base should only contain structural classes, not user-added utility classes
-  // User-added classes go in the component's cn() call
-  if (hasVariants) {
-    sections.push(buildCvaBlock(variantsName, [], variants))
+  // ── Props interface ──────────────────────────────────────────────
+  // Using CSS data-attribute pattern for variants (no cva)
+  const propsInterfaceParts: string[] = []
+
+  // Variant props as typed union props
+  for (const v of variants) {
+    const unionType = v.type === "boolean"
+      ? "boolean"
+      : v.options.map((o) => `"${o}"`).join(" | ")
+    const defaultVal = v.defaultValue
+    propsInterfaceParts.push(`  ${v.name}?: ${unionType}`)
+    void defaultVal // used in destructuring below
   }
 
-  // ── Props interface ──────────────────────────────────────────────
-  const propsInterfaceParts: string[] = []
+  // Custom props
   if (hasProps) {
     for (const prop of props) {
       const tsType = propTypeToTs(prop.type, hasReactNode)
@@ -711,9 +712,6 @@ export function generateFromTree(tree: ComponentTree): string {
   }
 
   const extensions: string[] = [elementInfo.htmlAttributes]
-  if (hasVariants) {
-    extensions.push(`VariantProps<typeof ${variantsName}>`)
-  }
   const extendClause = extensions.join(",\n    ")
 
   const propsBody =
@@ -730,7 +728,15 @@ export function generateFromTree(tree: ComponentTree): string {
   const customPropNames = props.map((p) => p.name)
   const allDestructured = [
     "className",
-    ...variantPropNames,
+    // Variant props with defaults
+    ...variants.map((v) => {
+      const def = v.defaultValue
+      if (v.type === "boolean") {
+        return `${v.name} = ${def === "true" ? "true" : "false"}`
+      }
+      return def ? `${v.name} = "${def}"` : v.name
+    }),
+    // Custom props with defaults
     ...customPropNames.map((p) => {
       const prop = props.find((pr) => pr.name === p)
       if (prop?.defaultValue !== undefined && prop.defaultValue !== "") {
@@ -743,16 +749,26 @@ export function generateFromTree(tree: ComponentTree): string {
   ]
 
   const userClasses = (tree.classes ?? []).join(" ")
-  const classNameExpr = hasVariants
-    ? userClasses
-      ? `cn(${variantsName}({ ${variantPropNames.join(", ")}, className }), "${userClasses}")`
-      : `cn(${variantsName}({ ${variantPropNames.join(", ")}, className }))`
-    : userClasses
-      ? `cn("${userClasses}", className)`
-      : "cn(className)"
+  const classNameExpr = userClasses
+    ? `cn(\n        "${userClasses}",\n        className\n      )`
+    : "cn(className)"
 
-  // Component renders {children} pass-through — no internal element tree
-  const jsxBody = `      <${tree.baseElement}\n        ref={ref}\n        ${tree.dataSlot ? `data-slot="${tree.dataSlot}"\n        ` : ""}className={${classNameExpr}}\n        {...props}\n      >\n        {children}\n      </${tree.baseElement}>`
+  // Build data-* attributes for each variant prop (CSS data-attribute pattern)
+  const dataAttrs = variants.map((v) => {
+    const kebab = v.name.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase()
+    return `data-${kebab}={${v.name}}`
+  })
+
+  // Build JSX body
+  const attrLines = [
+    "ref={ref}",
+    tree.dataSlot ? `data-slot="${tree.dataSlot}"` : "",
+    ...dataAttrs,
+    `className={${classNameExpr}}`,
+    "{...props}",
+  ].filter(Boolean)
+
+  const jsxBody = `      <${tree.baseElement}\n        ${attrLines.join("\n        ")}\n      >\n        {children}\n      </${tree.baseElement}>`
 
   sections.push(
     `const ${name} = React.forwardRef<${elementInfo.htmlElement}, ${name}Props>(
@@ -876,13 +892,18 @@ function generateSubComponent(
 
   const parts: string[] = []
 
-  // cva block for sub-component variants (empty base — user classes go in cn())
-  if (hasVariants) {
-    parts.push(buildCvaBlock(variantsName, [], sub.variants))
+  // Props interface — CSS data-attribute pattern (no cva)
+  const propsInterfaceParts: string[] = []
+
+  // Variant props as typed unions
+  for (const v of sub.variants) {
+    const unionType = v.type === "boolean"
+      ? "boolean"
+      : v.options.map((o) => `"${o}"`).join(" | ")
+    propsInterfaceParts.push(`  ${v.name}?: ${unionType}`)
   }
 
-  // Props interface for sub-component
-  const propsInterfaceParts: string[] = []
+  // Custom props
   if (hasProps) {
     for (const prop of sub.props) {
       const tsType = propTypeToTs(prop.type, false)
@@ -892,9 +913,6 @@ function generateSubComponent(
   }
 
   const extensions: string[] = [elementInfo.htmlAttributes]
-  if (hasVariants) {
-    extensions.push(`VariantProps<typeof ${variantsName}>`)
-  }
   const extendClause = extensions.join(", ")
 
   const propsBody =
@@ -906,28 +924,45 @@ function generateSubComponent(
     `export interface ${sub.name}Props\n  extends ${extendClause}${propsBody}`,
   )
 
-  // Build destructured props
-  const variantPropNames = sub.variants.map((v) => v.name)
+  // Build destructured props with defaults
   const customPropNames = sub.props.map((p) => p.name)
   const allDestructured = [
     "className",
-    ...variantPropNames,
+    // Variant props with defaults
+    ...sub.variants.map((v) => {
+      const def = v.defaultValue
+      if (v.type === "boolean") {
+        return `${v.name} = ${def === "true" ? "true" : "false"}`
+      }
+      return def ? `${v.name} = "${def}"` : v.name
+    }),
+    // Custom props
     ...customPropNames,
     "children",
     "...props",
   ]
 
   const subUserClasses = (sub.classes ?? []).join(" ")
-  const classNameExpr = hasVariants
-    ? subUserClasses
-      ? `cn(${variantsName}({ ${variantPropNames.join(", ")}, className }), "${subUserClasses}")`
-      : `cn(${variantsName}({ ${variantPropNames.join(", ")}, className }))`
-    : subUserClasses
-      ? `cn("${subUserClasses}", className)`
-      : "cn(className)"
+  const classNameExpr = subUserClasses
+    ? `cn(\n      "${subUserClasses}",\n      className\n    )`
+    : "cn(className)"
+
+  // Build data-* attributes for each variant prop
+  const dataAttrs = sub.variants.map((v) => {
+    const kebab = v.name.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase()
+    return `data-${kebab}={${v.name}}`
+  })
+
+  const attrLines = [
+    "ref={ref}",
+    sub.dataSlot ? `data-slot="${sub.dataSlot}"` : "",
+    ...dataAttrs,
+    `className={${classNameExpr}}`,
+    "{...props}",
+  ].filter(Boolean)
 
   // Sub-component renders {children} pass-through
-  const jsxBody = `    <${sub.baseElement}\n      ref={ref}\n      ${sub.dataSlot ? `data-slot="${sub.dataSlot}"\n      ` : ""}className={${classNameExpr}}\n      {...props}\n    >\n      {children}\n    </${sub.baseElement}>`
+  const jsxBody = `    <${sub.baseElement}\n      ${attrLines.join("\n      ")}\n    >\n      {children}\n    </${sub.baseElement}>`
 
   parts.push(
     `const ${sub.name} = React.forwardRef<${elementInfo.htmlElement}, ${sub.name}Props>(
