@@ -172,9 +172,14 @@ function buildContextGroups(
   return groups
 }
 
-/** Get the CSS prefix for a context. Variant contexts have no CSS prefix. */
+/** Get the CSS prefix for a context. Variant contexts become data-attribute selectors. */
 function getCssPrefix(context: string): string {
-  if (context === "default" || context.startsWith("variant:")) return "default"
+  if (context === "default") return "default"
+  if (context.startsWith("variant:")) {
+    // variant:size:default → data-[size=default]
+    const parts = context.split(":")
+    return `data-[${parts[1]}=${parts[2]}]`
+  }
   return context
 }
 

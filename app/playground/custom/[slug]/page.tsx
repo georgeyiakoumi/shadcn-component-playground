@@ -567,6 +567,7 @@ export default function CustomComponentPage() {
                   const isMain = selectedNodeId === "main" || (!matchedSc && selectedNodeId === componentTree.assemblyTree.id)
                   return (
                   <VisualEditor
+                    key={selectedNodeId}
                     selectedElement={{
                       tagName: isMain
                         ? componentTree.baseElement

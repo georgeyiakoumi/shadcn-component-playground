@@ -114,7 +114,7 @@ export function CodePanel({ code, language = "tsx", highlightLine, className }: 
       </div>
 
       {/* ── Code body ─────────────────────────────────────────── */}
-      <ScrollArea className="flex-1 bg-[#0d1117]">
+      <div className="flex-1 overflow-auto bg-[#0d1117]">
         {isLoading ? (
           <div className="space-y-2 p-4">
             <Skeleton className="h-4 w-3/4 bg-white/5" />
@@ -128,11 +128,11 @@ export function CodePanel({ code, language = "tsx", highlightLine, className }: 
         ) : (
           <div
             ref={codeBodyRef}
-            className="code-panel-shiki text-sm font-mono p-4 [&_pre]:!bg-transparent [&_code]:!bg-transparent [&_code]:[counter-reset:line] [&_.line]:table-row [&_.line]:[counter-increment:line] [&_.line::before]:table-cell [&_.line::before]:pr-4 [&_.line::before]:text-right [&_.line::before]:text-white/20 [&_.line::before]:select-none [&_.line::before]:[content:counter(line)] [&_.line::before]:min-w-[2rem]"
+            className="code-panel-shiki min-w-max text-sm font-mono p-4 [&_pre]:!bg-transparent [&_code]:!bg-transparent [&_code]:[counter-reset:line] [&_.line]:table-row [&_.line]:[counter-increment:line] [&_.line::before]:table-cell [&_.line::before]:pr-4 [&_.line::before]:text-right [&_.line::before]:text-white/20 [&_.line::before]:select-none [&_.line::before]:[content:counter(line)] [&_.line::before]:min-w-[2rem]"
             dangerouslySetInnerHTML={{ __html: highlightedHtml }}
           />
         )}
-      </ScrollArea>
+      </div>
     </div>
   )
 }
