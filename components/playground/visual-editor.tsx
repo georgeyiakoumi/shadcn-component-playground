@@ -36,6 +36,7 @@ import {
   PanelTop,
   WrapText,
   Maximize2,
+  Check,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -310,6 +311,22 @@ interface ControlState {
   // Layout — positioning
   position: string
   overflow: string
+  zIndex: string
+  inset: string
+  insetX: string
+  insetY: string
+  top: string
+  right: string
+  bottom: string
+  left: string
+  // Layout — visibility + misc
+  visibility: string
+  aspectRatio: string
+  float: string
+  clear: string
+  isolation: string
+  objectFit: string
+  objectPosition: string
   // Layout — block children
   spaceY: string
   // Spacing
@@ -344,6 +361,29 @@ const DISPLAY_OPTIONS = [
   "grid", "inline-grid", "contents", "hidden",
 ]
 const POSITION_OPTIONS = ["static", "relative", "absolute", "fixed", "sticky"]
+const Z_INDEX_OPTIONS = ["z-0", "z-10", "z-20", "z-30", "z-40", "z-50", "z-auto"]
+const INSET_SCALE = [
+  "0", "0.5", "1", "1.5", "2", "2.5", "3", "3.5", "4", "5", "6", "7", "8", "9",
+  "10", "11", "12", "14", "16", "20", "24", "28", "32", "36", "40", "44", "48",
+  "52", "56", "60", "64", "72", "80", "96", "auto", "1/2", "1/3", "2/3", "1/4", "3/4", "full",
+]
+const INSET_OPTIONS = INSET_SCALE.map((v) => `inset-${v}`)
+const INSET_X_OPTIONS = INSET_SCALE.map((v) => `inset-x-${v}`)
+const INSET_Y_OPTIONS = INSET_SCALE.map((v) => `inset-y-${v}`)
+const TOP_OPTIONS = INSET_SCALE.map((v) => `top-${v}`)
+const RIGHT_OPTIONS = INSET_SCALE.map((v) => `right-${v}`)
+const BOTTOM_OPTIONS = INSET_SCALE.map((v) => `bottom-${v}`)
+const LEFT_OPTIONS = INSET_SCALE.map((v) => `left-${v}`)
+const VISIBILITY_OPTIONS = ["visible", "invisible", "collapse"]
+const ASPECT_RATIO_OPTIONS = ["aspect-auto", "aspect-square", "aspect-video"]
+const FLOAT_OPTIONS = ["float-left", "float-right", "float-none"]
+const CLEAR_OPTIONS = ["clear-left", "clear-right", "clear-both", "clear-none"]
+const ISOLATION_OPTIONS = ["isolate", "isolation-auto"]
+const OBJECT_FIT_OPTIONS = ["object-contain", "object-cover", "object-fill", "object-none", "object-scale-down"]
+const OBJECT_POSITION_OPTIONS = [
+  "object-center", "object-top", "object-right", "object-bottom", "object-left",
+  "object-left-top", "object-right-top", "object-left-bottom", "object-right-bottom",
+]
 const OVERFLOW_OPTIONS = ["overflow-visible", "overflow-hidden", "overflow-scroll", "overflow-auto"]
 const SPACE_Y_OPTIONS = [
   "space-y-0", "space-y-0.5", "space-y-1", "space-y-1.5", "space-y-2", "space-y-2.5",
@@ -579,6 +619,21 @@ function classesToControlState(classes: string[], context: StyleContext = "defau
     order: findMatch(classes, ORDER_OPTIONS),
     position: findMatch(classes, POSITION_OPTIONS),
     overflow: findMatch(classes, OVERFLOW_OPTIONS),
+    zIndex: findMatch(classes, Z_INDEX_OPTIONS),
+    inset: findMatch(classes, INSET_OPTIONS),
+    insetX: findMatch(classes, INSET_X_OPTIONS),
+    insetY: findMatch(classes, INSET_Y_OPTIONS),
+    top: findMatch(classes, TOP_OPTIONS),
+    right: findMatch(classes, RIGHT_OPTIONS),
+    bottom: findMatch(classes, BOTTOM_OPTIONS),
+    left: findMatch(classes, LEFT_OPTIONS),
+    visibility: findMatch(classes, VISIBILITY_OPTIONS),
+    aspectRatio: findMatch(classes, ASPECT_RATIO_OPTIONS),
+    float: findMatch(classes, FLOAT_OPTIONS),
+    clear: findMatch(classes, CLEAR_OPTIONS),
+    isolation: findMatch(classes, ISOLATION_OPTIONS),
+    objectFit: findMatch(classes, OBJECT_FIT_OPTIONS),
+    objectPosition: findMatch(classes, OBJECT_POSITION_OPTIONS),
     spaceY: findMatch(classes, SPACE_Y_OPTIONS),
     padding: findMatch(classes, PADDING_SCALE),
     paddingTop: findMatch(classes, [...PADDING_SIDES.paddingTop]),
@@ -633,6 +688,21 @@ const MANAGED_PREFIXES = [
   ...ORDER_OPTIONS,
   ...POSITION_OPTIONS,
   ...OVERFLOW_OPTIONS,
+  ...Z_INDEX_OPTIONS,
+  ...INSET_OPTIONS,
+  ...INSET_X_OPTIONS,
+  ...INSET_Y_OPTIONS,
+  ...TOP_OPTIONS,
+  ...RIGHT_OPTIONS,
+  ...BOTTOM_OPTIONS,
+  ...LEFT_OPTIONS,
+  ...VISIBILITY_OPTIONS,
+  ...ASPECT_RATIO_OPTIONS,
+  ...FLOAT_OPTIONS,
+  ...CLEAR_OPTIONS,
+  ...ISOLATION_OPTIONS,
+  ...OBJECT_FIT_OPTIONS,
+  ...OBJECT_POSITION_OPTIONS,
   ...SPACE_Y_OPTIONS,
   ...PADDING_SCALE,
   ...Object.values(PADDING_SIDES).flat(),
@@ -704,6 +774,21 @@ function controlStateToClasses(state: ControlState, context: StyleContext = "def
   // Positioning (don't emit "static" — it's the default)
   if (state.position && state.position !== "static") push(state.position)
   push(state.overflow)
+  push(state.zIndex)
+  push(state.inset)
+  push(state.insetX)
+  push(state.insetY)
+  push(state.top)
+  push(state.right)
+  push(state.bottom)
+  push(state.left)
+  push(state.visibility)
+  push(state.aspectRatio)
+  push(state.float)
+  push(state.clear)
+  push(state.isolation)
+  push(state.objectFit)
+  push(state.objectPosition)
   push(state.spaceY)
   push(state.padding)
   push(state.paddingTop)
@@ -737,6 +822,11 @@ function controlStateToClasses(state: ControlState, context: StyleContext = "def
  * e.g. grid-cols-[1fr_auto] replaces grid-cols-3 and vice versa.
  */
 const PROPERTY_GROUP_PREFIXES = [
+  "z-",
+  "inset-x-", "inset-y-", "inset-",
+  "top-", "right-", "bottom-", "left-",
+  "aspect-", "float-", "clear-",
+  "object-",
   "grid-cols-", "grid-rows-", "grid-flow-",
   "auto-rows-", "auto-cols-",
   "col-span-", "row-span-",
@@ -1335,6 +1425,51 @@ function ColorSwatchGrid({
 }
 
 /* ── Context picker (Command-based) ──────────────────────────────── */
+
+/* ── Z-index input (commits on blur/Enter) ─────────────────────── */
+
+function ZIndexInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const parsed = value ? value.replace("z-", "").replace(/[\[\]]/g, "") : ""
+  const [localVal, setLocalVal] = React.useState(parsed)
+
+  React.useEffect(() => {
+    setLocalVal(parsed)
+  }, [parsed])
+
+  function commit() {
+    const v = localVal.replace(/[^0-9]/g, "")
+    if (!v) { onChange(""); return }
+    const num = parseInt(v, 10)
+    if (isNaN(num)) return
+    if ([0, 10, 20, 30, 40, 50].includes(num)) {
+      onChange(`z-${num}`)
+    } else {
+      onChange(`z-[${num}]`)
+    }
+  }
+
+  return (
+    <div className="flex">
+      <input
+        type="text"
+        inputMode="numeric"
+        placeholder="–"
+        value={localVal}
+        onChange={(e) => setLocalVal(e.target.value.replace(/[^0-9]/g, ""))}
+        onKeyDown={(e) => { if (e.key === "Enter") commit() }}
+        className="h-6 w-14 rounded-l-md rounded-r-none border border-r-0 bg-transparent px-2 text-xs outline-none focus:ring-1 focus:ring-ring"
+      />
+      <Button
+        variant="outline"
+        size="icon"
+        className="size-6 rounded-l-none"
+        onClick={commit}
+      >
+        <Check className="size-3" />
+      </Button>
+    </div>
+  )
+}
 
 /* ── Grid number picker (e.g. grid-cols-3) ─────────────────────── */
 
@@ -1945,6 +2080,143 @@ export function VisualEditor({
                         ))}
                       </div>
                     </ControlRow>
+                  )}
+
+                  {/* ── Z-index (when positioned) ──────────── */}
+                  {showPosition && state.position && state.position !== "static" && (
+                    <ControlRow label="Z-index">
+                      <div className="flex items-center gap-1">
+                        <ZIndexInput value={state.zIndex} onChange={(v) => update("zIndex", v)} />
+                        {[10, 20, 30, 40, 50].map((n) => (
+                          <TextToggle key={n} value={`z-${n}`} label={String(n)} tooltip={`z-${n}`} isActive={state.zIndex === `z-${n}`} onClick={(v) => update("zIndex", state.zIndex === v ? "" : v)} />
+                        ))}
+                        <TextToggle value="z-auto" label="auto" tooltip="z-auto — uses browser stacking order" isActive={state.zIndex === "z-auto"} onClick={(v) => update("zIndex", state.zIndex === v ? "" : v)} />
+                      </div>
+                    </ControlRow>
+                  )}
+
+                  {/* ── Inset (when positioned, not static) ─── */}
+                  {showPosition && state.position && state.position !== "static" && (
+                    <>
+                      <ControlRow label="Inset">
+                        <Select value={state.inset ? state.inset.replace("inset-", "") : "__none__"} onValueChange={(v) => update("inset", v === "__none__" ? "" : `inset-${v}`)}>
+                          <SelectTrigger className="h-6 w-20 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">–</SelectItem>
+                            {INSET_SCALE.map((v) => (<SelectItem key={v} value={v} className="text-xs">{v}</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                      </ControlRow>
+                      <ControlRow label="Top">
+                        <Select value={state.top ? state.top.replace("top-", "") : "__none__"} onValueChange={(v) => update("top", v === "__none__" ? "" : `top-${v}`)}>
+                          <SelectTrigger className="h-6 w-20 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">–</SelectItem>
+                            {INSET_SCALE.map((v) => (<SelectItem key={v} value={v} className="text-xs">{v}</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                      </ControlRow>
+                      <ControlRow label="Right">
+                        <Select value={state.right ? state.right.replace("right-", "") : "__none__"} onValueChange={(v) => update("right", v === "__none__" ? "" : `right-${v}`)}>
+                          <SelectTrigger className="h-6 w-20 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">–</SelectItem>
+                            {INSET_SCALE.map((v) => (<SelectItem key={v} value={v} className="text-xs">{v}</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                      </ControlRow>
+                      <ControlRow label="Bottom">
+                        <Select value={state.bottom ? state.bottom.replace("bottom-", "") : "__none__"} onValueChange={(v) => update("bottom", v === "__none__" ? "" : `bottom-${v}`)}>
+                          <SelectTrigger className="h-6 w-20 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">–</SelectItem>
+                            {INSET_SCALE.map((v) => (<SelectItem key={v} value={v} className="text-xs">{v}</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                      </ControlRow>
+                      <ControlRow label="Left">
+                        <Select value={state.left ? state.left.replace("left-", "") : "__none__"} onValueChange={(v) => update("left", v === "__none__" ? "" : `left-${v}`)}>
+                          <SelectTrigger className="h-6 w-20 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">–</SelectItem>
+                            {INSET_SCALE.map((v) => (<SelectItem key={v} value={v} className="text-xs">{v}</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                      </ControlRow>
+                    </>
+                  )}
+
+                  {/* ── Visibility (not hidden/contents) ────── */}
+                  {showPosition && (
+                    <ControlRow label="Visibility">
+                      <div className="flex gap-0.5">
+                        {VISIBILITY_OPTIONS.map((opt) => (
+                          <TextToggle key={opt} value={opt} label={opt} tooltip={opt} isActive={state.visibility === opt} onClick={(v) => update("visibility", state.visibility === v ? "" : v)} />
+                        ))}
+                      </div>
+                    </ControlRow>
+                  )}
+
+                  {/* ── Aspect ratio ────────────────────────── */}
+                  {showPosition && (
+                    <ControlRow label="Aspect">
+                      <div className="flex gap-0.5">
+                        {ASPECT_RATIO_OPTIONS.map((opt) => (
+                          <TextToggle key={opt} value={opt} label={opt.replace("aspect-", "")} tooltip={opt} isActive={state.aspectRatio === opt} onClick={(v) => update("aspectRatio", state.aspectRatio === v ? "" : v)} />
+                        ))}
+                      </div>
+                    </ControlRow>
+                  )}
+
+                  {/* ── Float + Clear (block-level) ─────────── */}
+                  {isBlock && (
+                    <>
+                      <ControlRow label="Float">
+                        <div className="flex gap-0.5">
+                          {FLOAT_OPTIONS.map((opt) => (
+                            <TextToggle key={opt} value={opt} label={opt.replace("float-", "")} tooltip={opt} isActive={state.float === opt} onClick={(v) => update("float", state.float === v ? "" : v)} />
+                          ))}
+                        </div>
+                      </ControlRow>
+                      <ControlRow label="Clear">
+                        <div className="flex gap-0.5">
+                          {CLEAR_OPTIONS.map((opt) => (
+                            <TextToggle key={opt} value={opt} label={opt.replace("clear-", "")} tooltip={opt} isActive={state.clear === opt} onClick={(v) => update("clear", state.clear === v ? "" : v)} />
+                          ))}
+                        </div>
+                      </ControlRow>
+                    </>
+                  )}
+
+                  {/* ── Isolation ────────────────────────────── */}
+                  {showPosition && (
+                    <ControlRow label="Isolation">
+                      <div className="flex gap-0.5">
+                        {ISOLATION_OPTIONS.map((opt) => (
+                          <TextToggle key={opt} value={opt} label={opt.replace("isolation-", "")} tooltip={opt} isActive={state.isolation === opt} onClick={(v) => update("isolation", state.isolation === v ? "" : v)} />
+                        ))}
+                      </div>
+                    </ControlRow>
+                  )}
+
+                  {/* ── Object fit + position (for images/replaced elements) ── */}
+                  {showPosition && (
+                    <>
+                      <ControlRow label="Object fit">
+                        <div className="flex flex-wrap gap-0.5">
+                          {OBJECT_FIT_OPTIONS.map((opt) => (
+                            <TextToggle key={opt} value={opt} label={opt.replace("object-", "")} tooltip={opt} isActive={state.objectFit === opt} onClick={(v) => update("objectFit", state.objectFit === v ? "" : v)} />
+                          ))}
+                        </div>
+                      </ControlRow>
+                      <ControlRow label="Object pos">
+                        <div className="flex flex-wrap gap-0.5">
+                          {OBJECT_POSITION_OPTIONS.map((opt) => (
+                            <TextToggle key={opt} value={opt} label={opt.replace("object-", "")} tooltip={opt} isActive={state.objectPosition === opt} onClick={(v) => update("objectPosition", state.objectPosition === v ? "" : v)} />
+                          ))}
+                        </div>
+                      </ControlRow>
+                    </>
                   )}
 
                   {/* ══════ FLEX-SPECIFIC ═══════════════════ */}
