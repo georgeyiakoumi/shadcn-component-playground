@@ -129,8 +129,18 @@ import {
   DIVIDE_STYLE_OPTIONS,
   DIVIDE_REVERSE_OPTIONS,
   SHADOW_OPTIONS,
+  TEXT_SHADOW_OPTIONS,
   MIX_BLEND_OPTIONS,
   BG_BLEND_OPTIONS,
+  MASK_CLIP_OPTIONS,
+  MASK_COMPOSITE_OPTIONS,
+  MASK_IMAGE_OPTIONS,
+  MASK_MODE_OPTIONS,
+  MASK_ORIGIN_OPTIONS,
+  MASK_POSITION_OPTIONS,
+  MASK_REPEAT_OPTIONS,
+  MASK_SIZE_OPTIONS,
+  MASK_TYPE_OPTIONS,
   BLUR_OPTIONS,
   BRIGHTNESS_OPTIONS,
   CONTRAST_OPTIONS,
@@ -312,8 +322,18 @@ export interface ControlState {
   // Effects
   shadow: string
   shadowColor: string
+  textShadow: string
   mixBlend: string
   bgBlend: string
+  maskClip: string
+  maskComposite: string
+  maskImage: string
+  maskMode: string
+  maskOrigin: string
+  maskPosition: string
+  maskRepeat: string
+  maskSize: string
+  maskType: string
   // Filters
   blur: string
   brightness: string
@@ -537,8 +557,18 @@ export function classesToControlState(classes: string[], context: StyleContext =
     divideReverse: findMatch(classes, DIVIDE_REVERSE_OPTIONS),
     shadow: findMatch(classes, SHADOW_OPTIONS),
     shadowColor: findPrefixColorMatch(classes, "shadow"),
+    textShadow: findMatch(classes, TEXT_SHADOW_OPTIONS),
     mixBlend: findMatch(classes, MIX_BLEND_OPTIONS),
     bgBlend: findMatch(classes, BG_BLEND_OPTIONS),
+    maskClip: findMatch(classes, MASK_CLIP_OPTIONS),
+    maskComposite: findMatch(classes, MASK_COMPOSITE_OPTIONS),
+    maskImage: findMatch(classes, MASK_IMAGE_OPTIONS),
+    maskMode: findMatch(classes, MASK_MODE_OPTIONS),
+    maskOrigin: findMatch(classes, MASK_ORIGIN_OPTIONS),
+    maskPosition: findMatch(classes, MASK_POSITION_OPTIONS),
+    maskRepeat: findMatch(classes, MASK_REPEAT_OPTIONS),
+    maskSize: findMatch(classes, MASK_SIZE_OPTIONS),
+    maskType: findMatch(classes, MASK_TYPE_OPTIONS),
     blur: findMatch(classes, BLUR_OPTIONS),
     brightness: findMatch(classes, BRIGHTNESS_OPTIONS),
     contrast: findMatch(classes, CONTRAST_OPTIONS),
@@ -700,8 +730,18 @@ export const MANAGED_PREFIXES = [
   ...DIVIDE_STYLE_OPTIONS,
   ...DIVIDE_REVERSE_OPTIONS,
   ...SHADOW_OPTIONS,
+  ...TEXT_SHADOW_OPTIONS,
   ...MIX_BLEND_OPTIONS,
   ...BG_BLEND_OPTIONS,
+  ...MASK_CLIP_OPTIONS,
+  ...MASK_COMPOSITE_OPTIONS,
+  ...MASK_IMAGE_OPTIONS,
+  ...MASK_MODE_OPTIONS,
+  ...MASK_ORIGIN_OPTIONS,
+  ...MASK_POSITION_OPTIONS,
+  ...MASK_REPEAT_OPTIONS,
+  ...MASK_SIZE_OPTIONS,
+  ...MASK_TYPE_OPTIONS,
   ...BLUR_OPTIONS,
   ...BRIGHTNESS_OPTIONS,
   ...CONTRAST_OPTIONS,
@@ -889,8 +929,18 @@ export function controlStateToClasses(state: ControlState, context: StyleContext
   push(state.divideReverse)
   push(state.shadow)
   push(state.shadowColor)
+  push(state.textShadow)
   push(state.mixBlend)
   push(state.bgBlend)
+  push(state.maskClip)
+  push(state.maskComposite)
+  push(state.maskImage)
+  push(state.maskMode)
+  push(state.maskOrigin)
+  push(state.maskPosition)
+  push(state.maskRepeat)
+  push(state.maskSize)
+  push(state.maskType)
   push(state.blur)
   push(state.brightness)
   push(state.contrast)

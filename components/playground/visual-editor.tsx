@@ -58,13 +58,13 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Separator } from "@/components/ui/separator"
 
-import { getNativeDisplay, DISPLAY_OPTIONS, INSET_SCALE, OVERFLOW_OPTIONS, VISIBILITY_OPTIONS, ASPECT_RATIO_OPTIONS, FLOAT_OPTIONS, CLEAR_OPTIONS, OBJECT_FIT_OPTIONS, ALIGN_CONTENT_OPTIONS, AUTO_ROWS_OPTIONS, AUTO_COLS_OPTIONS, JUSTIFY_ITEMS_OPTIONS, JUSTIFY_SELF_OPTIONS, ALIGN_SELF_OPTIONS, ORDER_OPTIONS, FLEX_BASIS_OPTIONS, FONT_SIZE_OPTIONS, FONT_WEIGHT_OPTIONS, FONT_FAMILY_OPTIONS, FONT_STYLE_OPTIONS, TEXT_DECORATION_OPTIONS, TEXT_DECORATION_STYLE_OPTIONS, TEXT_DECORATION_THICKNESS_OPTIONS, TEXT_UNDERLINE_OFFSET_OPTIONS, TEXT_TRANSFORM_OPTIONS, TEXT_OVERFLOW_OPTIONS, TEXT_WRAP_OPTIONS, TEXT_INDENT_OPTIONS, LINE_HEIGHT_OPTIONS, LETTER_SPACING_OPTIONS, WORD_BREAK_OPTIONS, WHITESPACE_OPTIONS, HYPHENS_OPTIONS, LINE_CLAMP_OPTIONS, VERTICAL_ALIGN_OPTIONS, LIST_STYLE_TYPE_OPTIONS, LIST_STYLE_POSITION_OPTIONS, FONT_VARIANT_NUMERIC_OPTIONS, SHADCN_TEXT_TOKENS, SHADCN_BG_TOKENS, SHADCN_BORDER_TOKENS, SHADCN_RING_TOKENS, RADIUS_VALUES, BORDER_WIDTH_OPTIONS, BORDER_WIDTH_T_OPTIONS, BORDER_WIDTH_R_OPTIONS, BORDER_WIDTH_B_OPTIONS, BORDER_WIDTH_L_OPTIONS, BORDER_STYLE_OPTIONS, BORDER_RADIUS_TL_OPTIONS, BORDER_RADIUS_TR_OPTIONS, BORDER_RADIUS_BR_OPTIONS, BORDER_RADIUS_BL_OPTIONS, RING_WIDTH_OPTIONS, RING_OFFSET_WIDTH_OPTIONS, OUTLINE_WIDTH_OPTIONS, OUTLINE_STYLE_OPTIONS, OUTLINE_OFFSET_OPTIONS, DIVIDE_X_OPTIONS, DIVIDE_Y_OPTIONS, DIVIDE_STYLE_OPTIONS, DIVIDE_REVERSE_OPTIONS, SHADOW_OPTIONS, MIX_BLEND_OPTIONS, BG_BLEND_OPTIONS, BLUR_OPTIONS, BRIGHTNESS_OPTIONS, CONTRAST_OPTIONS, GRAYSCALE_OPTIONS, HUE_ROTATE_OPTIONS, INVERT_OPTIONS, SATURATE_OPTIONS, SEPIA_OPTIONS, DROP_SHADOW_OPTIONS, BACKDROP_BLUR_OPTIONS, BACKDROP_BRIGHTNESS_OPTIONS, BACKDROP_CONTRAST_OPTIONS, BACKDROP_GRAYSCALE_OPTIONS, BACKDROP_HUE_ROTATE_OPTIONS, BACKDROP_INVERT_OPTIONS, BACKDROP_OPACITY_OPTIONS, BACKDROP_SATURATE_OPTIONS, BACKDROP_SEPIA_OPTIONS, TRANSITION_PROPERTY_OPTIONS, TRANSITION_BEHAVIOR_OPTIONS, TRANSITION_DURATION_OPTIONS, TRANSITION_TIMING_OPTIONS, TRANSITION_DELAY_OPTIONS, ANIMATION_OPTIONS, SCALE_OPTIONS, SCALE_X_OPTIONS, SCALE_Y_OPTIONS, ROTATE_OPTIONS, TRANSLATE_X_OPTIONS, TRANSLATE_Y_OPTIONS, SKEW_X_OPTIONS, SKEW_Y_OPTIONS, TRANSFORM_ORIGIN_OPTIONS, WIDTH_OPTIONS, HEIGHT_OPTIONS, MIN_WIDTH_OPTIONS, MAX_WIDTH_OPTIONS, MIN_HEIGHT_OPTIONS, MAX_HEIGHT_OPTIONS, SIZE_OPTIONS, SPACING_SCALE_FULL } from "@/lib/tailwind-options"
+import { getNativeDisplay, DISPLAY_OPTIONS, INSET_SCALE, OVERFLOW_OPTIONS, VISIBILITY_OPTIONS, ASPECT_RATIO_OPTIONS, FLOAT_OPTIONS, CLEAR_OPTIONS, OBJECT_FIT_OPTIONS, ALIGN_CONTENT_OPTIONS, AUTO_ROWS_OPTIONS, AUTO_COLS_OPTIONS, JUSTIFY_ITEMS_OPTIONS, JUSTIFY_SELF_OPTIONS, ALIGN_SELF_OPTIONS, ORDER_OPTIONS, FLEX_BASIS_OPTIONS, FONT_SIZE_OPTIONS, FONT_WEIGHT_OPTIONS, FONT_FAMILY_OPTIONS, FONT_STYLE_OPTIONS, TEXT_DECORATION_OPTIONS, TEXT_DECORATION_STYLE_OPTIONS, TEXT_DECORATION_THICKNESS_OPTIONS, TEXT_UNDERLINE_OFFSET_OPTIONS, TEXT_TRANSFORM_OPTIONS, TEXT_OVERFLOW_OPTIONS, TEXT_WRAP_OPTIONS, TEXT_INDENT_OPTIONS, LINE_HEIGHT_OPTIONS, LETTER_SPACING_OPTIONS, WORD_BREAK_OPTIONS, WHITESPACE_OPTIONS, HYPHENS_OPTIONS, LINE_CLAMP_OPTIONS, VERTICAL_ALIGN_OPTIONS, LIST_STYLE_TYPE_OPTIONS, LIST_STYLE_POSITION_OPTIONS, FONT_VARIANT_NUMERIC_OPTIONS, SHADCN_TEXT_TOKENS, SHADCN_BG_TOKENS, SHADCN_BORDER_TOKENS, SHADCN_RING_TOKENS, RADIUS_VALUES, BORDER_WIDTH_OPTIONS, BORDER_WIDTH_T_OPTIONS, BORDER_WIDTH_R_OPTIONS, BORDER_WIDTH_B_OPTIONS, BORDER_WIDTH_L_OPTIONS, BORDER_STYLE_OPTIONS, BORDER_RADIUS_TL_OPTIONS, BORDER_RADIUS_TR_OPTIONS, BORDER_RADIUS_BR_OPTIONS, BORDER_RADIUS_BL_OPTIONS, RING_WIDTH_OPTIONS, RING_OFFSET_WIDTH_OPTIONS, OUTLINE_WIDTH_OPTIONS, OUTLINE_STYLE_OPTIONS, OUTLINE_OFFSET_OPTIONS, DIVIDE_X_OPTIONS, DIVIDE_Y_OPTIONS, DIVIDE_STYLE_OPTIONS, DIVIDE_REVERSE_OPTIONS, SHADOW_OPTIONS, TEXT_SHADOW_OPTIONS, MIX_BLEND_OPTIONS, BG_BLEND_OPTIONS, MASK_CLIP_OPTIONS, MASK_COMPOSITE_OPTIONS, MASK_IMAGE_OPTIONS, MASK_MODE_OPTIONS, MASK_ORIGIN_OPTIONS, MASK_POSITION_GRID, MASK_REPEAT_OPTIONS, MASK_SIZE_OPTIONS, MASK_TYPE_OPTIONS, BLUR_OPTIONS, BRIGHTNESS_OPTIONS, CONTRAST_OPTIONS, GRAYSCALE_OPTIONS, HUE_ROTATE_OPTIONS, INVERT_OPTIONS, SATURATE_OPTIONS, SEPIA_OPTIONS, DROP_SHADOW_OPTIONS, BACKDROP_BLUR_OPTIONS, BACKDROP_BRIGHTNESS_OPTIONS, BACKDROP_CONTRAST_OPTIONS, BACKDROP_GRAYSCALE_OPTIONS, BACKDROP_HUE_ROTATE_OPTIONS, BACKDROP_INVERT_OPTIONS, BACKDROP_OPACITY_OPTIONS, BACKDROP_SATURATE_OPTIONS, BACKDROP_SEPIA_OPTIONS, TRANSITION_PROPERTY_OPTIONS, TRANSITION_BEHAVIOR_OPTIONS, TRANSITION_DURATION_OPTIONS, TRANSITION_TIMING_OPTIONS, TRANSITION_DELAY_OPTIONS, ANIMATION_OPTIONS, SCALE_OPTIONS, SCALE_X_OPTIONS, SCALE_Y_OPTIONS, ROTATE_OPTIONS, TRANSLATE_X_OPTIONS, TRANSLATE_Y_OPTIONS, SKEW_X_OPTIONS, SKEW_Y_OPTIONS, TRANSFORM_ORIGIN_OPTIONS, WIDTH_OPTIONS, HEIGHT_OPTIONS, MIN_WIDTH_OPTIONS, MAX_WIDTH_OPTIONS, MIN_HEIGHT_OPTIONS, MAX_HEIGHT_OPTIONS, SIZE_OPTIONS, SPACING_SCALE_FULL } from "@/lib/tailwind-options"
 import type { StyleContext } from "@/lib/style-context"
 import { getCssPrefix } from "@/lib/style-context"
 import type { ControlState } from "@/lib/style-state"
 import { classesToControlState, controlStateToClasses, mergeClasses } from "@/lib/style-state"
 
-import { IconToggle, TextToggle, PositionGrid, ObjectPositionGrid, SpacingValueInput, BoxModelControl, ColorPicker, ZIndexInput, GridNumberPicker, GapControl, ContentDistributionPicker, TransformOriginGrid, SteppedSlider, ScaleControl, TranslateControl, SkewControl, RotateControl } from "@/components/playground/style-controls"
+import { IconToggle, TextToggle, PositionGrid, ObjectPositionGrid, SpacingValueInput, BoxModelControl, ColorPicker, ZIndexInput, GridNumberPicker, GapControl, ContentDistributionPicker, TransformOriginGrid, SteppedSlider, ScaleControl, TranslateControl, SkewControl, RotateControl, SpatialGrid } from "@/components/playground/style-controls"
 import { ContextPicker } from "@/components/playground/context-picker"
 import { AppliedClassesSection } from "@/components/playground/applied-classes"
 import { EditPanelRow } from "@/components/playground/edit-panel-row"
@@ -244,7 +244,7 @@ export function VisualEditor({
       "ringWidth", "ringOffsetWidth", "outlineWidth", "outlineStyle", "outlineOffset",
       "divideX", "divideY", "divideStyle", "divideReverse",
     ],
-    effects: ["shadow", "shadowColor", "mixBlend", "bgBlend"],
+    effects: ["shadow", "shadowColor", "textShadow", "mixBlend", "bgBlend", "maskClip", "maskComposite", "maskImage", "maskMode", "maskOrigin", "maskPosition", "maskRepeat", "maskSize", "maskType"],
     filters: [
       "blur", "brightness", "contrast", "grayscale", "hueRotate", "invert", "saturate", "sepia", "dropShadow",
       "backdropBlur", "backdropBrightness", "backdropContrast", "backdropGrayscale",
@@ -1419,46 +1419,144 @@ export function VisualEditor({
           </EditPanelSection>
 
           {/* ── Effects ──────────────────────────────────── */}
-          <EditPanelSection icon={Sparkles} title="Effects" hasValues={sectionHasValues("effects")} onClear={() => clearSection("effects")}>
-            <EditPanelRow label="Shadow">
-              <div className="flex flex-wrap gap-0.5">
-                {SHADOW_OPTIONS.map((opt) => (
-                  <TextToggle key={opt} value={opt} label={opt === "shadow" ? "base" : opt.replace("shadow-", "")} tooltip={opt} isActive={state.shadow === opt} onClick={(v) => update("shadow", state.shadow === v ? "" : v)} />
-                ))}
-              </div>
-            </EditPanelRow>
-            <ColorPicker
-              label="Shadow colour"
-              prefix="shadow"
-              value={state.shadowColor}
-              onChange={(v) => update("shadowColor", v)}
-            />
+          <EditSection icon={Sparkles} title="Effects" hasValues={sectionHasValues("effects")} onClear={() => clearSection("effects")}>
 
+            {/* ── Shadows ── */}
+            <EditSubSectionWrapper>
+              <EditSubSection>
+                <EditSubSectionTitle>Box shadow</EditSubSectionTitle>
+                <EditSubSectionContent>
+                  <EditPanelRow label="Shadow" variant="nested">
+                    <div className="flex flex-wrap gap-0.5">
+                      {SHADOW_OPTIONS.map((opt) => (
+                        <TextToggle key={opt} value={opt} label={opt === "shadow" ? "base" : opt.replace("shadow-", "")} tooltip={opt} isActive={state.shadow === opt} onClick={(v) => update("shadow", state.shadow === v ? "" : v)} />
+                      ))}
+                    </div>
+                  </EditPanelRow>
+                  <ColorPicker label="Shadow colour" prefix="shadow" value={state.shadowColor} onChange={(v) => update("shadowColor", v)} />
+                </EditSubSectionContent>
+              </EditSubSection>
 
+              <EditSubSection>
+                <EditSubSectionTitle>Text shadow</EditSubSectionTitle>
+                <EditSubSectionContent>
+                  <EditPanelRow label="Size" variant="nested">
+                    <div className="flex flex-wrap gap-0.5">
+                      {TEXT_SHADOW_OPTIONS.map((opt) => (
+                        <TextToggle key={opt} value={opt} label={opt === "text-shadow" ? "base" : opt.replace("text-shadow-", "")} tooltip={opt} isActive={state.textShadow === opt} onClick={(v) => update("textShadow", state.textShadow === v ? "" : v)} />
+                      ))}
+                    </div>
+                  </EditPanelRow>
+                </EditSubSectionContent>
+              </EditSubSection>
+            </EditSubSectionWrapper>
 
-            <EditPanelRow label="Mix blend">
-              <Select value={state.mixBlend || "__none__"} onValueChange={(v) => update("mixBlend", v === "__none__" ? "" : v)}>
-                <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">–</SelectItem>
-                  {MIX_BLEND_OPTIONS.map((opt) => (
-                    <SelectItem key={opt} value={opt} className="text-xs">{opt.replace("mix-blend-", "")}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </EditPanelRow>
-            <EditPanelRow label="BG blend">
-              <Select value={state.bgBlend || "__none__"} onValueChange={(v) => update("bgBlend", v === "__none__" ? "" : v)}>
-                <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">–</SelectItem>
-                  {BG_BLEND_OPTIONS.map((opt) => (
-                    <SelectItem key={opt} value={opt} className="text-xs">{opt.replace("bg-blend-", "")}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </EditPanelRow>
-          </EditPanelSection>
+            {/* ── Blend modes ── */}
+            <EditSubSectionWrapper>
+              <EditSubSection>
+                <EditSubSectionTitle>Blend modes</EditSubSectionTitle>
+                <EditSubSectionContent>
+                  <EditPanelRow label="Mix blend" variant="nested">
+                    <Select value={state.mixBlend || "__none__"} onValueChange={(v) => update("mixBlend", v === "__none__" ? "" : v)}>
+                      <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">–</SelectItem>
+                        {MIX_BLEND_OPTIONS.map((opt) => (
+                          <SelectItem key={opt} value={opt} className="text-xs">{opt.replace("mix-blend-", "")}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </EditPanelRow>
+                  <EditPanelRow label="Background blend" variant="nested">
+                    <Select value={state.bgBlend || "__none__"} onValueChange={(v) => update("bgBlend", v === "__none__" ? "" : v)}>
+                      <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">–</SelectItem>
+                        {BG_BLEND_OPTIONS.map((opt) => (
+                          <SelectItem key={opt} value={opt} className="text-xs">{opt.replace("bg-blend-", "")}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </EditPanelRow>
+                </EditSubSectionContent>
+              </EditSubSection>
+            </EditSubSectionWrapper>
+
+            {/* ── Mask ── */}
+            <EditSubSectionWrapper>
+              <EditSubSection>
+                <EditSubSectionTitle>Mask</EditSubSectionTitle>
+                <EditSubSectionContent>
+                  {/* Source */}
+                  <EditPanelRow label="Image" variant="nested">
+                    <div className="flex flex-wrap gap-0.5">
+                      {MASK_IMAGE_OPTIONS.map((opt) => {
+                        const arrowMap: Record<string, string> = { "mask-linear-gradient-to-t": "↑", "mask-linear-gradient-to-tr": "↗", "mask-linear-gradient-to-r": "→", "mask-linear-gradient-to-br": "↘", "mask-linear-gradient-to-b": "↓", "mask-linear-gradient-to-bl": "↙", "mask-linear-gradient-to-l": "←", "mask-linear-gradient-to-tl": "↖" }
+                        return (
+                          <TextToggle key={opt} value={opt} label={arrowMap[opt] ?? opt.replace("mask-", "")} tooltip={opt} isActive={state.maskImage === opt} onClick={(v) => update("maskImage", state.maskImage === v ? "" : v)} />
+                        )
+                      })}
+                    </div>
+                  </EditPanelRow>
+                  {/* Placement */}
+                  <EditPanelRow label="Position" variant="nested">
+                    <SpatialGrid options={MASK_POSITION_GRID} value={state.maskPosition} onChange={(v) => update("maskPosition", v)} labelPrefix="mask-" />
+                  </EditPanelRow>
+                  <EditPanelRow label="Size" variant="nested">
+                    <div className="flex flex-wrap gap-0.5">
+                      {MASK_SIZE_OPTIONS.map((opt) => (
+                        <TextToggle key={opt} value={opt} label={opt.replace("mask-", "")} tooltip={opt} isActive={state.maskSize === opt} onClick={(v) => update("maskSize", state.maskSize === v ? "" : v)} />
+                      ))}
+                    </div>
+                  </EditPanelRow>
+                  <EditPanelRow label="Repeat" variant="nested">
+                    <div className="flex flex-wrap gap-0.5">
+                      {MASK_REPEAT_OPTIONS.map((opt) => (
+                        <TextToggle key={opt} value={opt} label={opt.replace("mask-", "")} tooltip={opt} isActive={state.maskRepeat === opt} onClick={(v) => update("maskRepeat", state.maskRepeat === v ? "" : v)} />
+                      ))}
+                    </div>
+                  </EditPanelRow>
+                  {/* Advanced */}
+                  <EditPanelRow label="Clip" variant="nested">
+                    <div className="flex flex-wrap gap-0.5">
+                      {MASK_CLIP_OPTIONS.map((opt) => (
+                        <TextToggle key={opt} value={opt} label={opt.replace("mask-clip-", "")} tooltip={opt} isActive={state.maskClip === opt} onClick={(v) => update("maskClip", state.maskClip === v ? "" : v)} />
+                      ))}
+                    </div>
+                  </EditPanelRow>
+                  <EditPanelRow label="Origin" variant="nested">
+                    <div className="flex flex-wrap gap-0.5">
+                      {MASK_ORIGIN_OPTIONS.map((opt) => (
+                        <TextToggle key={opt} value={opt} label={opt.replace("mask-origin-", "")} tooltip={opt} isActive={state.maskOrigin === opt} onClick={(v) => update("maskOrigin", state.maskOrigin === v ? "" : v)} />
+                      ))}
+                    </div>
+                  </EditPanelRow>
+                  <EditPanelRow label="Composite" variant="nested">
+                    <div className="flex flex-wrap gap-0.5">
+                      {MASK_COMPOSITE_OPTIONS.map((opt) => (
+                        <TextToggle key={opt} value={opt} label={opt.replace("mask-composite-", "")} tooltip={opt} isActive={state.maskComposite === opt} onClick={(v) => update("maskComposite", state.maskComposite === v ? "" : v)} />
+                      ))}
+                    </div>
+                  </EditPanelRow>
+                  <EditPanelRow label="Mode" variant="nested">
+                    <div className="flex flex-wrap gap-0.5">
+                      {MASK_MODE_OPTIONS.map((opt) => (
+                        <TextToggle key={opt} value={opt} label={opt.replace("mask-", "")} tooltip={opt} isActive={state.maskMode === opt} onClick={(v) => update("maskMode", state.maskMode === v ? "" : v)} />
+                      ))}
+                    </div>
+                  </EditPanelRow>
+                  <EditPanelRow label="Type" variant="nested">
+                    <div className="flex flex-wrap gap-0.5">
+                      {MASK_TYPE_OPTIONS.map((opt) => (
+                        <TextToggle key={opt} value={opt} label={opt.replace("mask-type-", "")} tooltip={opt} isActive={state.maskType === opt} onClick={(v) => update("maskType", state.maskType === v ? "" : v)} />
+                      ))}
+                    </div>
+                  </EditPanelRow>
+                </EditSubSectionContent>
+              </EditSubSection>
+            </EditSubSectionWrapper>
+
+          </EditSection>
 
           {/* ── Filters ──────────────────────────────────── */}
           <EditSection icon={SlidersHorizontal} title="Filters" hasValues={sectionHasValues("filters")} onClear={() => clearSection("filters")}>

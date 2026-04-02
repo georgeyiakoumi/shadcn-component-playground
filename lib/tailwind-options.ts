@@ -469,6 +469,33 @@ export const BG_BLEND_OPTIONS = [
   "bg-blend-hue", "bg-blend-saturation", "bg-blend-color", "bg-blend-luminosity",
 ]
 
+// Text shadow
+export const TEXT_SHADOW_OPTIONS = ["text-shadow-none", "text-shadow-2xs", "text-shadow-xs", "text-shadow-sm", "text-shadow", "text-shadow-md", "text-shadow-lg"]
+
+// Mask
+export const MASK_CLIP_OPTIONS = ["mask-clip-border", "mask-clip-padding", "mask-clip-content", "mask-clip-no-clip"]
+export const MASK_COMPOSITE_OPTIONS = ["mask-composite-add", "mask-composite-subtract", "mask-composite-intersect", "mask-composite-exclude"]
+export const MASK_IMAGE_OPTIONS = [
+  "mask-none",
+  "mask-linear-gradient-to-t", "mask-linear-gradient-to-tr", "mask-linear-gradient-to-r", "mask-linear-gradient-to-br",
+  "mask-linear-gradient-to-b", "mask-linear-gradient-to-bl", "mask-linear-gradient-to-l", "mask-linear-gradient-to-tl",
+]
+export const MASK_MODE_OPTIONS = ["mask-alpha", "mask-luminance", "mask-match-source"]
+export const MASK_ORIGIN_OPTIONS = ["mask-origin-border", "mask-origin-padding", "mask-origin-content"]
+export const MASK_POSITION_OPTIONS = [
+  "mask-center", "mask-top", "mask-top-right", "mask-right", "mask-bottom-right",
+  "mask-bottom", "mask-bottom-left", "mask-left", "mask-top-left",
+]
+export const MASK_REPEAT_OPTIONS = ["mask-repeat", "mask-no-repeat", "mask-repeat-x", "mask-repeat-y", "mask-repeat-round", "mask-repeat-space"]
+export const MASK_SIZE_OPTIONS = ["mask-auto", "mask-cover", "mask-contain"]
+export const MASK_TYPE_OPTIONS = ["mask-type-alpha", "mask-type-luminance"]
+
+export const MASK_POSITION_GRID = [
+  ["mask-top-left", "mask-top", "mask-top-right"],
+  ["mask-left", "mask-center", "mask-right"],
+  ["mask-bottom-left", "mask-bottom", "mask-bottom-right"],
+] as const
+
 /* ── Filters ─────────────────────────────────────────────────────── */
 
 export const BLUR_OPTIONS = ["blur-none", "blur-sm", "blur", "blur-md", "blur-lg", "blur-xl", "blur-2xl", "blur-3xl"]
