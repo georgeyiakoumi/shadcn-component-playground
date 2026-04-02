@@ -11,18 +11,21 @@ interface EditPanelRowProps {
   value?: string
   /** Visual level — "default" has background card, "nested" is plain (for nesting inside a default row) */
   variant?: "default" | "nested"
+  /** Additional class names */
+  className?: string
   /** Control content — omit for a sub-heading with no controls */
   children?: React.ReactNode
 }
 
-function EditPanelRow({ label, value, variant = "default", children }: EditPanelRowProps) {
+function EditPanelRow({ label, value, variant = "default", className, children }: EditPanelRowProps) {
   return (
     <div className={cn(
       children && "space-y-2",
       variant === "default" && children && "rounded-md bg-muted/50 p-2",
+      className,
     )}>
       <p className={cn(
-        "text-xs text-muted-foreground",
+        "text-xs text-foreground",
         variant === "default"
           ? "font-semibold uppercase tracking-widest"
           : "font-medium",

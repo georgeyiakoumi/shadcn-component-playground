@@ -60,7 +60,7 @@ function EditSection({
           <ChevronRight className="size-3" />
         )}
       </button>
-      {open && <div className="space-y-4 px-3 pb-3">{children}</div>}
+      {open && <div className="space-y-2 px-3 pb-3">{children}</div>}
     </div>
   )
 }
@@ -105,17 +105,17 @@ function EditSubSection({ children }: { children: React.ReactNode }) {
 
 function EditSubSectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+    <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
       {children}
-    </p>
+    </div>
   )
 }
 
 /* ── EditSubSectionContent ───────────────────────────────────────── */
 
-function EditSubSectionContent({ children }: { children: React.ReactNode }) {
+function EditSubSectionContent({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className="space-y-2">
+    <div className={cn("space-y-3", className)}>
       {children}
     </div>
   )
@@ -125,7 +125,7 @@ function EditSubSectionContent({ children }: { children: React.ReactNode }) {
 
 function EditNestedGroup({ children }: { children: React.ReactNode }) {
   return (
-    <div className="space-y-5 border-l-2 border-border/50 pl-3">
+    <div className="space-y-5 border-l-2 border-border px-4 py-2">
       {children}
     </div>
   )

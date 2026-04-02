@@ -1425,28 +1425,24 @@ export function VisualEditor({
             <EditSubSectionWrapper>
               <EditSubSection>
                 <EditSubSectionTitle>Box shadow</EditSubSectionTitle>
-                <EditSubSectionContent>
-                  <EditPanelRow label="Shadow" variant="nested">
-                    <div className="flex flex-wrap gap-0.5">
-                      {SHADOW_OPTIONS.map((opt) => (
-                        <TextToggle key={opt} value={opt} label={opt === "shadow" ? "base" : opt.replace("shadow-", "")} tooltip={opt} isActive={state.shadow === opt} onClick={(v) => update("shadow", state.shadow === v ? "" : v)} />
-                      ))}
-                    </div>
-                  </EditPanelRow>
-                  <ColorPicker label="Shadow colour" prefix="shadow" value={state.shadowColor} onChange={(v) => update("shadowColor", v)} />
+                <EditSubSectionContent className="space-y-0">
+                  <div className="flex flex-wrap gap-0.5">
+                    {SHADOW_OPTIONS.map((opt) => (
+                      <TextToggle key={opt} value={opt} label={opt === "shadow" ? "base" : opt.replace("shadow-", "")} tooltip={opt} isActive={state.shadow === opt} onClick={(v) => update("shadow", state.shadow === v ? "" : v)} />
+                    ))}
+                  </div>
+                  <ColorPicker className="p-0"label="" prefix="shadow" value={state.shadowColor} onChange={(v) => update("shadowColor", v)} />
                 </EditSubSectionContent>
               </EditSubSection>
 
               <EditSubSection>
                 <EditSubSectionTitle>Text shadow</EditSubSectionTitle>
                 <EditSubSectionContent>
-                  <EditPanelRow label="Size" variant="nested">
-                    <div className="flex flex-wrap gap-0.5">
-                      {TEXT_SHADOW_OPTIONS.map((opt) => (
-                        <TextToggle key={opt} value={opt} label={opt === "text-shadow" ? "base" : opt.replace("text-shadow-", "")} tooltip={opt} isActive={state.textShadow === opt} onClick={(v) => update("textShadow", state.textShadow === v ? "" : v)} />
-                      ))}
-                    </div>
-                  </EditPanelRow>
+                  <div className="flex flex-wrap gap-0.5">
+                    {TEXT_SHADOW_OPTIONS.map((opt) => (
+                      <TextToggle key={opt} value={opt} label={opt === "text-shadow" ? "base" : opt.replace("text-shadow-", "")} tooltip={opt} isActive={state.textShadow === opt} onClick={(v) => update("textShadow", state.textShadow === v ? "" : v)} />
+                    ))}
+                  </div>
                 </EditSubSectionContent>
               </EditSubSection>
             </EditSubSectionWrapper>

@@ -1398,12 +1398,14 @@ function ColorPicker({
   shadcnTokens,
   value,
   onChange,
+  className,
 }: {
   label: string
   prefix: string // "text", "bg", "border", "ring", "ring-offset", "outline", "from", "via", "to"
   shadcnTokens?: { label: string; value: string }[]
   value: string
   onChange: (val: string) => void
+  className?: string
 }) {
   const [open, setOpen] = React.useState(false)
   const [search, setSearch] = React.useState("")
@@ -1421,7 +1423,7 @@ function ColorPicker({
     : TW_COLOR_NAMES
 
   return (
-    <EditPanelRow label={label}>
+    <EditPanelRow label={label} className={className}>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button
