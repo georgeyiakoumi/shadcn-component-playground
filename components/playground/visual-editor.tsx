@@ -95,6 +95,8 @@ interface VisualEditorProps {
   props?: Array<{ name: string; type: string }>
   /** Parent component's variants (for group-data-[variant=value]/parent: cascading) */
   parentVariants?: Array<{ name: string; options: string[]; parentName: string }>
+  /** Sub-component names (for has-[data-slot=...] selectors) */
+  subComponentNames?: string[]
 }
 
 /* ── Context (prefix) types ──────────────────────────────────────── */
@@ -111,6 +113,7 @@ function buildContextGroups(
   variants?: Array<{ name: string; options: string[] }>,
   props?: Array<{ name: string; type: string }>,
   parentVariants?: Array<{ name: string; options: string[]; parentName: string }>,
+  subComponentNames?: string[],
 ): ContextGroup[] {
   const groups: ContextGroup[] = []
 
@@ -174,7 +177,7 @@ function buildContextGroups(
     ],
   })
 
-  // States
+  // States — pseudo-classes
   groups.push({
     section: "States",
     label: "Pseudo-classes",
@@ -185,18 +188,155 @@ function buildContextGroups(
       { value: "focus-within", label: "focus-within" },
       { value: "active", label: "active" },
       { value: "disabled", label: "disabled" },
+      { value: "enabled", label: "enabled" },
+      { value: "checked", label: "checked" },
+      { value: "indeterminate", label: "indeterminate" },
+      { value: "required", label: "required" },
+      { value: "invalid", label: "invalid" },
+      { value: "valid", label: "valid" },
+      { value: "placeholder-shown", label: "placeholder-shown" },
+      { value: "read-only", label: "read-only" },
+      { value: "empty", label: "empty" },
       { value: "dark", label: "dark" },
+    ],
+  })
+
+  // Structural selectors
+  groups.push({
+    label: "Structural",
+    options: [
+      { value: "first", label: "first" },
+      { value: "last", label: "last" },
+      { value: "only", label: "only" },
+      { value: "odd", label: "odd" },
+      { value: "even", label: "even" },
+      { value: "first-of-type", label: "first-of-type" },
+      { value: "last-of-type", label: "last-of-type" },
+    ],
+  })
+
+  // Data attributes — Radix UI states
+  groups.push({
+    section: "Data attributes",
+    label: "Radix state",
+    options: [
+      { value: "data-[state=open]", label: "state=open" },
+      { value: "data-[state=closed]", label: "state=closed" },
+      { value: "data-[state=active]", label: "state=active" },
+      { value: "data-[state=inactive]", label: "state=inactive" },
+      { value: "data-[state=checked]", label: "state=checked" },
+      { value: "data-[state=unchecked]", label: "state=unchecked" },
+      { value: "data-[state=on]", label: "state=on" },
+      { value: "data-[state=off]", label: "state=off" },
+    ],
+  })
+
+  groups.push({
+    label: "Radix side/align",
+    options: [
+      { value: "data-[side=top]", label: "side=top" },
+      { value: "data-[side=right]", label: "side=right" },
+      { value: "data-[side=bottom]", label: "side=bottom" },
+      { value: "data-[side=left]", label: "side=left" },
+      { value: "data-[align=start]", label: "align=start" },
+      { value: "data-[align=center]", label: "align=center" },
+      { value: "data-[align=end]", label: "align=end" },
+    ],
+  })
+
+  groups.push({
+    label: "Radix misc",
+    options: [
+      { value: "data-[disabled]", label: "disabled" },
+      { value: "data-[highlighted]", label: "highlighted" },
+      { value: "data-[placeholder]", label: "placeholder" },
+      { value: "data-[orientation=horizontal]", label: "orientation=horizontal" },
+      { value: "data-[orientation=vertical]", label: "orientation=vertical" },
+      { value: "data-[motion=from-start]", label: "motion=from-start" },
+      { value: "data-[motion=from-end]", label: "motion=from-end" },
+      { value: "data-[motion=to-start]", label: "motion=to-start" },
+      { value: "data-[motion=to-end]", label: "motion=to-end" },
+      { value: "data-[swipe=start]", label: "swipe=start" },
+      { value: "data-[swipe=move]", label: "swipe=move" },
+      { value: "data-[swipe=end]", label: "swipe=end" },
+      { value: "data-[swipe=cancel]", label: "swipe=cancel" },
+    ],
+  })
+
+  // ARIA attributes
+  groups.push({
+    section: "ARIA",
+    label: "ARIA states",
+    options: [
+      { value: "aria-checked", label: "aria-checked" },
+      { value: "aria-disabled", label: "aria-disabled" },
+      { value: "aria-expanded", label: "aria-expanded" },
+      { value: "aria-hidden", label: "aria-hidden" },
+      { value: "aria-pressed", label: "aria-pressed" },
+      { value: "aria-readonly", label: "aria-readonly" },
+      { value: "aria-required", label: "aria-required" },
+      { value: "aria-selected", label: "aria-selected" },
     ],
   })
 
   // Group states
   groups.push({
+    section: "Group / Peer",
     label: "Group states",
     options: [
       { value: "group-hover", label: "group-hover" },
       { value: "group-focus", label: "group-focus" },
+      { value: "group-focus-within", label: "group-focus-within" },
+      { value: "group-active", label: "group-active" },
+      { value: "group-disabled", label: "group-disabled" },
+      { value: "group-data-[state=open]", label: "group-data-[state=open]" },
+      { value: "group-data-[state=closed]", label: "group-data-[state=closed]" },
     ],
   })
+
+  // Peer states
+  groups.push({
+    label: "Peer states",
+    options: [
+      { value: "peer-hover", label: "peer-hover" },
+      { value: "peer-focus", label: "peer-focus" },
+      { value: "peer-focus-visible", label: "peer-focus-visible" },
+      { value: "peer-checked", label: "peer-checked" },
+      { value: "peer-disabled", label: "peer-disabled" },
+      { value: "peer-invalid", label: "peer-invalid" },
+      { value: "peer-placeholder-shown", label: "peer-placeholder-shown" },
+      { value: "peer-data-[state=open]", label: "peer-data-[state=open]" },
+      { value: "peer-data-[state=closed]", label: "peer-data-[state=closed]" },
+    ],
+  })
+
+  // Has selectors (slot-based conditional styling)
+  const hasOptions: Array<{ value: string; label: string }> = []
+  // Dynamic: generate from sub-component names
+  if (subComponentNames && subComponentNames.length > 0) {
+    for (const name of subComponentNames) {
+      const slot = name.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase()
+      hasOptions.push({
+        value: `has-[data-slot=${slot}]`,
+        label: `has-[data-slot=${slot}]`,
+      })
+    }
+  }
+  // Common structural has selectors
+  hasOptions.push(
+    { value: "has-[>svg]", label: "has-[>svg]" },
+    { value: "has-[>img]", label: "has-[>img]" },
+    { value: "has-[:focus]", label: "has-[:focus]" },
+    { value: "has-[:checked]", label: "has-[:checked]" },
+    { value: "has-[:disabled]", label: "has-[:disabled]" },
+  )
+  if (hasOptions.length > 0) {
+    groups.push({
+      section: "Has / Slot",
+      label: "Has selectors",
+      options: hasOptions,
+    })
+  }
 
   return groups
 }
@@ -2685,15 +2825,17 @@ function ContextPicker({
   variants,
   props,
   parentVariants,
+  subComponentNames,
 }: {
   contexts: string[]
   onContextsChange: (ctxs: string[]) => void
   variants?: Array<{ name: string; options: string[] }>
   props?: Array<{ name: string; type: string }>
   parentVariants?: Array<{ name: string; options: string[]; parentName: string }>
+  subComponentNames?: string[]
 }) {
   const [open, setOpen] = React.useState(false)
-  const groups = React.useMemo(() => buildContextGroups(variants, props, parentVariants), [variants, props, parentVariants])
+  const groups = React.useMemo(() => buildContextGroups(variants, props, parentVariants, subComponentNames), [variants, props, parentVariants, subComponentNames])
 
   const isDefault = contexts.length === 0
 
@@ -2738,7 +2880,20 @@ function ContextPicker({
         onContextsChange([...filtered, value])
       }
     }
-    // States, dark, group-* are stackable
+    // Data attributes with values — mutually exclusive within same key
+    // e.g. data-[state=open] and data-[state=closed] can't coexist
+    else if (value.match(/^data-\[(\w+)=\w+\]$/)) {
+      const key = value.match(/^data-\[(\w+)=/)?.[1]
+      if (contexts.includes(value)) {
+        onContextsChange(contexts.filter((c) => c !== value))
+      } else {
+        const filtered = key
+          ? contexts.filter((c) => !c.startsWith(`data-[${key}=`))
+          : contexts
+        onContextsChange([...filtered, value])
+      }
+    }
+    // States, dark, group-*, peer-*, aria-*, has-*, data-[attr] (no value) are stackable
     else {
       if (contexts.includes(value)) {
         onContextsChange(contexts.filter((c) => c !== value))
@@ -2801,7 +2956,8 @@ function ContextPicker({
                   {group.options.map((opt) => {
                     const isVariant = opt.value.startsWith("variant:")
                     const isBreakpoint = BREAKPOINTS.has(opt.value) || opt.value === "bp-none"
-                    const isRadio = isVariant || isBreakpoint
+                    const isDataAttrWithValue = !!opt.value.match(/^data-\[\w+=\w+\]$/)
+                    const isRadio = isVariant || isBreakpoint || isDataAttrWithValue
                     let isActive = opt.value === "bp-none"
                       ? !contexts.some((c) => BREAKPOINTS.has(c))
                       : contexts.includes(opt.value)
@@ -2868,6 +3024,7 @@ export function VisualEditor({
   variants,
   props,
   parentVariants,
+  subComponentNames,
 }: VisualEditorProps) {
   const [contexts, setContexts] = React.useState<string[]>([])
 
@@ -3021,7 +3178,7 @@ export function VisualEditor({
             )}
           </p>
         </div>
-        <ContextPicker contexts={contexts} onContextsChange={setContexts} variants={variants} props={props} parentVariants={parentVariants} />
+        <ContextPicker contexts={contexts} onContextsChange={setContexts} variants={variants} props={props} parentVariants={parentVariants} subComponentNames={subComponentNames} />
         <Button
           variant="ghost"
           size="icon"

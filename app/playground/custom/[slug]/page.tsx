@@ -812,6 +812,7 @@ export default function CustomComponentPage() {
                           }))
                         : undefined
                     }
+                    subComponentNames={componentTree.subComponents.map((sc) => sc.name)}
                   />
                   )
                 })() : (
