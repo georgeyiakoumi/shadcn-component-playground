@@ -496,6 +496,7 @@ export const BACKDROP_SEPIA_OPTIONS = ["backdrop-sepia-0", "backdrop-sepia"]
 /* ── Transitions & Animation ─────────────────────────────────────── */
 
 export const TRANSITION_PROPERTY_OPTIONS = ["transition-none", "transition-all", "transition", "transition-colors", "transition-opacity", "transition-shadow", "transition-transform"]
+export const TRANSITION_BEHAVIOR_OPTIONS = ["transition-normal", "transition-discrete"]
 export const TRANSITION_DURATION_OPTIONS = ["duration-0", "duration-75", "duration-100", "duration-150", "duration-200", "duration-300", "duration-500", "duration-700", "duration-1000"]
 export const TRANSITION_TIMING_OPTIONS = ["ease-linear", "ease-in", "ease-out", "ease-in-out"]
 export const TRANSITION_DELAY_OPTIONS = ["delay-0", "delay-75", "delay-100", "delay-150", "delay-200", "delay-300", "delay-500", "delay-700", "delay-1000"]

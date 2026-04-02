@@ -350,12 +350,12 @@ function SteppedSlider({
 }) {
   const currentIndex = value ? values.indexOf(value.replace(`${prefix}-`, "")) : -1
   const hasValue = currentIndex >= 0
-  const displayValue = hasValue ? values[currentIndex] + (suffix ?? "") : "–"
+  const displayValue = hasValue ? values[currentIndex] + (suffix ?? "") : ""
 
   return (
-    <div className={hideLabel ? undefined : "space-y-1"}>
+    <div className={hideLabel ? undefined : "space-y-1 pb-3"}>
       {!hideLabel && (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 mb-3">
           <p className="flex-1 text-xs font-medium text-foreground">
             {label}
             <span className="ml-1 font-normal text-muted-foreground">{displayValue}</span>
@@ -407,7 +407,7 @@ function LinkedControlHeader({
   /** Called when clear button is clicked — clears all values */
   onClear?: () => void
 }) {
-  const hasValue = value.length > 0 && value !== "–"
+  const hasValue = value.length > 0
 
   return (
     <div className="flex items-center gap-1">
@@ -629,7 +629,7 @@ function TranslateAxisControl({
   }
 
   const hasValue = !!value
-  const displayValue = hasValue ? (isNegative ? `-${rawValue}` : rawValue) : "–"
+  const displayValue = hasValue ? (isNegative ? `-${rawValue}` : rawValue) : ""
 
   return (
     <div className={hideLabel ? undefined : "space-y-1"}>
@@ -731,7 +731,7 @@ function RotateControl({
 
   // Display value helper
   const getRotateVal = (v: string, pfx: string) => {
-    if (!v) return "–"
+    if (!v) return ""
     const neg = v.startsWith("-")
     const isArb = v.includes("[")
     const raw = isArb ? v.replace(/.*\[/, "").replace(/\].*/, "") : neg ? v.replace(`-${pfx}-`, "") : v.replace(`${pfx}-`, "")
@@ -812,7 +812,7 @@ function RotateAxisControl({
   const hasValue = !!value
   const currentIndex = hasValue ? currentValues.indexOf(rawValue as never) : -1
   const unitSuffix = unit === "rad" ? "rad" : "°"
-  const displayValue = hasValue ? (isNegative ? `-${rawValue}${unitSuffix}` : `${rawValue}${unitSuffix}`) : "–"
+  const displayValue = hasValue ? (isNegative ? `-${rawValue}${unitSuffix}` : `${rawValue}${unitSuffix}`) : ""
 
   return (
     <div className={hideLabel ? undefined : "space-y-1"}>
@@ -982,7 +982,7 @@ function SkewAxisControl({
   const hasValue = !!value
   const currentIndex = hasValue ? currentValues.indexOf(rawValue as never) : -1
   const unitSuffix = unit === "rad" ? "rad" : "°"
-  const displayValue = hasValue ? (isNegative ? `-${rawValue}${unitSuffix}` : `${rawValue}${unitSuffix}`) : "–"
+  const displayValue = hasValue ? (isNegative ? `-${rawValue}${unitSuffix}` : `${rawValue}${unitSuffix}`) : ""
 
   return (
     <div className={hideLabel ? undefined : "space-y-1"}>
@@ -1413,7 +1413,7 @@ function ColorPicker({
   const tokenSwatch = value ? getShadcnTokenSwatch(value) : null
   const displayLabel = value
     ? value.startsWith(`${prefix}-`) ? value.slice(prefix.length + 1) : value
-    : "–"
+    : ""
 
   // Filter palette by search
   const filteredColors = search
@@ -1718,7 +1718,7 @@ function GridNumberPicker({
           <ChevronDown className="size-3" />
         </Button>
         <span className="w-6 text-center text-xs tabular-nums">
-          {isNumeric ? currentNum : "–"}
+          {isNumeric ? currentNum : ""}
         </span>
         <Button
           variant="ghost"

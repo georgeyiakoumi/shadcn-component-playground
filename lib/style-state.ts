@@ -150,6 +150,7 @@ import {
   BACKDROP_SATURATE_OPTIONS,
   BACKDROP_SEPIA_OPTIONS,
   TRANSITION_PROPERTY_OPTIONS,
+  TRANSITION_BEHAVIOR_OPTIONS,
   TRANSITION_DURATION_OPTIONS,
   TRANSITION_TIMING_OPTIONS,
   TRANSITION_DELAY_OPTIONS,
@@ -334,6 +335,7 @@ export interface ControlState {
   backdropSepia: string
   // Transitions & Animation
   transitionProperty: string
+  transitionBehavior: string
   transitionDuration: string
   transitionTiming: string
   transitionDelay: string
@@ -556,6 +558,7 @@ export function classesToControlState(classes: string[], context: StyleContext =
     backdropSaturate: findMatch(classes, BACKDROP_SATURATE_OPTIONS),
     backdropSepia: findMatch(classes, BACKDROP_SEPIA_OPTIONS),
     transitionProperty: findMatch(classes, TRANSITION_PROPERTY_OPTIONS),
+    transitionBehavior: findMatch(classes, TRANSITION_BEHAVIOR_OPTIONS),
     transitionDuration: findMatch(classes, TRANSITION_DURATION_OPTIONS),
     transitionTiming: findMatch(classes, TRANSITION_TIMING_OPTIONS),
     transitionDelay: findMatch(classes, TRANSITION_DELAY_OPTIONS),
@@ -718,6 +721,7 @@ export const MANAGED_PREFIXES = [
   ...BACKDROP_SATURATE_OPTIONS,
   ...BACKDROP_SEPIA_OPTIONS,
   ...TRANSITION_PROPERTY_OPTIONS,
+  ...TRANSITION_BEHAVIOR_OPTIONS,
   ...TRANSITION_DURATION_OPTIONS,
   ...TRANSITION_TIMING_OPTIONS,
   ...TRANSITION_DELAY_OPTIONS,
@@ -906,6 +910,7 @@ export function controlStateToClasses(state: ControlState, context: StyleContext
   push(state.backdropSaturate)
   push(state.backdropSepia)
   push(state.transitionProperty)
+  push(state.transitionBehavior)
   push(state.transitionDuration)
   push(state.transitionTiming)
   push(state.transitionDelay)

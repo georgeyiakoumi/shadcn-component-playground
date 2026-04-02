@@ -58,7 +58,7 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Separator } from "@/components/ui/separator"
 
-import { getNativeDisplay, DISPLAY_OPTIONS, INSET_SCALE, OVERFLOW_OPTIONS, VISIBILITY_OPTIONS, ASPECT_RATIO_OPTIONS, FLOAT_OPTIONS, CLEAR_OPTIONS, OBJECT_FIT_OPTIONS, ALIGN_CONTENT_OPTIONS, AUTO_ROWS_OPTIONS, AUTO_COLS_OPTIONS, JUSTIFY_ITEMS_OPTIONS, JUSTIFY_SELF_OPTIONS, ALIGN_SELF_OPTIONS, ORDER_OPTIONS, FLEX_BASIS_OPTIONS, FONT_SIZE_OPTIONS, FONT_WEIGHT_OPTIONS, FONT_FAMILY_OPTIONS, FONT_STYLE_OPTIONS, TEXT_DECORATION_OPTIONS, TEXT_DECORATION_STYLE_OPTIONS, TEXT_DECORATION_THICKNESS_OPTIONS, TEXT_UNDERLINE_OFFSET_OPTIONS, TEXT_TRANSFORM_OPTIONS, TEXT_OVERFLOW_OPTIONS, TEXT_WRAP_OPTIONS, TEXT_INDENT_OPTIONS, LINE_HEIGHT_OPTIONS, LETTER_SPACING_OPTIONS, WORD_BREAK_OPTIONS, WHITESPACE_OPTIONS, HYPHENS_OPTIONS, LINE_CLAMP_OPTIONS, VERTICAL_ALIGN_OPTIONS, LIST_STYLE_TYPE_OPTIONS, LIST_STYLE_POSITION_OPTIONS, FONT_VARIANT_NUMERIC_OPTIONS, SHADCN_TEXT_TOKENS, SHADCN_BG_TOKENS, SHADCN_BORDER_TOKENS, SHADCN_RING_TOKENS, RADIUS_VALUES, BORDER_WIDTH_OPTIONS, BORDER_WIDTH_T_OPTIONS, BORDER_WIDTH_R_OPTIONS, BORDER_WIDTH_B_OPTIONS, BORDER_WIDTH_L_OPTIONS, BORDER_STYLE_OPTIONS, BORDER_RADIUS_TL_OPTIONS, BORDER_RADIUS_TR_OPTIONS, BORDER_RADIUS_BR_OPTIONS, BORDER_RADIUS_BL_OPTIONS, RING_WIDTH_OPTIONS, RING_OFFSET_WIDTH_OPTIONS, OUTLINE_WIDTH_OPTIONS, OUTLINE_STYLE_OPTIONS, OUTLINE_OFFSET_OPTIONS, DIVIDE_X_OPTIONS, DIVIDE_Y_OPTIONS, DIVIDE_STYLE_OPTIONS, DIVIDE_REVERSE_OPTIONS, SHADOW_OPTIONS, MIX_BLEND_OPTIONS, BG_BLEND_OPTIONS, BLUR_OPTIONS, BRIGHTNESS_OPTIONS, CONTRAST_OPTIONS, GRAYSCALE_OPTIONS, HUE_ROTATE_OPTIONS, INVERT_OPTIONS, SATURATE_OPTIONS, SEPIA_OPTIONS, DROP_SHADOW_OPTIONS, BACKDROP_BLUR_OPTIONS, BACKDROP_BRIGHTNESS_OPTIONS, BACKDROP_CONTRAST_OPTIONS, BACKDROP_GRAYSCALE_OPTIONS, BACKDROP_HUE_ROTATE_OPTIONS, BACKDROP_INVERT_OPTIONS, BACKDROP_OPACITY_OPTIONS, BACKDROP_SATURATE_OPTIONS, BACKDROP_SEPIA_OPTIONS, TRANSITION_PROPERTY_OPTIONS, TRANSITION_DURATION_OPTIONS, TRANSITION_TIMING_OPTIONS, TRANSITION_DELAY_OPTIONS, ANIMATION_OPTIONS, SCALE_OPTIONS, SCALE_X_OPTIONS, SCALE_Y_OPTIONS, ROTATE_OPTIONS, TRANSLATE_X_OPTIONS, TRANSLATE_Y_OPTIONS, SKEW_X_OPTIONS, SKEW_Y_OPTIONS, TRANSFORM_ORIGIN_OPTIONS, WIDTH_OPTIONS, HEIGHT_OPTIONS, MIN_WIDTH_OPTIONS, MAX_WIDTH_OPTIONS, MIN_HEIGHT_OPTIONS, MAX_HEIGHT_OPTIONS, SIZE_OPTIONS, SPACING_SCALE_FULL } from "@/lib/tailwind-options"
+import { getNativeDisplay, DISPLAY_OPTIONS, INSET_SCALE, OVERFLOW_OPTIONS, VISIBILITY_OPTIONS, ASPECT_RATIO_OPTIONS, FLOAT_OPTIONS, CLEAR_OPTIONS, OBJECT_FIT_OPTIONS, ALIGN_CONTENT_OPTIONS, AUTO_ROWS_OPTIONS, AUTO_COLS_OPTIONS, JUSTIFY_ITEMS_OPTIONS, JUSTIFY_SELF_OPTIONS, ALIGN_SELF_OPTIONS, ORDER_OPTIONS, FLEX_BASIS_OPTIONS, FONT_SIZE_OPTIONS, FONT_WEIGHT_OPTIONS, FONT_FAMILY_OPTIONS, FONT_STYLE_OPTIONS, TEXT_DECORATION_OPTIONS, TEXT_DECORATION_STYLE_OPTIONS, TEXT_DECORATION_THICKNESS_OPTIONS, TEXT_UNDERLINE_OFFSET_OPTIONS, TEXT_TRANSFORM_OPTIONS, TEXT_OVERFLOW_OPTIONS, TEXT_WRAP_OPTIONS, TEXT_INDENT_OPTIONS, LINE_HEIGHT_OPTIONS, LETTER_SPACING_OPTIONS, WORD_BREAK_OPTIONS, WHITESPACE_OPTIONS, HYPHENS_OPTIONS, LINE_CLAMP_OPTIONS, VERTICAL_ALIGN_OPTIONS, LIST_STYLE_TYPE_OPTIONS, LIST_STYLE_POSITION_OPTIONS, FONT_VARIANT_NUMERIC_OPTIONS, SHADCN_TEXT_TOKENS, SHADCN_BG_TOKENS, SHADCN_BORDER_TOKENS, SHADCN_RING_TOKENS, RADIUS_VALUES, BORDER_WIDTH_OPTIONS, BORDER_WIDTH_T_OPTIONS, BORDER_WIDTH_R_OPTIONS, BORDER_WIDTH_B_OPTIONS, BORDER_WIDTH_L_OPTIONS, BORDER_STYLE_OPTIONS, BORDER_RADIUS_TL_OPTIONS, BORDER_RADIUS_TR_OPTIONS, BORDER_RADIUS_BR_OPTIONS, BORDER_RADIUS_BL_OPTIONS, RING_WIDTH_OPTIONS, RING_OFFSET_WIDTH_OPTIONS, OUTLINE_WIDTH_OPTIONS, OUTLINE_STYLE_OPTIONS, OUTLINE_OFFSET_OPTIONS, DIVIDE_X_OPTIONS, DIVIDE_Y_OPTIONS, DIVIDE_STYLE_OPTIONS, DIVIDE_REVERSE_OPTIONS, SHADOW_OPTIONS, MIX_BLEND_OPTIONS, BG_BLEND_OPTIONS, BLUR_OPTIONS, BRIGHTNESS_OPTIONS, CONTRAST_OPTIONS, GRAYSCALE_OPTIONS, HUE_ROTATE_OPTIONS, INVERT_OPTIONS, SATURATE_OPTIONS, SEPIA_OPTIONS, DROP_SHADOW_OPTIONS, BACKDROP_BLUR_OPTIONS, BACKDROP_BRIGHTNESS_OPTIONS, BACKDROP_CONTRAST_OPTIONS, BACKDROP_GRAYSCALE_OPTIONS, BACKDROP_HUE_ROTATE_OPTIONS, BACKDROP_INVERT_OPTIONS, BACKDROP_OPACITY_OPTIONS, BACKDROP_SATURATE_OPTIONS, BACKDROP_SEPIA_OPTIONS, TRANSITION_PROPERTY_OPTIONS, TRANSITION_BEHAVIOR_OPTIONS, TRANSITION_DURATION_OPTIONS, TRANSITION_TIMING_OPTIONS, TRANSITION_DELAY_OPTIONS, ANIMATION_OPTIONS, SCALE_OPTIONS, SCALE_X_OPTIONS, SCALE_Y_OPTIONS, ROTATE_OPTIONS, TRANSLATE_X_OPTIONS, TRANSLATE_Y_OPTIONS, SKEW_X_OPTIONS, SKEW_Y_OPTIONS, TRANSFORM_ORIGIN_OPTIONS, WIDTH_OPTIONS, HEIGHT_OPTIONS, MIN_WIDTH_OPTIONS, MAX_WIDTH_OPTIONS, MIN_HEIGHT_OPTIONS, MAX_HEIGHT_OPTIONS, SIZE_OPTIONS, SPACING_SCALE_FULL } from "@/lib/tailwind-options"
 import type { StyleContext } from "@/lib/style-context"
 import { getCssPrefix } from "@/lib/style-context"
 import type { ControlState } from "@/lib/style-state"
@@ -251,7 +251,7 @@ export function VisualEditor({
       "backdropHueRotate", "backdropInvert", "backdropOpacity", "backdropSaturate", "backdropSepia",
     ],
     motion: [
-      "transitionProperty", "transitionDuration", "transitionTiming", "transitionDelay", "animation",
+      "transitionProperty", "transitionBehavior", "transitionDuration", "transitionTiming", "transitionDelay", "animation",
       "scale", "scaleX", "scaleY", "rotate", "rotateX", "rotateY", "translateX", "translateY", "skewX", "skewY", "transformOrigin",
     ],
   }), [])
@@ -1461,166 +1461,93 @@ export function VisualEditor({
           </EditPanelSection>
 
           {/* ── Filters ──────────────────────────────────── */}
-          <EditPanelSection icon={SlidersHorizontal} title="Filters" hasValues={sectionHasValues("filters")} onClear={() => clearSection("filters")}>
-            <EditPanelRow label="Blur">
-              <div className="flex flex-wrap gap-0.5">
-                {BLUR_OPTIONS.map((opt) => (
-                  <TextToggle key={opt} value={opt} label={opt === "blur" ? "base" : opt.replace("blur-", "")} tooltip={opt} isActive={state.blur === opt} onClick={(v) => update("blur", state.blur === v ? "" : v)} />
-                ))}
-              </div>
-            </EditPanelRow>
-            <EditPanelRow label="Brightness">
-              <Select value={state.brightness || "__none__"} onValueChange={(v) => update("brightness", v === "__none__" ? "" : v)}>
-                <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">–</SelectItem>
-                  {BRIGHTNESS_OPTIONS.map((opt) => (
-                    <SelectItem key={opt} value={opt} className="text-xs">{opt.replace("brightness-", "")}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </EditPanelRow>
-            <EditPanelRow label="Contrast">
-              <Select value={state.contrast || "__none__"} onValueChange={(v) => update("contrast", v === "__none__" ? "" : v)}>
-                <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">–</SelectItem>
-                  {CONTRAST_OPTIONS.map((opt) => (
-                    <SelectItem key={opt} value={opt} className="text-xs">{opt.replace("contrast-", "")}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </EditPanelRow>
-            <EditPanelRow label="Grayscale">
-              <div className="flex flex-wrap gap-0.5">
-                {GRAYSCALE_OPTIONS.map((opt) => (
-                  <TextToggle key={opt} value={opt} label={opt === "grayscale" ? "on" : "off"} tooltip={opt} isActive={state.grayscale === opt} onClick={(v) => update("grayscale", state.grayscale === v ? "" : v)} />
-                ))}
-              </div>
-            </EditPanelRow>
-            <EditPanelRow label="Hue rotate">
-              <div className="flex flex-wrap gap-0.5">
-                {HUE_ROTATE_OPTIONS.map((opt) => (
-                  <TextToggle key={opt} value={opt} label={opt.replace("hue-rotate-", "") + "°"} tooltip={opt} isActive={state.hueRotate === opt} onClick={(v) => update("hueRotate", state.hueRotate === v ? "" : v)} />
-                ))}
-              </div>
-            </EditPanelRow>
-            <EditPanelRow label="Invert">
-              <div className="flex flex-wrap gap-0.5">
-                {INVERT_OPTIONS.map((opt) => (
-                  <TextToggle key={opt} value={opt} label={opt === "invert" ? "on" : "off"} tooltip={opt} isActive={state.invert === opt} onClick={(v) => update("invert", state.invert === v ? "" : v)} />
-                ))}
-              </div>
-            </EditPanelRow>
-            <EditPanelRow label="Saturate">
-              <Select value={state.saturate || "__none__"} onValueChange={(v) => update("saturate", v === "__none__" ? "" : v)}>
-                <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">–</SelectItem>
-                  {SATURATE_OPTIONS.map((opt) => (
-                    <SelectItem key={opt} value={opt} className="text-xs">{opt.replace("saturate-", "")}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </EditPanelRow>
-            <EditPanelRow label="Sepia">
-              <div className="flex flex-wrap gap-0.5">
-                {SEPIA_OPTIONS.map((opt) => (
-                  <TextToggle key={opt} value={opt} label={opt === "sepia" ? "on" : "off"} tooltip={opt} isActive={state.sepia === opt} onClick={(v) => update("sepia", state.sepia === v ? "" : v)} />
-                ))}
-              </div>
-            </EditPanelRow>
-            <EditPanelRow label="Drop shadow">
-              <div className="flex flex-wrap gap-0.5">
-                {DROP_SHADOW_OPTIONS.map((opt) => (
-                  <TextToggle key={opt} value={opt} label={opt === "drop-shadow" ? "base" : opt.replace("drop-shadow-", "")} tooltip={opt} isActive={state.dropShadow === opt} onClick={(v) => update("dropShadow", state.dropShadow === v ? "" : v)} />
-                ))}
-              </div>
-            </EditPanelRow>
+          <EditSection icon={SlidersHorizontal} title="Filters" hasValues={sectionHasValues("filters")} onClear={() => clearSection("filters")}>
 
+            {/* ── Element filters ── */}
+            <EditSubSectionWrapper>
+              <EditSubSection>
+                <EditSubSectionTitle>Filters</EditSubSectionTitle>
+                <EditSubSectionContent>
+                  <EditPanelRow label="Blur" variant="nested">
+                    <div className="flex flex-wrap gap-0.5">
+                      {BLUR_OPTIONS.map((opt) => (
+                        <TextToggle key={opt} value={opt} label={opt === "blur" ? "base" : opt.replace("blur-", "")} tooltip={opt} isActive={state.blur === opt} onClick={(v) => update("blur", state.blur === v ? "" : v)} />
+                      ))}
+                    </div>
+                  </EditPanelRow>
+                  <SteppedSlider label="Brightness" values={["0", "50", "75", "90", "95", "100", "105", "110", "125", "150", "200"]} prefix="brightness" value={state.brightness} onChange={(v) => update("brightness", v)} suffix="%" />
+                  <SteppedSlider label="Contrast" values={["0", "50", "75", "100", "125", "150", "200"]} prefix="contrast" value={state.contrast} onChange={(v) => update("contrast", v)} suffix="%" />
+                  <SteppedSlider label="Saturate" values={["0", "50", "100", "150", "200"]} prefix="saturate" value={state.saturate} onChange={(v) => update("saturate", v)} suffix="%" />
+                  <SteppedSlider label="Hue rotate" values={["0", "15", "30", "60", "90", "180"]} prefix="hue-rotate" value={state.hueRotate} onChange={(v) => update("hueRotate", v)} suffix="°" />
+                  <EditPanelRow label="Grayscale" variant="nested">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Switch checked={state.grayscale === "grayscale"} onCheckedChange={(checked) => update("grayscale", checked ? "grayscale" : "")} />
+                      <span className="text-xs text-muted-foreground">{state.grayscale === "grayscale" ? "on" : "off"}</span>
+                    </div>
+                  </EditPanelRow>
+                  <EditPanelRow label="Invert" variant="nested">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Switch checked={state.invert === "invert"} onCheckedChange={(checked) => update("invert", checked ? "invert" : "")} />
+                      <span className="text-xs text-muted-foreground">{state.invert === "invert" ? "on" : "off"}</span>
+                    </div>
+                  </EditPanelRow>
+                  <EditPanelRow label="Sepia" variant="nested">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Switch checked={state.sepia === "sepia"} onCheckedChange={(checked) => update("sepia", checked ? "sepia" : "")} />
+                      <span className="text-xs text-muted-foreground">{state.sepia === "sepia" ? "on" : "off"}</span>
+                    </div>
+                  </EditPanelRow>
+                  <EditPanelRow label="Drop shadow" variant="nested">
+                    <div className="flex flex-wrap gap-0.5">
+                      {DROP_SHADOW_OPTIONS.map((opt) => (
+                        <TextToggle key={opt} value={opt} label={opt === "drop-shadow" ? "base" : opt.replace("drop-shadow-", "")} tooltip={opt} isActive={state.dropShadow === opt} onClick={(v) => update("dropShadow", state.dropShadow === v ? "" : v)} />
+                      ))}
+                    </div>
+                  </EditPanelRow>
+                </EditSubSectionContent>
+              </EditSubSection>
+            </EditSubSectionWrapper>
 
-            <EditPanelRow label="Backdrop" />
+            {/* ── Backdrop filters ── */}
+            <EditSubSectionWrapper>
+              <EditSubSection>
+                <EditSubSectionTitle>Backdrop</EditSubSectionTitle>
+                <EditSubSectionContent>
+                  <EditPanelRow label="Blur" variant="nested">
+                    <div className="flex flex-wrap gap-0.5">
+                      {BACKDROP_BLUR_OPTIONS.map((opt) => (
+                        <TextToggle key={opt} value={opt} label={opt === "backdrop-blur" ? "base" : opt.replace("backdrop-blur-", "")} tooltip={opt} isActive={state.backdropBlur === opt} onClick={(v) => update("backdropBlur", state.backdropBlur === v ? "" : v)} />
+                      ))}
+                    </div>
+                  </EditPanelRow>
+                  <SteppedSlider label="Brightness" values={["0", "50", "75", "90", "95", "100", "105", "110", "125", "150", "200"]} prefix="backdrop-brightness" value={state.backdropBrightness} onChange={(v) => update("backdropBrightness", v)} suffix="%" />
+                  <SteppedSlider label="Contrast" values={["0", "50", "75", "100", "125", "150", "200"]} prefix="backdrop-contrast" value={state.backdropContrast} onChange={(v) => update("backdropContrast", v)} suffix="%" />
+                  <SteppedSlider label="Saturate" values={["0", "50", "100", "150", "200"]} prefix="backdrop-saturate" value={state.backdropSaturate} onChange={(v) => update("backdropSaturate", v)} suffix="%" />
+                  <SteppedSlider label="Opacity" values={["0", "5", "10", "20", "25", "30", "40", "50", "60", "70", "75", "80", "90", "95", "100"]} prefix="backdrop-opacity" value={state.backdropOpacity} onChange={(v) => update("backdropOpacity", v)} suffix="%" />
+                  <SteppedSlider label="Hue rotate" values={["0", "15", "30", "60", "90", "180"]} prefix="backdrop-hue-rotate" value={state.backdropHueRotate} onChange={(v) => update("backdropHueRotate", v)} suffix="°" />
+                  <EditPanelRow label="Grayscale" variant="nested">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Switch checked={state.backdropGrayscale === "backdrop-grayscale"} onCheckedChange={(checked) => update("backdropGrayscale", checked ? "backdrop-grayscale" : "")} />
+                      <span className="text-xs text-muted-foreground">{state.backdropGrayscale === "backdrop-grayscale" ? "on" : "off"}</span>
+                    </div>
+                  </EditPanelRow>
+                  <EditPanelRow label="Invert" variant="nested">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Switch checked={state.backdropInvert === "backdrop-invert"} onCheckedChange={(checked) => update("backdropInvert", checked ? "backdrop-invert" : "")} />
+                      <span className="text-xs text-muted-foreground">{state.backdropInvert === "backdrop-invert" ? "on" : "off"}</span>
+                    </div>
+                  </EditPanelRow>
+                  <EditPanelRow label="Sepia" variant="nested">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Switch checked={state.backdropSepia === "backdrop-sepia"} onCheckedChange={(checked) => update("backdropSepia", checked ? "backdrop-sepia" : "")} />
+                      <span className="text-xs text-muted-foreground">{state.backdropSepia === "backdrop-sepia" ? "on" : "off"}</span>
+                    </div>
+                  </EditPanelRow>
+                </EditSubSectionContent>
+              </EditSubSection>
+            </EditSubSectionWrapper>
 
-            <EditPanelRow label="Blur">
-              <div className="flex flex-wrap gap-0.5">
-                {BACKDROP_BLUR_OPTIONS.map((opt) => (
-                  <TextToggle key={opt} value={opt} label={opt === "backdrop-blur" ? "base" : opt.replace("backdrop-blur-", "")} tooltip={opt} isActive={state.backdropBlur === opt} onClick={(v) => update("backdropBlur", state.backdropBlur === v ? "" : v)} />
-                ))}
-              </div>
-            </EditPanelRow>
-            <EditPanelRow label="Brightness">
-              <Select value={state.backdropBrightness || "__none__"} onValueChange={(v) => update("backdropBrightness", v === "__none__" ? "" : v)}>
-                <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">–</SelectItem>
-                  {BACKDROP_BRIGHTNESS_OPTIONS.map((opt) => (
-                    <SelectItem key={opt} value={opt} className="text-xs">{opt.replace("backdrop-brightness-", "")}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </EditPanelRow>
-            <EditPanelRow label="Contrast">
-              <Select value={state.backdropContrast || "__none__"} onValueChange={(v) => update("backdropContrast", v === "__none__" ? "" : v)}>
-                <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">–</SelectItem>
-                  {BACKDROP_CONTRAST_OPTIONS.map((opt) => (
-                    <SelectItem key={opt} value={opt} className="text-xs">{opt.replace("backdrop-contrast-", "")}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </EditPanelRow>
-            <EditPanelRow label="Grayscale">
-              <div className="flex flex-wrap gap-0.5">
-                {BACKDROP_GRAYSCALE_OPTIONS.map((opt) => (
-                  <TextToggle key={opt} value={opt} label={opt === "backdrop-grayscale" ? "on" : "off"} tooltip={opt} isActive={state.backdropGrayscale === opt} onClick={(v) => update("backdropGrayscale", state.backdropGrayscale === v ? "" : v)} />
-                ))}
-              </div>
-            </EditPanelRow>
-            <EditPanelRow label="Hue rotate">
-              <div className="flex flex-wrap gap-0.5">
-                {BACKDROP_HUE_ROTATE_OPTIONS.map((opt) => (
-                  <TextToggle key={opt} value={opt} label={opt.replace("backdrop-hue-rotate-", "") + "°"} tooltip={opt} isActive={state.backdropHueRotate === opt} onClick={(v) => update("backdropHueRotate", state.backdropHueRotate === v ? "" : v)} />
-                ))}
-              </div>
-            </EditPanelRow>
-            <EditPanelRow label="Invert">
-              <div className="flex flex-wrap gap-0.5">
-                {BACKDROP_INVERT_OPTIONS.map((opt) => (
-                  <TextToggle key={opt} value={opt} label={opt === "backdrop-invert" ? "on" : "off"} tooltip={opt} isActive={state.backdropInvert === opt} onClick={(v) => update("backdropInvert", state.backdropInvert === v ? "" : v)} />
-                ))}
-              </div>
-            </EditPanelRow>
-            <EditPanelRow label="Opacity">
-              <Select value={state.backdropOpacity || "__none__"} onValueChange={(v) => update("backdropOpacity", v === "__none__" ? "" : v)}>
-                <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">–</SelectItem>
-                  {BACKDROP_OPACITY_OPTIONS.map((opt) => (
-                    <SelectItem key={opt} value={opt} className="text-xs">{opt.replace("backdrop-opacity-", "")}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </EditPanelRow>
-            <EditPanelRow label="Saturate">
-              <Select value={state.backdropSaturate || "__none__"} onValueChange={(v) => update("backdropSaturate", v === "__none__" ? "" : v)}>
-                <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">–</SelectItem>
-                  {BACKDROP_SATURATE_OPTIONS.map((opt) => (
-                    <SelectItem key={opt} value={opt} className="text-xs">{opt.replace("backdrop-saturate-", "")}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </EditPanelRow>
-            <EditPanelRow label="Sepia">
-              <div className="flex flex-wrap gap-0.5">
-                {BACKDROP_SEPIA_OPTIONS.map((opt) => (
-                  <TextToggle key={opt} value={opt} label={opt === "backdrop-sepia" ? "on" : "off"} tooltip={opt} isActive={state.backdropSepia === opt} onClick={(v) => update("backdropSepia", state.backdropSepia === v ? "" : v)} />
-                ))}
-              </div>
-            </EditPanelRow>
-          </EditPanelSection>
+          </EditSection>
 
           {/* ── Motion ──────────────────────────────────────── */}
           <EditSection icon={Move} title="Motion" hasValues={sectionHasValues("motion")} onClear={() => clearSection("motion")}>
@@ -1634,6 +1561,13 @@ export function VisualEditor({
                     <div className="flex flex-wrap gap-0.5">
                       {TRANSITION_PROPERTY_OPTIONS.map((opt) => (
                         <TextToggle key={opt} value={opt} label={opt === "transition" ? "default" : opt.replace("transition-", "")} tooltip={opt} isActive={state.transitionProperty === opt} onClick={(v) => update("transitionProperty", state.transitionProperty === v ? "" : v)} />
+                      ))}
+                    </div>
+                  </EditPanelRow>
+                  <EditPanelRow label="Behavior" variant="nested">
+                    <div className="flex flex-wrap gap-0.5">
+                      {TRANSITION_BEHAVIOR_OPTIONS.map((opt) => (
+                        <TextToggle key={opt} value={opt} label={opt.replace("transition-", "")} tooltip={opt} isActive={state.transitionBehavior === opt} onClick={(v) => update("transitionBehavior", state.transitionBehavior === v ? "" : v)} />
                       ))}
                     </div>
                   </EditPanelRow>
