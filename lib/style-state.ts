@@ -1010,7 +1010,7 @@ export const PROPERTY_GROUP_PREFIXES = [
   "opacity-",
   "bg-gradient-to-",
   "from-", "via-", "to-",
-  "rounded-tl-", "rounded-tr-", "rounded-br-", "rounded-bl-",
+  "rounded-", "rounded-tl-", "rounded-tr-", "rounded-br-", "rounded-bl-",
   "border-t-", "border-r-", "border-b-", "border-l-",
   "ring-",
   "outline-offset-",

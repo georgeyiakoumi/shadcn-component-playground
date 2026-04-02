@@ -442,6 +442,175 @@ function LinkedControlHeader({
   )
 }
 
+/* ── Border corner/side icons ─────────────────────────────────────── */
+
+function CornerIcon({ corner, className }: { corner: "tl" | "tr" | "bl" | "br"; className?: string }) {
+  // Faint rounded square with the relevant corner highlighted as a bold curve
+  const bgPaths = {
+    tl: "M2 14 V7 Q2 2 7 2 H14 V14 Z",
+    tr: "M2 2 H9 Q14 2 14 7 V14 H2 Z",
+    br: "M14 2 V9 Q14 14 9 14 H2 V2 Z",
+    bl: "M14 14 H7 Q2 14 2 9 V2 H14 Z",
+  }
+  const corners = {
+    tl: "M2 14 V7 Q2 2 7 2 H14",
+    tr: "M2 2 H9 Q14 2 14 7 V14",
+    br: "M14 2 V9 Q14 14 9 14 H2",
+    bl: "M14 14 H7 Q2 14 2 9 V2",
+  }
+  return (
+    <svg className={cn("size-4 shrink-0", className)} viewBox="0 0 16 16" fill="none" stroke="currentColor">
+      <path d={bgPaths[corner]} strokeWidth="1.5" opacity="0.2" />
+      <path d={corners[corner]} strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function SideIcon({ side, className }: { side: "top" | "right" | "bottom" | "left"; className?: string }) {
+  return (
+    <svg className={cn("size-4 shrink-0", className)} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <rect x="2" y="2" width="12" height="12" rx="1" opacity="0.3" />
+      {side === "top" && <line x1="2" y1="2" x2="14" y2="2" strokeWidth="3" strokeLinecap="round" />}
+      {side === "right" && <line x1="14" y1="2" x2="14" y2="14" strokeWidth="3" strokeLinecap="round" />}
+      {side === "bottom" && <line x1="2" y1="14" x2="14" y2="14" strokeWidth="3" strokeLinecap="round" />}
+      {side === "left" && <line x1="2" y1="2" x2="2" y2="14" strokeWidth="3" strokeLinecap="round" />}
+    </svg>
+  )
+}
+
+/* ── Border radius control with link/unlink ──────────────────────── */
+
+function BorderRadiusControl({
+  radius, radiusTL, radiusTR, radiusBR, radiusBL,
+  onRadiusChange, onRadiusTLChange, onRadiusTRChange, onRadiusBRChange, onRadiusBLChange,
+}: {
+  radius: string; radiusTL: string; radiusTR: string; radiusBR: string; radiusBL: string
+  onRadiusChange: (v: string) => void; onRadiusTLChange: (v: string) => void; onRadiusTRChange: (v: string) => void; onRadiusBRChange: (v: string) => void; onRadiusBLChange: (v: string) => void
+}) {
+  const [linked, setLinked] = React.useState(!radiusTL && !radiusTR && !radiusBR && !radiusBL)
+  const radiusValues = ["none", "sm", "md", "lg", "xl", "2xl", "full"] as const
+
+  const handleToggleLink = () => {
+    if (!linked) {
+      onRadiusTLChange(""); onRadiusTRChange(""); onRadiusBRChange(""); onRadiusBLChange("")
+      setLinked(true)
+    } else {
+      setLinked(false)
+    }
+  }
+
+  const getVal = (v: string, pfx: string) => v ? v.replace(`${pfx}-`, "") : ""
+  const headerValue = linked
+    ? getVal(radius, "rounded")
+    : [radiusTL ? `TL:${getVal(radiusTL, "rounded-tl")}` : null, radiusTR ? `TR:${getVal(radiusTR, "rounded-tr")}` : null, radiusBR ? `BR:${getVal(radiusBR, "rounded-br")}` : null, radiusBL ? `BL:${getVal(radiusBL, "rounded-bl")}` : null].filter(Boolean).join(", ")
+
+  return (
+    <div className="space-y-2">
+      <LinkedControlHeader
+        label="Radius"
+        value={headerValue}
+        linked={linked}
+        onToggleLink={handleToggleLink}
+        onClear={() => { onRadiusChange(""); onRadiusTLChange(""); onRadiusTRChange(""); onRadiusBRChange(""); onRadiusBLChange("") }}
+      />
+      {linked ? (
+        <SteppedSlider label="Radius" values={radiusValues} prefix="rounded" value={radius} onChange={onRadiusChange} hideLabel />
+      ) : (
+        <>
+          {([
+            { corner: "tl" as const, key: radiusTL, prefix: "rounded-tl", onChange: onRadiusTLChange },
+            { corner: "tr" as const, key: radiusTR, prefix: "rounded-tr", onChange: onRadiusTRChange },
+            { corner: "bl" as const, key: radiusBL, prefix: "rounded-bl", onChange: onRadiusBLChange },
+            { corner: "br" as const, key: radiusBR, prefix: "rounded-br", onChange: onRadiusBRChange },
+          ]).map(({ corner, key, prefix, onChange: onCornerChange }) => (
+            <div key={corner} className="flex items-center gap-1.5">
+              <CornerIcon corner={corner} />
+              <Slider
+                className="flex-1"
+                value={[Math.max(0, key ? radiusValues.indexOf(key.replace(`${prefix}-`, "") as typeof radiusValues[number]) : -1)]}
+                min={0}
+                max={radiusValues.length - 1}
+                step={1}
+                onValueChange={([idx]) => onCornerChange(`${prefix}-${radiusValues[idx]}`)}
+              />
+            </div>
+          ))}
+        </>
+      )}
+    </div>
+  )
+}
+
+/* ── Border width control with link/unlink ───────────────────────── */
+
+function BorderWidthControl({
+  width, widthT, widthR, widthB, widthL,
+  onWidthChange, onWidthTChange, onWidthRChange, onWidthBChange, onWidthLChange,
+}: {
+  width: string; widthT: string; widthR: string; widthB: string; widthL: string
+  onWidthChange: (v: string) => void; onWidthTChange: (v: string) => void; onWidthRChange: (v: string) => void; onWidthBChange: (v: string) => void; onWidthLChange: (v: string) => void
+}) {
+  const [linked, setLinked] = React.useState(!widthT && !widthR && !widthB && !widthL)
+  const widthValues = ["0", "", "2", "4", "8"] as const
+
+  const handleToggleLink = () => {
+    if (!linked) {
+      onWidthTChange(""); onWidthRChange(""); onWidthBChange(""); onWidthLChange("")
+      setLinked(true)
+    } else {
+      setLinked(false)
+    }
+  }
+
+  const getVal = (v: string, pfx: string) => {
+    if (!v) return ""
+    if (v === "border" || v === "border-t" || v === "border-r" || v === "border-b" || v === "border-l") return "1"
+    return v.replace(`${pfx}-`, "")
+  }
+  const headerValue = linked
+    ? (width ? getVal(width, "border") + "px" : "")
+    : [widthT ? `T:${getVal(widthT, "border-t")}px` : null, widthR ? `R:${getVal(widthR, "border-r")}px` : null, widthB ? `B:${getVal(widthB, "border-b")}px` : null, widthL ? `L:${getVal(widthL, "border-l")}px` : null].filter(Boolean).join(", ")
+
+  // Handle the special case where border-1 is just "border" (no number)
+  const fixBorderVal = (v: string, pfx: string) => v === `${pfx}-` ? pfx : v
+
+  return (
+    <div className="space-y-2">
+      <LinkedControlHeader
+        label="Width"
+        value={headerValue}
+        linked={linked}
+        onToggleLink={handleToggleLink}
+        onClear={() => { onWidthChange(""); onWidthTChange(""); onWidthRChange(""); onWidthBChange(""); onWidthLChange("") }}
+      />
+      {linked ? (
+        <SteppedSlider label="Width" values={widthValues} prefix="border" value={width} onChange={(v) => onWidthChange(fixBorderVal(v, "border"))} suffix="px" hideLabel />
+      ) : (
+        <>
+          {([
+            { side: "top" as const, key: widthT, prefix: "border-t", onChange: onWidthTChange },
+            { side: "right" as const, key: widthR, prefix: "border-r", onChange: onWidthRChange },
+            { side: "bottom" as const, key: widthB, prefix: "border-b", onChange: onWidthBChange },
+            { side: "left" as const, key: widthL, prefix: "border-l", onChange: onWidthLChange },
+          ]).map(({ side, key, prefix, onChange: onSideChange }) => (
+            <div key={side} className="flex items-center gap-1.5">
+              <SideIcon side={side} />
+              <Slider
+                className="flex-1"
+                value={[Math.max(0, key ? widthValues.indexOf(key.replace(`${prefix}-`, "").replace(prefix, "") as typeof widthValues[number]) : -1)]}
+                min={0}
+                max={widthValues.length - 1}
+                step={1}
+                onValueChange={([idx]) => onSideChange(fixBorderVal(`${prefix}-${widthValues[idx]}`, prefix))}
+              />
+            </div>
+          ))}
+        </>
+      )}
+    </div>
+  )
+}
+
 /* ── Scale control with link/unlink ──────────────────────────────── */
 
 function ScaleControl({
@@ -1898,4 +2067,6 @@ export {
   TranslateAxisControl,
   SkewControl,
   RotateControl,
+  BorderRadiusControl,
+  BorderWidthControl,
 }

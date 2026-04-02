@@ -58,13 +58,13 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Separator } from "@/components/ui/separator"
 
-import { getNativeDisplay, DISPLAY_OPTIONS, INSET_SCALE, OVERFLOW_OPTIONS, VISIBILITY_OPTIONS, ASPECT_RATIO_OPTIONS, FLOAT_OPTIONS, CLEAR_OPTIONS, OBJECT_FIT_OPTIONS, ALIGN_CONTENT_OPTIONS, AUTO_ROWS_OPTIONS, AUTO_COLS_OPTIONS, JUSTIFY_ITEMS_OPTIONS, JUSTIFY_SELF_OPTIONS, ALIGN_SELF_OPTIONS, ORDER_OPTIONS, FLEX_BASIS_OPTIONS, FONT_SIZE_OPTIONS, FONT_WEIGHT_OPTIONS, FONT_FAMILY_OPTIONS, FONT_STYLE_OPTIONS, TEXT_DECORATION_OPTIONS, TEXT_DECORATION_STYLE_OPTIONS, TEXT_DECORATION_THICKNESS_OPTIONS, TEXT_UNDERLINE_OFFSET_OPTIONS, TEXT_TRANSFORM_OPTIONS, TEXT_OVERFLOW_OPTIONS, TEXT_WRAP_OPTIONS, TEXT_INDENT_OPTIONS, LINE_HEIGHT_OPTIONS, LETTER_SPACING_OPTIONS, WORD_BREAK_OPTIONS, WHITESPACE_OPTIONS, HYPHENS_OPTIONS, LINE_CLAMP_OPTIONS, VERTICAL_ALIGN_OPTIONS, LIST_STYLE_TYPE_OPTIONS, LIST_STYLE_POSITION_OPTIONS, FONT_VARIANT_NUMERIC_OPTIONS, SHADCN_TEXT_TOKENS, SHADCN_BG_TOKENS, SHADCN_BORDER_TOKENS, SHADCN_RING_TOKENS, RADIUS_VALUES, BORDER_WIDTH_OPTIONS, BORDER_WIDTH_T_OPTIONS, BORDER_WIDTH_R_OPTIONS, BORDER_WIDTH_B_OPTIONS, BORDER_WIDTH_L_OPTIONS, BORDER_STYLE_OPTIONS, BORDER_RADIUS_TL_OPTIONS, BORDER_RADIUS_TR_OPTIONS, BORDER_RADIUS_BR_OPTIONS, BORDER_RADIUS_BL_OPTIONS, RING_WIDTH_OPTIONS, RING_OFFSET_WIDTH_OPTIONS, OUTLINE_WIDTH_OPTIONS, OUTLINE_STYLE_OPTIONS, OUTLINE_OFFSET_OPTIONS, DIVIDE_X_OPTIONS, DIVIDE_Y_OPTIONS, DIVIDE_STYLE_OPTIONS, DIVIDE_REVERSE_OPTIONS, SHADOW_OPTIONS, TEXT_SHADOW_OPTIONS, MIX_BLEND_OPTIONS, BG_BLEND_OPTIONS, MASK_CLIP_OPTIONS, MASK_COMPOSITE_OPTIONS, MASK_IMAGE_OPTIONS, MASK_MODE_OPTIONS, MASK_ORIGIN_OPTIONS, MASK_POSITION_GRID, MASK_REPEAT_OPTIONS, MASK_SIZE_OPTIONS, MASK_TYPE_OPTIONS, BLUR_OPTIONS, BRIGHTNESS_OPTIONS, CONTRAST_OPTIONS, GRAYSCALE_OPTIONS, HUE_ROTATE_OPTIONS, INVERT_OPTIONS, SATURATE_OPTIONS, SEPIA_OPTIONS, DROP_SHADOW_OPTIONS, BACKDROP_BLUR_OPTIONS, BACKDROP_BRIGHTNESS_OPTIONS, BACKDROP_CONTRAST_OPTIONS, BACKDROP_GRAYSCALE_OPTIONS, BACKDROP_HUE_ROTATE_OPTIONS, BACKDROP_INVERT_OPTIONS, BACKDROP_OPACITY_OPTIONS, BACKDROP_SATURATE_OPTIONS, BACKDROP_SEPIA_OPTIONS, TRANSITION_PROPERTY_OPTIONS, TRANSITION_BEHAVIOR_OPTIONS, TRANSITION_DURATION_OPTIONS, TRANSITION_TIMING_OPTIONS, TRANSITION_DELAY_OPTIONS, ANIMATION_OPTIONS, SCALE_OPTIONS, SCALE_X_OPTIONS, SCALE_Y_OPTIONS, ROTATE_OPTIONS, TRANSLATE_X_OPTIONS, TRANSLATE_Y_OPTIONS, SKEW_X_OPTIONS, SKEW_Y_OPTIONS, TRANSFORM_ORIGIN_OPTIONS, WIDTH_OPTIONS, HEIGHT_OPTIONS, MIN_WIDTH_OPTIONS, MAX_WIDTH_OPTIONS, MIN_HEIGHT_OPTIONS, MAX_HEIGHT_OPTIONS, SIZE_OPTIONS, SPACING_SCALE_FULL } from "@/lib/tailwind-options"
+import { getNativeDisplay, DISPLAY_OPTIONS, INSET_SCALE, OVERFLOW_OPTIONS, VISIBILITY_OPTIONS, ASPECT_RATIO_OPTIONS, FLOAT_OPTIONS, CLEAR_OPTIONS, OBJECT_FIT_OPTIONS, ALIGN_CONTENT_OPTIONS, AUTO_ROWS_OPTIONS, AUTO_COLS_OPTIONS, JUSTIFY_ITEMS_OPTIONS, JUSTIFY_SELF_OPTIONS, ALIGN_SELF_OPTIONS, ORDER_OPTIONS, FLEX_BASIS_OPTIONS, FONT_SIZE_OPTIONS, FONT_WEIGHT_OPTIONS, FONT_FAMILY_OPTIONS, FONT_STYLE_OPTIONS, TEXT_DECORATION_OPTIONS, TEXT_DECORATION_STYLE_OPTIONS, TEXT_DECORATION_THICKNESS_OPTIONS, TEXT_UNDERLINE_OFFSET_OPTIONS, TEXT_TRANSFORM_OPTIONS, TEXT_OVERFLOW_OPTIONS, TEXT_WRAP_OPTIONS, TEXT_INDENT_OPTIONS, LINE_HEIGHT_OPTIONS, LETTER_SPACING_OPTIONS, WORD_BREAK_OPTIONS, WHITESPACE_OPTIONS, HYPHENS_OPTIONS, LINE_CLAMP_OPTIONS, VERTICAL_ALIGN_OPTIONS, LIST_STYLE_TYPE_OPTIONS, LIST_STYLE_POSITION_OPTIONS, FONT_VARIANT_NUMERIC_OPTIONS, SHADCN_TEXT_TOKENS, SHADCN_BG_TOKENS, SHADCN_BORDER_TOKENS, SHADCN_RING_TOKENS, BORDER_STYLE_OPTIONS, OUTLINE_STYLE_OPTIONS, DIVIDE_STYLE_OPTIONS, SHADOW_OPTIONS, TEXT_SHADOW_OPTIONS, MIX_BLEND_OPTIONS, BG_BLEND_OPTIONS, MASK_CLIP_OPTIONS, MASK_COMPOSITE_OPTIONS, MASK_IMAGE_OPTIONS, MASK_MODE_OPTIONS, MASK_ORIGIN_OPTIONS, MASK_POSITION_GRID, MASK_REPEAT_OPTIONS, MASK_SIZE_OPTIONS, MASK_TYPE_OPTIONS, BLUR_OPTIONS, DROP_SHADOW_OPTIONS, BACKDROP_BLUR_OPTIONS, TRANSITION_PROPERTY_OPTIONS, TRANSITION_BEHAVIOR_OPTIONS, TRANSITION_TIMING_OPTIONS, ANIMATION_OPTIONS, WIDTH_OPTIONS, HEIGHT_OPTIONS, MIN_WIDTH_OPTIONS, MAX_WIDTH_OPTIONS, MIN_HEIGHT_OPTIONS, MAX_HEIGHT_OPTIONS, SIZE_OPTIONS, SPACING_SCALE_FULL } from "@/lib/tailwind-options"
 import type { StyleContext } from "@/lib/style-context"
 import { getCssPrefix } from "@/lib/style-context"
 import type { ControlState } from "@/lib/style-state"
 import { classesToControlState, controlStateToClasses, mergeClasses } from "@/lib/style-state"
 
-import { IconToggle, TextToggle, PositionGrid, ObjectPositionGrid, SpacingValueInput, BoxModelControl, ColorPicker, ZIndexInput, GridNumberPicker, GapControl, ContentDistributionPicker, TransformOriginGrid, SteppedSlider, ScaleControl, TranslateControl, SkewControl, RotateControl, SpatialGrid } from "@/components/playground/style-controls"
+import { IconToggle, TextToggle, PositionGrid, ObjectPositionGrid, SpacingValueInput, BoxModelControl, ColorPicker, ZIndexInput, GridNumberPicker, GapControl, ContentDistributionPicker, TransformOriginGrid, SteppedSlider, ScaleControl, TranslateControl, SkewControl, RotateControl, SpatialGrid, BorderRadiusControl, BorderWidthControl } from "@/components/playground/style-controls"
 import { ContextPicker } from "@/components/playground/context-picker"
 import { AppliedClassesSection } from "@/components/playground/applied-classes"
 import { EditPanelRow } from "@/components/playground/edit-panel-row"
@@ -1277,146 +1277,101 @@ export function VisualEditor({
           </EditPanelSection>
 
           {/* ── Borders ──────────────────────────────────── */}
-          <EditPanelSection icon={Square} title="Borders" hasValues={sectionHasValues("borders")} onClear={() => clearSection("borders")}>
-            {/* Radius — all */}
-            <EditPanelRow label="Radius">
-              <Select value={state.borderRadius || "__none__"} onValueChange={(v) => update("borderRadius", v === "__none__" ? "" : v)}>
-                <SelectTrigger className="h-6 flex-1 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">–</SelectItem>
-                  {RADIUS_VALUES.map((r) => (
-                    <SelectItem key={r.value} value={r.value}>{r.label} ({r.px})</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </EditPanelRow>
-            {/* Per-corner radius */}
-            {[
-              { label: "TL", key: "borderRadiusTL" as const, options: BORDER_RADIUS_TL_OPTIONS },
-              { label: "TR", key: "borderRadiusTR" as const, options: BORDER_RADIUS_TR_OPTIONS },
-              { label: "BR", key: "borderRadiusBR" as const, options: BORDER_RADIUS_BR_OPTIONS },
-              { label: "BL", key: "borderRadiusBL" as const, options: BORDER_RADIUS_BL_OPTIONS },
-            ].map((corner) => (
-              <EditPanelRow key={corner.label} label={`Radius ${corner.label}`}>
-                <div className="flex flex-wrap gap-0.5">
-                  {corner.options.map((opt) => (
-                    <TextToggle key={opt} value={opt} label={opt.split("-").pop()!} tooltip={opt} isActive={state[corner.key] === opt} onClick={(v) => update(corner.key, state[corner.key] === v ? "" : v)} />
-                  ))}
-                </div>
-              </EditPanelRow>
-            ))}
+          <EditSection icon={Square} title="Borders" hasValues={sectionHasValues("borders")} onClear={() => clearSection("borders")}>
 
+            {/* ── Border ── */}
+            <EditSubSectionWrapper>
+              <EditSubSection>
+                <EditSubSectionTitle>Border</EditSubSectionTitle>
+                <EditSubSectionContent>
+                  <BorderRadiusControl
+                    radius={state.borderRadius}
+                    radiusTL={state.borderRadiusTL}
+                    radiusTR={state.borderRadiusTR}
+                    radiusBR={state.borderRadiusBR}
+                    radiusBL={state.borderRadiusBL}
+                    onRadiusChange={(v) => update("borderRadius", v)}
+                    onRadiusTLChange={(v) => update("borderRadiusTL", v)}
+                    onRadiusTRChange={(v) => update("borderRadiusTR", v)}
+                    onRadiusBRChange={(v) => update("borderRadiusBR", v)}
+                    onRadiusBLChange={(v) => update("borderRadiusBL", v)}
+                  />
+                  <BorderWidthControl
+                    width={state.borderWidth}
+                    widthT={state.borderWidthT}
+                    widthR={state.borderWidthR}
+                    widthB={state.borderWidthB}
+                    widthL={state.borderWidthL}
+                    onWidthChange={(v) => update("borderWidth", v)}
+                    onWidthTChange={(v) => update("borderWidthT", v)}
+                    onWidthRChange={(v) => update("borderWidthR", v)}
+                    onWidthBChange={(v) => update("borderWidthB", v)}
+                    onWidthLChange={(v) => update("borderWidthL", v)}
+                  />
+                  <EditPanelRow label="Style" variant="nested">
+                    <div className="flex flex-wrap gap-0.5">
+                      {BORDER_STYLE_OPTIONS.map((opt) => (
+                        <TextToggle key={opt} value={opt} label={opt.replace("border-", "")} tooltip={opt} isActive={state.borderStyle === opt} onClick={(v) => update("borderStyle", state.borderStyle === v ? "" : v)} />
+                      ))}
+                    </div>
+                  </EditPanelRow>
+                </EditSubSectionContent>
+              </EditSubSection>
+            </EditSubSectionWrapper>
 
+            {/* ── Ring ── */}
+            <EditSubSectionWrapper>
+              <EditSubSection>
+                <EditSubSectionTitle>Ring</EditSubSectionTitle>
+                <EditSubSectionContent>
+                  <SteppedSlider label="Width" values={["0", "1", "2", "", "4", "8"]} prefix="ring" value={state.ringWidth} onChange={(v) => update("ringWidth", v === "ring-" ? "ring" : v)} suffix="px" />
+                  <SteppedSlider label="Offset" values={["0", "1", "2", "4", "8"]} prefix="ring-offset" value={state.ringOffsetWidth} onChange={(v) => update("ringOffsetWidth", v)} suffix="px" />
+                </EditSubSectionContent>
+              </EditSubSection>
+            </EditSubSectionWrapper>
 
-            {/* Border width — all */}
-            <EditPanelRow label="Width">
-              <div className="flex flex-wrap gap-0.5">
-                {BORDER_WIDTH_OPTIONS.map((opt) => (
-                  <TextToggle key={opt} value={opt} label={opt === "border" ? "1" : opt.replace("border-", "")} tooltip={opt} isActive={state.borderWidth === opt} onClick={(v) => update("borderWidth", state.borderWidth === v ? "" : v)} />
-                ))}
-              </div>
-            </EditPanelRow>
-            {/* Per-side border width */}
-            {[
-              { label: "Width T", key: "borderWidthT" as const, options: BORDER_WIDTH_T_OPTIONS, prefix: "border-t-" },
-              { label: "Width R", key: "borderWidthR" as const, options: BORDER_WIDTH_R_OPTIONS, prefix: "border-r-" },
-              { label: "Width B", key: "borderWidthB" as const, options: BORDER_WIDTH_B_OPTIONS, prefix: "border-b-" },
-              { label: "Width L", key: "borderWidthL" as const, options: BORDER_WIDTH_L_OPTIONS, prefix: "border-l-" },
-            ].map((side) => (
-              <EditPanelRow key={side.label} label={side.label}>
-                <div className="flex flex-wrap gap-0.5">
-                  {side.options.map((opt) => {
-                    const short = opt === `border-${side.label.split(" ")[1]?.toLowerCase()}` ? "1" : opt.replace(side.prefix, "").replace(/^border-[trbl]$/, "1")
-                    return <TextToggle key={opt} value={opt} label={short} tooltip={opt} isActive={state[side.key] === opt} onClick={(v) => update(side.key, state[side.key] === v ? "" : v)} />
-                  })}
-                </div>
-              </EditPanelRow>
-            ))}
+            {/* ── Outline ── */}
+            <EditSubSectionWrapper>
+              <EditSubSection>
+                <EditSubSectionTitle>Outline</EditSubSectionTitle>
+                <EditSubSectionContent>
+                  <SteppedSlider label="Width" values={["0", "1", "2", "4", "8"]} prefix="outline" value={state.outlineWidth} onChange={(v) => update("outlineWidth", v)} suffix="px" />
+                  <EditPanelRow label="Style" variant="nested">
+                    <div className="flex flex-wrap gap-0.5">
+                      {OUTLINE_STYLE_OPTIONS.map((opt) => (
+                        <TextToggle key={opt} value={opt} label={opt === "outline" ? "solid" : opt.replace("outline-", "")} tooltip={opt} isActive={state.outlineStyle === opt} onClick={(v) => update("outlineStyle", state.outlineStyle === v ? "" : v)} />
+                      ))}
+                    </div>
+                  </EditPanelRow>
+                  <SteppedSlider label="Offset" values={["0", "1", "2", "4", "8"]} prefix="outline-offset" value={state.outlineOffset} onChange={(v) => update("outlineOffset", v)} suffix="px" />
+                </EditSubSectionContent>
+              </EditSubSection>
+            </EditSubSectionWrapper>
 
-            {/* Border style */}
-            <EditPanelRow label="Style">
-              <div className="flex flex-wrap gap-0.5">
-                {BORDER_STYLE_OPTIONS.map((opt) => (
-                  <TextToggle key={opt} value={opt} label={opt.replace("border-", "")} tooltip={opt} isActive={state.borderStyle === opt} onClick={(v) => update("borderStyle", state.borderStyle === v ? "" : v)} />
-                ))}
-              </div>
-            </EditPanelRow>
-
-
-
-            {/* Ring */}
-            <EditPanelRow label="Ring">
-              <div className="flex flex-wrap gap-0.5">
-                {RING_WIDTH_OPTIONS.map((opt) => (
-                  <TextToggle key={opt} value={opt} label={opt === "ring" ? "3" : opt.replace("ring-", "")} tooltip={opt} isActive={state.ringWidth === opt} onClick={(v) => update("ringWidth", state.ringWidth === v ? "" : v)} />
-                ))}
-              </div>
-            </EditPanelRow>
-            <EditPanelRow label="Ring offset">
-              <div className="flex flex-wrap gap-0.5">
-                {RING_OFFSET_WIDTH_OPTIONS.map((opt) => (
-                  <TextToggle key={opt} value={opt} label={opt.replace("ring-offset-", "")} tooltip={opt} isActive={state.ringOffsetWidth === opt} onClick={(v) => update("ringOffsetWidth", state.ringOffsetWidth === v ? "" : v)} />
-                ))}
-              </div>
-            </EditPanelRow>
-
-
-
-            {/* Outline */}
-            <EditPanelRow label="Outline W">
-              <div className="flex flex-wrap gap-0.5">
-                {OUTLINE_WIDTH_OPTIONS.map((opt) => (
-                  <TextToggle key={opt} value={opt} label={opt.replace("outline-", "")} tooltip={opt} isActive={state.outlineWidth === opt} onClick={(v) => update("outlineWidth", state.outlineWidth === v ? "" : v)} />
-                ))}
-              </div>
-            </EditPanelRow>
-            <EditPanelRow label="Outline style">
-              <div className="flex flex-wrap gap-0.5">
-                {OUTLINE_STYLE_OPTIONS.map((opt) => (
-                  <TextToggle key={opt} value={opt} label={opt === "outline" ? "solid" : opt.replace("outline-", "")} tooltip={opt} isActive={state.outlineStyle === opt} onClick={(v) => update("outlineStyle", state.outlineStyle === v ? "" : v)} />
-                ))}
-              </div>
-            </EditPanelRow>
-            <EditPanelRow label="Outline offset">
-              <div className="flex flex-wrap gap-0.5">
-                {OUTLINE_OFFSET_OPTIONS.map((opt) => (
-                  <TextToggle key={opt} value={opt} label={opt.replace("outline-offset-", "")} tooltip={opt} isActive={state.outlineOffset === opt} onClick={(v) => update("outlineOffset", state.outlineOffset === v ? "" : v)} />
-                ))}
-              </div>
-            </EditPanelRow>
-
-
-
-            {/* Divide */}
-            <EditPanelRow label="Divide X">
-              <div className="flex flex-wrap gap-0.5">
-                {DIVIDE_X_OPTIONS.map((opt) => (
-                  <TextToggle key={opt} value={opt} label={opt === "divide-x" ? "1" : opt.replace("divide-x-", "")} tooltip={opt} isActive={state.divideX === opt} onClick={(v) => update("divideX", state.divideX === v ? "" : v)} />
-                ))}
-              </div>
-            </EditPanelRow>
-            <EditPanelRow label="Divide Y">
-              <div className="flex flex-wrap gap-0.5">
-                {DIVIDE_Y_OPTIONS.map((opt) => (
-                  <TextToggle key={opt} value={opt} label={opt === "divide-y" ? "1" : opt.replace("divide-y-", "")} tooltip={opt} isActive={state.divideY === opt} onClick={(v) => update("divideY", state.divideY === v ? "" : v)} />
-                ))}
-              </div>
-            </EditPanelRow>
-            <EditPanelRow label="Divide style">
-              <div className="flex flex-wrap gap-0.5">
-                {DIVIDE_STYLE_OPTIONS.map((opt) => (
-                  <TextToggle key={opt} value={opt} label={opt.replace("divide-", "")} tooltip={opt} isActive={state.divideStyle === opt} onClick={(v) => update("divideStyle", state.divideStyle === v ? "" : v)} />
-                ))}
-              </div>
-            </EditPanelRow>
-            <EditPanelRow label="Divide rev.">
-              <div className="flex flex-wrap gap-0.5">
-                {DIVIDE_REVERSE_OPTIONS.map((opt) => (
-                  <TextToggle key={opt} value={opt} label={opt.replace("divide-", "")} tooltip={opt} isActive={state.divideReverse === opt} onClick={(v) => update("divideReverse", state.divideReverse === v ? "" : v)} />
-                ))}
-              </div>
-            </EditPanelRow>
-          </EditPanelSection>
+            {/* ── Divide ── */}
+            <EditSubSectionWrapper>
+              <EditSubSection>
+                <EditSubSectionTitle>Divide</EditSubSectionTitle>
+                <EditSubSectionContent>
+                  <SteppedSlider label="X" values={["0", "", "2", "4", "8"]} prefix="divide-x" value={state.divideX} onChange={(v) => update("divideX", v === "divide-x-" ? "divide-x" : v)} suffix="px" />
+                  <SteppedSlider label="Y" values={["0", "", "2", "4", "8"]} prefix="divide-y" value={state.divideY} onChange={(v) => update("divideY", v === "divide-y-" ? "divide-y" : v)} suffix="px" />
+                  <EditPanelRow label="Style" variant="nested">
+                    <div className="flex flex-wrap gap-0.5">
+                      {DIVIDE_STYLE_OPTIONS.map((opt) => (
+                        <TextToggle key={opt} value={opt} label={opt.replace("divide-", "")} tooltip={opt} isActive={state.divideStyle === opt} onClick={(v) => update("divideStyle", state.divideStyle === v ? "" : v)} />
+                      ))}
+                    </div>
+                  </EditPanelRow>
+                  <EditPanelRow label="Reverse" variant="nested">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Switch checked={!!state.divideReverse} onCheckedChange={(checked) => update("divideReverse", checked ? "divide-x-reverse" : "")} />
+                      <span className="text-xs text-muted-foreground">{state.divideReverse || "off"}</span>
+                    </div>
+                  </EditPanelRow>
+                </EditSubSectionContent>
+              </EditSubSection>
+            </EditSubSectionWrapper>
+          </EditSection>
 
           {/* ── Effects ──────────────────────────────────── */}
           <EditSection icon={Sparkles} title="Effects" hasValues={sectionHasValues("effects")} onClear={() => clearSection("effects")}>
