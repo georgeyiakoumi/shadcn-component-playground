@@ -30,6 +30,10 @@ import {
   Crosshair,
   Pin,
   Anchor,
+  AlignHorizontalJustifyStart,
+  AlignHorizontalJustifyCenter,
+  AlignHorizontalJustifyEnd,
+  StretchHorizontal,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -60,7 +64,7 @@ import { getCssPrefix } from "@/lib/style-context"
 import type { ControlState } from "@/lib/style-state"
 import { classesToControlState, controlStateToClasses, mergeClasses } from "@/lib/style-state"
 
-import { IconToggle, TextToggle, PositionGrid, ObjectPositionGrid, SpacingValueInput, BoxModelControl, ColorPicker, ZIndexInput, GridNumberPicker, GapControl } from "@/components/playground/style-controls"
+import { IconToggle, TextToggle, PositionGrid, ObjectPositionGrid, SpacingValueInput, BoxModelControl, ColorPicker, ZIndexInput, GridNumberPicker, GapControl, ContentDistributionPicker } from "@/components/playground/style-controls"
 import { ContextPicker } from "@/components/playground/context-picker"
 import { AppliedClassesSection } from "@/components/playground/applied-classes"
 import { EditPanelRow } from "@/components/playground/edit-panel-row"
@@ -148,10 +152,43 @@ export function VisualEditor({
     onClassChange(mergeClasses(originalClasses.current, state, combinedPrefix, selectedElement?.tagName))
   }, [state, combinedPrefix, onClassChange])
 
+  const FLEX_KEYS: (keyof ControlState)[] = [
+    "direction", "flexWrap", "alignContent",
+    "flexShorthand", "flexGrow", "flexShrink", "flexBasis",
+  ]
+  const GRID_KEYS: (keyof ControlState)[] = [
+    "gridCols", "gridRows", "gridFlow", "autoRows", "autoCols",
+    "justifyItems", "colSpan", "rowSpan", "colStart", "colEnd", "rowStart", "rowEnd",
+  ]
+
   const update = React.useCallback(
     <K extends keyof ControlState>(key: K, value: ControlState[K]) => {
       isUserChange.current = true
-      setState((prev) => ({ ...prev, [key]: value }))
+      setState((prev) => {
+        const next = { ...prev, [key]: value }
+
+        // When switching display mode, clear conflicting properties
+        if (key === "display") {
+          const isSwitchingToGrid = value === "grid" || value === "inline-grid"
+          const isSwitchingToFlex = value === "flex" || value === "inline-flex"
+          const wasGrid = prev.display === "grid" || prev.display === "inline-grid"
+          const wasFlex = prev.display === "flex" || prev.display === "inline-flex"
+
+          if (isSwitchingToGrid && wasFlex) {
+            for (const k of FLEX_KEYS) next[k] = ""
+          }
+          if (isSwitchingToFlex && wasGrid) {
+            for (const k of GRID_KEYS) next[k] = ""
+          }
+          // Switching to block/inline/hidden — clear both
+          if (!isSwitchingToGrid && !isSwitchingToFlex) {
+            if (wasFlex) for (const k of FLEX_KEYS) next[k] = ""
+            if (wasGrid) for (const k of GRID_KEYS) next[k] = ""
+          }
+        }
+
+        return next
+      })
     },
     [],
   )
@@ -343,7 +380,31 @@ export function VisualEditor({
                           <IconToggle value="flex-wrap" icon={WrapText} tooltip="flex-wrap" isActive={state.flexWrap === "flex-wrap"} onClick={(v) => update("flexWrap", v)} />
                           <TextToggle value="flex-wrap-reverse" label="reverse" tooltip="flex-wrap-reverse" isActive={state.flexWrap === "flex-wrap-reverse"} onClick={(v) => update("flexWrap", v)} />
                         </div>
+
+                        {/* Align content — only when wrapping, sits with wrap since it's related */}
+                        {(state.flexWrap === "flex-wrap" || state.flexWrap === "flex-wrap-reverse") && (
+                          <EditPanelRow label="Row distribution" variant="nested">
+                            <ContentDistributionPicker
+                              prefix="content"
+                              value={state.alignContent}
+                              onChange={(v) => update("alignContent", v)}
+                              axis={state.direction === "flex-col" || state.direction === "flex-col-reverse" ? "horizontal" : "vertical"}
+                            />
+                          </EditPanelRow>
+                        )}
                       </EditPanelRow>
+
+                      <EditPanelRow label="Alignment" variant="nested">
+                        <PositionGrid justify={state.justify} align={state.align} display={effectiveDisplay} direction={state.direction}
+                          onJustifyChange={(v) => update("justify", v)} onAlignChange={(v) => update("align", v)} />
+                      </EditPanelRow>
+
+                      <GapControl
+                        gap={state.gap} gapX={state.gapX} gapY={state.gapY}
+                        onGapChange={(v) => { isUserChange.current = true; setState((prev) => ({ ...prev, gap: v, gapX: "", gapY: "" })) }}
+                        onGapXChange={(v) => { isUserChange.current = true; setState((prev) => ({ ...prev, gapX: v, gap: "" })) }}
+                        onGapYChange={(v) => { isUserChange.current = true; setState((prev) => ({ ...prev, gapY: v, gap: "" })) }}
+                      />
                     </EditNestedGroup>
                   )}
 
@@ -385,17 +446,18 @@ export function VisualEditor({
                       </EditPanelRow>
                       <EditPanelRow label="Justify items" variant="nested">
                         <div className="flex flex-wrap gap-0.5">
-                          {JUSTIFY_ITEMS_OPTIONS.map((opt) => (
-                            <TextToggle key={opt} value={opt} label={opt.replace("justify-items-", "")} tooltip={opt} isActive={state.justifyItems === opt} onClick={(v) => update("justifyItems", state.justifyItems === v ? "" : v)} />
-                          ))}
+                          <IconToggle value="justify-items-start" icon={AlignHorizontalJustifyStart} tooltip="justify-items-start" isActive={state.justifyItems === "justify-items-start"} onClick={() => update("justifyItems", state.justifyItems === "justify-items-start" ? "" : "justify-items-start")} />
+                          <IconToggle value="justify-items-center" icon={AlignHorizontalJustifyCenter} tooltip="justify-items-center" isActive={state.justifyItems === "justify-items-center"} onClick={() => update("justifyItems", state.justifyItems === "justify-items-center" ? "" : "justify-items-center")} />
+                          <IconToggle value="justify-items-end" icon={AlignHorizontalJustifyEnd} tooltip="justify-items-end" isActive={state.justifyItems === "justify-items-end"} onClick={() => update("justifyItems", state.justifyItems === "justify-items-end" ? "" : "justify-items-end")} />
+                          <IconToggle value="justify-items-stretch" icon={StretchHorizontal} tooltip="justify-items-stretch" isActive={state.justifyItems === "justify-items-stretch"} onClick={() => update("justifyItems", state.justifyItems === "justify-items-stretch" ? "" : "justify-items-stretch")} />
                         </div>
                       </EditPanelRow>
                       <EditPanelRow label="Align content" variant="nested">
-                        <div className="flex flex-wrap gap-0.5">
-                          {ALIGN_CONTENT_OPTIONS.map((opt) => (
-                            <TextToggle key={opt} value={opt} label={opt.replace("content-", "")} tooltip={opt} isActive={state.alignContent === opt} onClick={(v) => update("alignContent", state.alignContent === v ? "" : v)} />
-                          ))}
-                        </div>
+                        <ContentDistributionPicker
+                          prefix="content"
+                          value={state.alignContent}
+                          onChange={(v) => update("alignContent", v)}
+                        />
                       </EditPanelRow>
                     </EditNestedGroup>
                   )}
@@ -471,39 +533,6 @@ export function VisualEditor({
                           )}
                         </EditSubSectionContent>
                       </EditSubSection>
-                    </EditSubSectionWrapper>
-                  )}
-
-                  {/* ── Flex container ── */}
-                  {isFlex && (
-                    <EditSubSectionWrapper>
-                      <EditSubSection>
-                        <EditSubSectionTitle>Alignment</EditSubSectionTitle>
-                        <EditSubSectionContent>
-                          <PositionGrid justify={state.justify} align={state.align} display={effectiveDisplay}
-                            onJustifyChange={(v) => update("justify", v)} onAlignChange={(v) => update("align", v)} />
-                        </EditSubSectionContent>
-                      </EditSubSection>
-
-                      {(state.flexWrap === "flex-wrap" || state.flexWrap === "flex-wrap-reverse") && (
-                        <EditSubSection>
-                          <EditSubSectionTitle>Content</EditSubSectionTitle>
-                          <EditSubSectionContent>
-                            <div className="flex flex-wrap gap-0.5">
-                              {ALIGN_CONTENT_OPTIONS.map((opt) => (
-                                <TextToggle key={opt} value={opt} label={opt.replace("content-", "")} tooltip={opt} isActive={state.alignContent === opt} onClick={(v) => update("alignContent", state.alignContent === v ? "" : v)} />
-                              ))}
-                            </div>
-                          </EditSubSectionContent>
-                        </EditSubSection>
-                      )}
-
-                      <GapControl
-                        gap={state.gap} gapX={state.gapX} gapY={state.gapY}
-                        onGapChange={(v) => { isUserChange.current = true; setState((prev) => ({ ...prev, gap: v, gapX: "", gapY: "" })) }}
-                        onGapXChange={(v) => { isUserChange.current = true; setState((prev) => ({ ...prev, gapX: v, gap: "" })) }}
-                        onGapYChange={(v) => { isUserChange.current = true; setState((prev) => ({ ...prev, gapY: v, gap: "" })) }}
-                      />
                     </EditSubSectionWrapper>
                   )}
 

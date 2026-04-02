@@ -96,18 +96,28 @@ function PositionGrid({
   justify,
   align,
   display,
+  direction,
   onJustifyChange,
   onAlignChange,
 }: {
   justify: string
   align: string
   display: string
+  /** Flex direction — determines icon orientation for distribute/stretch */
+  direction?: string
   onJustifyChange: (v: string) => void
   onAlignChange: (v: string) => void
 }) {
   const isGrid = display === "grid"
+  const isCol = direction === "flex-col" || direction === "flex-col-reverse"
   const isBetween = justify === "justify-between" || justify === "justify-around" || justify === "justify-evenly"
   const isStretch = align === "items-stretch" || align === "items-baseline"
+
+  // Pick icons based on axis — justify is main axis, align is cross axis
+  const justifyBetweenIcon = isCol ? AlignVerticalSpaceBetween : AlignHorizontalSpaceBetween
+  const justifyAroundIcon = isCol ? AlignVerticalSpaceAround : AlignHorizontalSpaceAround
+  const justifyEvenlyIcon = isCol ? AlignVerticalDistributeCenter : AlignHorizontalDistributeCenter
+  const stretchIcon = isCol ? StretchHorizontal : StretchVertical
 
   function getTooltip(j: string, a: string): string {
     if (isGrid) {
@@ -122,7 +132,9 @@ function PositionGrid({
       {/* Grid + toggle groups — side by side, wrap when narrow */}
       <div className="flex flex-wrap items-start gap-3">
         {/* 3×3 grid */}
-        <div className="inline-grid grid-cols-3 gap-0.5 rounded-md border p-0.5">
+        <div>
+          <p className="mb-1 text-xs font-medium text-muted-foreground">Position</p>
+          <div className="inline-grid grid-cols-3 gap-0.5 rounded-md border p-0.5">
           {ALIGN_KEYS.map((a) =>
             JUSTIFY_KEYS.map((j) => {
               const justifyMatch = isBetween || justify === j
@@ -183,41 +195,53 @@ function PositionGrid({
             }),
           )}
         </div>
+        </div>
 
-        {/* Toggle groups stacked vertically beside the grid */}
-        <div className="flex shrink-0 flex-col gap-1.5">
-          <ToggleGroup
-            type="single"
-            size="sm"
-            value={isBetween ? justify : ""}
-            onValueChange={(v) => onJustifyChange(v || "justify-start")}
-            className="justify-start gap-0"
-          >
-            <ToggleGroupItem value="justify-between" className="h-7 px-2 text-xs data-[state=on]:bg-blue-500/10 data-[state=on]:text-blue-500">
-              between
-            </ToggleGroupItem>
-            <ToggleGroupItem value="justify-around" className="h-7 px-2 text-xs data-[state=on]:bg-blue-500/10 data-[state=on]:text-blue-500">
-              around
-            </ToggleGroupItem>
-            <ToggleGroupItem value="justify-evenly" className="h-7 px-2 text-xs data-[state=on]:bg-blue-500/10 data-[state=on]:text-blue-500">
-              evenly
-            </ToggleGroupItem>
-          </ToggleGroup>
+        {/* Icon toggle groups beside the grid */}
+        <div className="flex shrink-0 flex-col gap-2">
+          <div>
+            <p className="mb-1 text-xs font-medium text-muted-foreground">Distribute</p>
+            <div className="flex flex-wrap gap-0.5">
+              <IconToggle value="justify-between" icon={justifyBetweenIcon} tooltip="justify-between" isActive={justify === "justify-between"} onClick={() => onJustifyChange(justify === "justify-between" ? "justify-start" : "justify-between")} />
+              <IconToggle value="justify-around" icon={justifyAroundIcon} tooltip="justify-around" isActive={justify === "justify-around"} onClick={() => onJustifyChange(justify === "justify-around" ? "justify-start" : "justify-around")} />
+              <IconToggle value="justify-evenly" icon={justifyEvenlyIcon} tooltip="justify-evenly" isActive={justify === "justify-evenly"} onClick={() => onJustifyChange(justify === "justify-evenly" ? "justify-start" : "justify-evenly")} />
+            </div>
+          </div>
+          <div>
+            <p className="mb-1 text-xs font-medium text-muted-foreground">Stretch</p>
+            <div className="flex flex-wrap gap-0.5">
+              <IconToggle value="items-stretch" icon={stretchIcon} tooltip="items-stretch" isActive={align === "items-stretch"} onClick={() => onAlignChange(align === "items-stretch" ? "items-start" : "items-stretch")} />
+              <IconToggle value="items-baseline" icon={Baseline} tooltip="items-baseline" isActive={align === "items-baseline"} onClick={() => onAlignChange(align === "items-baseline" ? "items-start" : "items-baseline")} />
+            </div>
+          </div>
+        </div>
+      </div>
 
-          <ToggleGroup
-            type="single"
-            size="sm"
-            value={isStretch ? align : ""}
-            onValueChange={(v) => onAlignChange(v || "items-start")}
-            className="justify-start gap-0"
-          >
-            <ToggleGroupItem value="items-stretch" className="h-7 px-2 text-xs data-[state=on]:bg-blue-500/10 data-[state=on]:text-blue-500">
-              stretch
-            </ToggleGroupItem>
-            <ToggleGroupItem value="items-baseline" className="h-7 px-2 text-xs data-[state=on]:bg-blue-500/10 data-[state=on]:text-blue-500">
-              baseline
-            </ToggleGroupItem>
-          </ToggleGroup>
+      {/* Standalone justify-content + align-items controls */}
+      <div className="flex flex-wrap items-start gap-3">
+        <div>
+          <p className="mb-1 text-xs font-medium text-muted-foreground">Justify content</p>
+          <div className="flex flex-wrap gap-0.5">
+            {([
+              { value: "justify-start", icon: isCol ? AlignVerticalJustifyStart : AlignStartHorizontal },
+              { value: "justify-center", icon: isCol ? AlignVerticalJustifyCenter : AlignCenterHorizontal },
+              { value: "justify-end", icon: isCol ? AlignVerticalJustifyEnd : AlignEndHorizontal },
+            ] as const).map((opt) => (
+              <IconToggle key={opt.value} value={opt.value} icon={opt.icon} tooltip={opt.value} isActive={justify === opt.value} onClick={() => onJustifyChange(justify === opt.value ? "" : opt.value)} />
+            ))}
+          </div>
+        </div>
+        <div>
+          <p className="mb-1 text-xs font-medium text-muted-foreground">Align items</p>
+          <div className="flex flex-wrap gap-0.5">
+            {([
+              { value: "items-start", icon: isCol ? AlignStartHorizontal : AlignStartVertical },
+              { value: "items-center", icon: isCol ? AlignCenterHorizontal : AlignCenterVertical },
+              { value: "items-end", icon: isCol ? AlignEndHorizontal : AlignEndVertical },
+            ] as const).map((opt) => (
+              <IconToggle key={opt.value} value={opt.value} icon={opt.icon} tooltip={opt.value} isActive={align === opt.value} onClick={() => onAlignChange(align === opt.value ? "" : opt.value)} />
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -264,6 +288,87 @@ function ObjectPositionGrid({
           )
         }),
       )}
+    </div>
+  )
+}
+
+/* ── Content distribution picker (align-content / justify-content) ── */
+
+import {
+  AlignVerticalJustifyStart,
+  AlignVerticalJustifyCenter,
+  AlignVerticalJustifyEnd,
+  AlignVerticalSpaceBetween,
+  AlignVerticalSpaceAround,
+  AlignVerticalDistributeCenter,
+  StretchVertical,
+  AlignHorizontalJustifyStart,
+  AlignHorizontalJustifyCenter,
+  AlignHorizontalJustifyEnd,
+  AlignHorizontalSpaceBetween,
+  AlignHorizontalSpaceAround,
+  AlignHorizontalDistributeCenter,
+  StretchHorizontal,
+  Baseline,
+  AlignStartHorizontal,
+  AlignCenterHorizontal,
+  AlignEndHorizontal,
+  AlignStartVertical,
+  AlignCenterVertical,
+  AlignEndVertical,
+} from "lucide-react"
+
+const VERTICAL_DISTRIBUTION: Array<{ value: string; icon: React.ElementType }> = [
+  { value: "start", icon: AlignVerticalJustifyStart },
+  { value: "center", icon: AlignVerticalJustifyCenter },
+  { value: "end", icon: AlignVerticalJustifyEnd },
+  { value: "between", icon: AlignVerticalSpaceBetween },
+  { value: "around", icon: AlignVerticalSpaceAround },
+  { value: "evenly", icon: AlignVerticalDistributeCenter },
+  { value: "stretch", icon: StretchVertical },
+]
+
+const HORIZONTAL_DISTRIBUTION: Array<{ value: string; icon: React.ElementType }> = [
+  { value: "start", icon: AlignHorizontalJustifyStart },
+  { value: "center", icon: AlignHorizontalJustifyCenter },
+  { value: "end", icon: AlignHorizontalJustifyEnd },
+  { value: "between", icon: AlignHorizontalSpaceBetween },
+  { value: "around", icon: AlignHorizontalSpaceAround },
+  { value: "evenly", icon: AlignHorizontalDistributeCenter },
+  { value: "stretch", icon: StretchHorizontal },
+]
+
+function ContentDistributionPicker({
+  prefix,
+  value,
+  onChange,
+  axis = "vertical",
+}: {
+  /** Class prefix, e.g. "content" for align-content */
+  prefix: string
+  value: string
+  onChange: (v: string) => void
+  /** Which axis the distribution operates on — swaps icon set */
+  axis?: "vertical" | "horizontal"
+}) {
+  const options = axis === "horizontal" ? HORIZONTAL_DISTRIBUTION : VERTICAL_DISTRIBUTION
+
+  return (
+    <div className="flex flex-wrap gap-0.5">
+      {options.map((opt) => {
+        const cls = `${prefix}-${opt.value}`
+        const isActive = value === cls
+        return (
+          <IconToggle
+            key={opt.value}
+            value={cls}
+            icon={opt.icon}
+            tooltip={cls}
+            isActive={isActive}
+            onClick={() => onChange(value === cls ? "" : cls)}
+          />
+        )
+      })}
     </div>
   )
 }
@@ -1033,4 +1138,5 @@ export {
   gapValueToIndex,
   indexToGapValue,
   GapControl,
+  ContentDistributionPicker,
 }
