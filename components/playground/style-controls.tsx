@@ -275,14 +275,21 @@ function IconToggle({
   icon: Icon,
   tooltip,
   isActive,
+  isDefault,
   onClick,
 }: {
   value: string
   icon: React.ElementType
   tooltip: string
   isActive?: boolean
+  /** When true, shows amber/orange instead of blue (inherited default, not user-set) */
+  isDefault?: boolean
   onClick?: (value: string) => void
 }) {
+  const activeColor = isDefault
+    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+    : "bg-blue-500/10 text-blue-500"
+
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -291,7 +298,7 @@ function IconToggle({
           className={cn(
             "inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors",
             isActive
-              ? "bg-blue-500/10 text-blue-500"
+              ? activeColor
               : "text-muted-foreground hover:bg-muted hover:text-foreground",
           )}
           onClick={() => onClick?.(value)}
@@ -313,14 +320,21 @@ function TextToggle({
   label,
   tooltip,
   isActive,
+  isDefault,
   onClick,
 }: {
   value: string
   label: string
   tooltip: string
   isActive?: boolean
+  /** When true, shows amber/orange instead of blue (inherited default, not user-set) */
+  isDefault?: boolean
   onClick?: (value: string) => void
 }) {
+  const activeColor = isDefault
+    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+    : "bg-blue-500/10 text-blue-500"
+
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -329,7 +343,7 @@ function TextToggle({
           className={cn(
             "inline-flex h-6 items-center justify-center rounded-md px-2 text-xs font-medium transition-colors",
             isActive
-              ? "bg-blue-500/10 text-blue-500"
+              ? activeColor
               : "text-muted-foreground hover:bg-muted hover:text-foreground",
           )}
           onClick={() => onClick?.(value)}

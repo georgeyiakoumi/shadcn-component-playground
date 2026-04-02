@@ -312,9 +312,9 @@ export function VisualEditor({
                       const effectiveDisplay = state.display || nativeDisp
                       return (
                         <>
-                          <IconToggle value="block" icon={PanelTop} tooltip="block" isActive={effectiveDisplay === "block"} onClick={() => update("display", nativeDisp === "block" ? "" : "block")} />
-                          <IconToggle value="inline-block" icon={Box} tooltip="inline-block" isActive={effectiveDisplay === "inline-block"} onClick={() => update("display", nativeDisp === "inline-block" ? "" : "inline-block")} />
-                          <IconToggle value="inline" icon={Minus} tooltip="inline" isActive={effectiveDisplay === "inline"} onClick={() => update("display", nativeDisp === "inline" ? "" : "inline")} />
+                          <IconToggle value="block" icon={PanelTop} tooltip="block" isActive={effectiveDisplay === "block"} isDefault={effectiveDisplay === "block" && !state.display} onClick={() => update("display", nativeDisp === "block" ? "" : "block")} />
+                          <IconToggle value="inline-block" icon={Box} tooltip="inline-block" isActive={effectiveDisplay === "inline-block"} isDefault={effectiveDisplay === "inline-block" && !state.display} onClick={() => update("display", nativeDisp === "inline-block" ? "" : "inline-block")} />
+                          <IconToggle value="inline" icon={Minus} tooltip="inline" isActive={effectiveDisplay === "inline"} isDefault={effectiveDisplay === "inline" && !state.display} onClick={() => update("display", nativeDisp === "inline" ? "" : "inline")} />
                           <IconToggle value="flex" icon={Columns3} tooltip="flex" isActive={effectiveDisplay === "flex"} onClick={() => update("display", nativeDisp === "flex" ? "" : "flex")} />
                           <IconToggle value="inline-flex" icon={Columns3} tooltip="inline-flex" isActive={effectiveDisplay === "inline-flex"} onClick={() => update("display", nativeDisp === "inline-flex" ? "" : "inline-flex")} />
                           <IconToggle value="grid" icon={LayoutGrid} tooltip="grid" isActive={effectiveDisplay === "grid"} onClick={() => update("display", nativeDisp === "grid" ? "" : "grid")} />
@@ -331,7 +331,7 @@ export function VisualEditor({
                     <EditNestedGroup>
                       <EditPanelRow label="Direction" variant="nested">
                         <div className="flex flex-wrap gap-0.5">
-                          <IconToggle value="flex-row" icon={ArrowRight} tooltip="flex-row (default)" isActive={state.direction === "flex-row" || !state.direction} onClick={() => update("direction", "")} />
+                          <IconToggle value="flex-row" icon={ArrowRight} tooltip="flex-row (default)" isActive={state.direction === "flex-row" || !state.direction} isDefault={!state.direction} onClick={() => update("direction", "")} />
                           <IconToggle value="flex-col" icon={ArrowDown} tooltip="flex-col" isActive={state.direction === "flex-col"} onClick={(v) => update("direction", v)} />
                           <IconToggle value="flex-row-reverse" icon={ArrowLeft} tooltip="flex-row-reverse" isActive={state.direction === "flex-row-reverse"} onClick={(v) => update("direction", v)} />
                           <IconToggle value="flex-col-reverse" icon={ArrowUp} tooltip="flex-col-reverse" isActive={state.direction === "flex-col-reverse"} onClick={(v) => update("direction", v)} />
@@ -339,7 +339,7 @@ export function VisualEditor({
                       </EditPanelRow>
                       <EditPanelRow label="Wrap" variant="nested">
                         <div className="flex flex-wrap gap-0.5">
-                          <IconToggle value="flex-nowrap" icon={X} tooltip="flex-nowrap (default)" isActive={!state.flexWrap || state.flexWrap === "flex-nowrap"} onClick={() => update("flexWrap", "")} />
+                          <IconToggle value="flex-nowrap" icon={X} tooltip="flex-nowrap (default)" isActive={!state.flexWrap || state.flexWrap === "flex-nowrap"} isDefault={!state.flexWrap} onClick={() => update("flexWrap", "")} />
                           <IconToggle value="flex-wrap" icon={WrapText} tooltip="flex-wrap" isActive={state.flexWrap === "flex-wrap"} onClick={(v) => update("flexWrap", v)} />
                           <TextToggle value="flex-wrap-reverse" label="reverse" tooltip="flex-wrap-reverse" isActive={state.flexWrap === "flex-wrap-reverse"} onClick={(v) => update("flexWrap", v)} />
                         </div>
@@ -362,7 +362,7 @@ export function VisualEditor({
                       </EditPanelRow>
                       <EditPanelRow label="Flow" variant="nested">
                         <div className="flex flex-wrap gap-0.5">
-                          <TextToggle value="grid-flow-row" label="row" tooltip="grid-flow-row (default)" isActive={!state.gridFlow || state.gridFlow === "grid-flow-row"} onClick={() => update("gridFlow", "")} />
+                          <TextToggle value="grid-flow-row" label="row" tooltip="grid-flow-row (default)" isActive={!state.gridFlow || state.gridFlow === "grid-flow-row"} isDefault={!state.gridFlow} onClick={() => update("gridFlow", "")} />
                           <TextToggle value="grid-flow-col" label="col" tooltip="grid-flow-col" isActive={state.gridFlow === "grid-flow-col"} onClick={(v) => update("gridFlow", v)} />
                           <TextToggle value="grid-flow-dense" label="dense" tooltip="grid-flow-dense" isActive={state.gridFlow === "grid-flow-dense"} onClick={(v) => update("gridFlow", v)} />
                           <TextToggle value="grid-flow-row-dense" label="row+dense" tooltip="grid-flow-row-dense" isActive={state.gridFlow === "grid-flow-row-dense"} onClick={(v) => update("gridFlow", v)} />
@@ -422,7 +422,7 @@ export function VisualEditor({
                         <EditSubSectionTitle>Position</EditSubSectionTitle>
                         <EditSubSectionContent>
                           <div className="flex flex-wrap gap-0.5">
-                            <IconToggle value="static" icon={Square} tooltip="static (default)" isActive={!state.position || state.position === "static"} onClick={() => update("position", "")} />
+                            <IconToggle value="static" icon={Square} tooltip="static (default)" isActive={!state.position || state.position === "static"} isDefault={!state.position} onClick={() => update("position", "")} />
                             <IconToggle value="relative" icon={Layers} tooltip="relative" isActive={state.position === "relative"} onClick={() => update("position", state.position === "relative" ? "" : "relative")} />
                             <IconToggle value="absolute" icon={Crosshair} tooltip="absolute" isActive={state.position === "absolute"} onClick={() => update("position", state.position === "absolute" ? "" : "absolute")} />
                             <IconToggle value="fixed" icon={Pin} tooltip="fixed" isActive={state.position === "fixed"} onClick={() => update("position", state.position === "fixed" ? "" : "fixed")} />
