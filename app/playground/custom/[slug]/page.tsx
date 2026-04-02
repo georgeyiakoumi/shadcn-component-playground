@@ -65,7 +65,7 @@ export default function CustomComponentPage() {
   const [selectedNodeId, setSelectedNodeId] = React.useState<string | null>(null)
   const [structurePanelWidth, setStructurePanelWidth] = React.useState(200)
   const [codePanelWidth, setCodePanelWidth] = React.useState(350)
-  const [editPanelWidth, setEditPanelWidth] = React.useState(320)
+  const [editPanelWidth, setEditPanelWidth] = React.useState(384)
   const [highlightLine, setHighlightLine] = React.useState<number | null>(null)
   const [focusRange, setFocusRange] = React.useState<{ start: number; end: number } | null>(null)
   const [hiddenIds, setHiddenIds] = React.useState<Set<string>>(new Set())
@@ -678,7 +678,7 @@ export default function CustomComponentPage() {
             {/* Right panel resize handle */}
             <DragHandle
               width={editPanelWidth}
-              minWidth={280}
+              minWidth={384}
               maxWidth={600}
               onWidthChange={setEditPanelWidth}
               side="right"
@@ -813,6 +813,8 @@ export default function CustomComponentPage() {
                         : undefined
                     }
                     subComponentNames={componentTree.subComponents.map((sc) => sc.name)}
+                    parentClasses={!isMain ? (componentTree.classes ?? []) : undefined}
+                    parentTag={!isMain ? componentTree.baseElement : undefined}
                   />
                   )
                 })() : (

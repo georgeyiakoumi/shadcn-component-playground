@@ -60,8 +60,10 @@ import {
   CommandList,
 } from "@/components/ui/command"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
 import { Slider } from "@/components/ui/slider"
+import { Switch } from "@/components/ui/switch"
+import { EditPanelSection } from "@/components/playground/edit-panel-section"
+import { EditPanelRow } from "@/components/playground/edit-panel-row"
 import {
   Select,
   SelectContent,
@@ -75,8 +77,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-// ToggleGroup no longer used — replaced with custom IconToggle/TextToggle
-// import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { Separator } from "@/components/ui/separator"
 
 /* ── Types ──────────────────────────────────────────────────────── */
 
@@ -97,6 +99,10 @@ interface VisualEditorProps {
   parentVariants?: Array<{ name: string; options: string[]; parentName: string }>
   /** Sub-component names (for has-[data-slot=...] selectors) */
   subComponentNames?: string[]
+  /** Parent element's classes (to determine parent display for child placement controls) */
+  parentClasses?: string[]
+  /** Parent element's tag (to determine native display) */
+  parentTag?: string
 }
 
 /* ── Context (prefix) types ──────────────────────────────────────── */
@@ -1763,77 +1769,7 @@ function mergeClasses(
 
 /* ── Collapsible section ─────────────────────────────────────────── */
 
-function ControlSection({
-  icon: Icon,
-  title,
-  children,
-  defaultOpen = false,
-  hasValues,
-  onClear,
-}: {
-  icon: React.ElementType
-  title: string
-  children: React.ReactNode
-  defaultOpen?: boolean
-  /** Whether any values are set in this section (shows indicator dot) */
-  hasValues?: boolean
-  /** Called when the user clicks "Clear" — clears all values in this section */
-  onClear?: () => void
-}) {
-  const [open, setOpen] = React.useState(defaultOpen)
-
-  return (
-    <div className="border-b last:border-b-0">
-      <button
-        type="button"
-        className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground"
-        onClick={() => setOpen((v) => !v)}
-      >
-        <Icon className="size-3.5" />
-        <span className="flex-1 text-left">{title}</span>
-        {hasValues && (
-          <span className="size-1.5 rounded-full bg-blue-500" />
-        )}
-        {open && onClear && hasValues && (
-          <span
-            role="button"
-            tabIndex={0}
-            className="rounded px-1 py-0.5 text-[10px] text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-            onClick={(e) => { e.stopPropagation(); onClear() }}
-            onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); onClear() } }}
-          >
-            Clear
-          </span>
-        )}
-        {open ? (
-          <ChevronDown className="size-3" />
-        ) : (
-          <ChevronRight className="size-3" />
-        )}
-      </button>
-      {open && <div className="space-y-2 px-3 pb-3">{children}</div>}
-    </div>
-  )
-}
-
-/* ── Control row label ───────────────────────────────────────────── */
-
-function ControlRow({
-  label,
-  children,
-}: {
-  label: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className="space-y-1">
-      <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-        {label}
-      </span>
-      {children}
-    </div>
-  )
-}
+/* ── Control row — now uses EditPanelRow ──────────────────────────── */
 
 /* ── Position grid (Figma-style justify × align) ─────────────────── */
 
@@ -1875,145 +1811,157 @@ function PositionGrid({
 
   return (
     <div className="space-y-1.5">
-      {/* 3×3 grid */}
-      <div className="inline-grid grid-cols-3 gap-0.5 rounded-md border p-0.5">
-        {ALIGN_KEYS.map((a) =>
-          JUSTIFY_KEYS.map((j) => {
-            // Determine active state considering between/stretch overrides
-            const justifyMatch = isBetween || justify === j
-            const alignMatch = isStretch || align === a
-            const isActive = justifyMatch && alignMatch && !isBetween && !isStretch
-            // When between is on, highlight the full row for the active align
-            const isRowHighlight = isBetween && !isStretch && align === a
-            // When stretch is on, highlight the full column for the active justify
-            const isColHighlight = isStretch && !isBetween && justify === j
-            // When both are on, all cells get a subtle highlight
-            const isBothHighlight = isBetween && isStretch
-            const highlighted = isActive || isRowHighlight || isColHighlight || isBothHighlight
+      {/* Grid + toggle groups — side by side, wrap when narrow */}
+      <div className="flex flex-wrap items-start gap-3">
+        {/* 3×3 grid */}
+        <div className="inline-grid grid-cols-3 gap-0.5 rounded-md border p-0.5">
+          {ALIGN_KEYS.map((a) =>
+            JUSTIFY_KEYS.map((j) => {
+              const justifyMatch = isBetween || justify === j
+              const alignMatch = isStretch || align === a
+              const isActive = justifyMatch && alignMatch && !isBetween && !isStretch
+              const isRowHighlight = isBetween && !isStretch && align === a
+              const isColHighlight = isStretch && !isBetween && justify === j
+              const isBothHighlight = isBetween && isStretch
+              const highlighted = isActive || isRowHighlight || isColHighlight || isBothHighlight
 
-            // Grid cell is disabled when between/stretch override that axis
-            const isDisabled = (isBetween && !isStretch) || (isStretch && !isBetween)
+              const tooltipText = getTooltip(j, a)
+              return (
+                <Tooltip key={`${j}-${a}`}>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className={cn(
+                        "flex size-7 items-center justify-center rounded-sm transition-colors",
+                        highlighted
+                          ? "bg-blue-500/15 text-blue-500"
+                          : "text-muted-foreground hover:bg-muted",
+                        isActive && "!bg-blue-500 !text-white",
+                      )}
+                      onClick={() => {
+                        if (isBetween) {
+                          onAlignChange(a)
+                        } else if (isStretch) {
+                          onJustifyChange(j)
+                        } else {
+                          onJustifyChange(j)
+                          onAlignChange(a)
+                        }
+                      }}
+                    >
+                      {isBetween && isStretch ? (
+                        <div className="h-1 w-3 rounded-full bg-current" />
+                      ) : isBetween ? (
+                        <div className="flex w-3 items-center justify-between">
+                          <div className="size-1 rounded-full bg-current" />
+                          <div className="size-1 rounded-full bg-current" />
+                          <div className="size-1 rounded-full bg-current" />
+                        </div>
+                      ) : isStretch ? (
+                        <div className="h-3 w-1 rounded-full bg-current" />
+                      ) : (
+                        <div className={cn(
+                          "size-1.5 rounded-full",
+                          isActive ? "bg-white" : "bg-current",
+                        )} />
+                      )}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-xs font-mono">
+                    {tooltipText}
+                  </TooltipContent>
+                </Tooltip>
+              )
+            }),
+          )}
+        </div>
 
-            const tooltipText = getTooltip(j, a)
-            return (
-              <Tooltip key={`${j}-${a}`}>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    className={cn(
-                      "flex size-7 items-center justify-center rounded-sm transition-colors",
-                      highlighted
-                        ? "bg-blue-500/15 text-blue-500"
-                        : "text-muted-foreground hover:bg-muted",
-                      isActive && "!bg-blue-500 !text-white",
-                    )}
-                    onClick={() => {
-                      // When between is active, clicking a cell only sets align
-                      // When stretch is active, clicking a cell only sets justify
-                      if (isBetween) {
-                        onAlignChange(a)
-                      } else if (isStretch) {
-                        onJustifyChange(j)
-                      } else {
-                        onJustifyChange(j)
-                        onAlignChange(a)
-                      }
-                    }}
-                  >
-                    {/* Dot shape changes based on between/stretch */}
-                    {isBetween && isStretch ? (
-                      // Both: show a stretched horizontal bar
-                      <div className="h-1 w-3 rounded-full bg-current" />
-                    ) : isBetween ? (
-                      // Between: show 3 small dots in a row (spread)
-                      <div className="flex w-3 items-center justify-between">
-                        <div className="size-1 rounded-full bg-current" />
-                        <div className="size-1 rounded-full bg-current" />
-                        <div className="size-1 rounded-full bg-current" />
-                      </div>
-                    ) : isStretch ? (
-                      // Stretch: show a vertical bar
-                      <div className="h-3 w-1 rounded-full bg-current" />
-                    ) : (
-                      // Normal: single dot
-                      <div className={cn(
-                        "size-1.5 rounded-full",
-                        isActive ? "bg-white" : "bg-current",
-                      )} />
-                    )}
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs font-mono">
-                  {tooltipText}
-                </TooltipContent>
-              </Tooltip>
-            )
-          }),
-        )}
+        {/* Toggle groups stacked vertically beside the grid */}
+        <div className="flex shrink-0 flex-col gap-1.5">
+          <ToggleGroup
+            type="single"
+            size="sm"
+            value={isBetween ? justify : ""}
+            onValueChange={(v) => onJustifyChange(v || "justify-start")}
+            className="justify-start gap-0"
+          >
+            <ToggleGroupItem value="justify-between" className="h-7 px-2 text-xs data-[state=on]:bg-blue-500/10 data-[state=on]:text-blue-500">
+              between
+            </ToggleGroupItem>
+            <ToggleGroupItem value="justify-around" className="h-7 px-2 text-xs data-[state=on]:bg-blue-500/10 data-[state=on]:text-blue-500">
+              around
+            </ToggleGroupItem>
+            <ToggleGroupItem value="justify-evenly" className="h-7 px-2 text-xs data-[state=on]:bg-blue-500/10 data-[state=on]:text-blue-500">
+              evenly
+            </ToggleGroupItem>
+          </ToggleGroup>
+
+          <ToggleGroup
+            type="single"
+            size="sm"
+            value={isStretch ? align : ""}
+            onValueChange={(v) => onAlignChange(v || "items-start")}
+            className="justify-start gap-0"
+          >
+            <ToggleGroupItem value="items-stretch" className="h-7 px-2 text-xs data-[state=on]:bg-blue-500/10 data-[state=on]:text-blue-500">
+              stretch
+            </ToggleGroupItem>
+            <ToggleGroupItem value="items-baseline" className="h-7 px-2 text-xs data-[state=on]:bg-blue-500/10 data-[state=on]:text-blue-500">
+              baseline
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
       </div>
+    </div>
+  )
+}
 
-      {/* Justify extras (between, around, evenly) */}
-      <div className="flex flex-wrap gap-1">
-        {([
-          { value: "justify-between", label: "between", icon: StretchHorizontal },
-          { value: "justify-around", label: "around" },
-          { value: "justify-evenly", label: "evenly" },
-        ] as const).map((opt) => {
-          const isActive = justify === opt.value
+/* ── Object position grid (3×3 spatial picker) ───────────────────── */
+
+const OBJECT_POSITION_GRID = [
+  ["object-left-top", "object-top", "object-right-top"],
+  ["object-left", "object-center", "object-right"],
+  ["object-left-bottom", "object-bottom", "object-right-bottom"],
+] as const
+
+function ObjectPositionGrid({
+  value,
+  onChange,
+}: {
+  value: string
+  onChange: (v: string) => void
+}) {
+  return (
+    <div className="inline-grid grid-cols-3 gap-0.5 rounded-md border p-0.5">
+      {OBJECT_POSITION_GRID.map((row) =>
+        row.map((pos) => {
+          const isActive = value === pos
+          const label = pos.replace("object-", "")
           return (
-            <Tooltip key={opt.value}>
+            <Tooltip key={pos}>
               <TooltipTrigger asChild>
                 <button
                   type="button"
                   className={cn(
-                    "flex h-6 items-center gap-1 rounded-md border px-2 text-xs transition-colors",
+                    "flex size-7 items-center justify-center rounded-sm transition-colors",
                     isActive
-                      ? "border-blue-500 bg-blue-500/10 text-blue-500"
+                      ? "bg-blue-500/15 text-blue-500"
                       : "text-muted-foreground hover:bg-muted",
                   )}
-                  onClick={() => onJustifyChange(isActive ? "justify-start" : opt.value)}
+                  onClick={() => onChange(value === pos ? "" : pos)}
                 >
-                  {"icon" in opt && opt.icon && <opt.icon className="size-3" />}
-                  {opt.label}
+                  <div className={cn(
+                    "size-2 rounded-full bg-current",
+                  )} />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-xs font-mono">
-                {opt.value}
+                {label}
               </TooltipContent>
             </Tooltip>
           )
-        })}
-
-        {/* Align axis extras (stretch, baseline) */}
-        {([
-          { value: "items-stretch", label: "stretch", icon: StretchVertical },
-          { value: "items-baseline", label: "baseline" },
-        ] as const).map((opt) => {
-          const isActive = align === opt.value
-          return (
-            <Tooltip key={opt.value}>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  className={cn(
-                    "flex h-6 items-center gap-1 rounded-md border px-2 text-xs transition-colors",
-                    isActive
-                      ? "border-blue-500 bg-blue-500/10 text-blue-500"
-                      : "text-muted-foreground hover:bg-muted",
-                  )}
-                  onClick={() => onAlignChange(isActive ? "items-start" : opt.value)}
-                >
-                  {"icon" in opt && opt.icon && <opt.icon className="size-3" />}
-                  {opt.label}
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-xs font-mono">
-                {opt.value}
-              </TooltipContent>
-            </Tooltip>
-          )
-        })}
-      </div>
+        }),
+      )}
     </div>
   )
 }
@@ -2122,7 +2070,7 @@ function SpacingValueInput({
   const pxLabel = SPACING_PX[stripped] ?? ""
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex flex-wrap items-center gap-1">
       <span className="w-5 text-xs text-muted-foreground">{prefix}</span>
       <Select
         value={numericVal || "__none__"}
@@ -2197,7 +2145,7 @@ function BoxModelControl({
 }) {
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center gap-1">
+      <div className="flex flex-wrap items-center gap-1">
         <SpacingValueInput
           prefix={allPrefix}
           value={allValue}
@@ -2274,8 +2222,8 @@ function SpacingSlider({
   const pxLabel = SPACING_PX[numericVal] ?? ""
 
   return (
-    <ControlRow label={label}>
-      <div className="flex items-center gap-2">
+    <EditPanelRow label={label}>
+      <div className="flex flex-wrap items-center gap-2">
         <Slider
           min={0}
           max={scale.length - 1}
@@ -2290,7 +2238,7 @@ function SpacingSlider({
           {pxLabel}
         </span>
       </div>
-    </ControlRow>
+    </EditPanelRow>
   )
 }
 
@@ -2363,7 +2311,7 @@ function ColorPicker({
     : TW_COLOR_NAMES
 
   return (
-    <ControlRow label={label}>
+    <EditPanelRow label={label}>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button
@@ -2409,7 +2357,7 @@ function ColorPicker({
               <div className="space-y-2 pr-2">
                 {/* Special values */}
                 <div>
-                  <p className="mb-1 text-[10px] font-medium uppercase text-muted-foreground">Special</p>
+                  <p className="mb-1 text-xs font-medium uppercase text-muted-foreground">Special</p>
                   <div className="flex flex-wrap gap-1">
                     {["inherit", "current", "transparent"].map((s) => {
                       const cls = `${prefix}-${s}`
@@ -2417,7 +2365,7 @@ function ColorPicker({
                         <Badge
                           key={s}
                           variant={value === cls ? "default" : "outline"}
-                          className="cursor-pointer text-[10px]"
+                          className="cursor-pointer text-xs"
                           onClick={() => { onChange(value === cls ? "" : cls); setOpen(false) }}
                         >
                           {s}
@@ -2430,7 +2378,7 @@ function ColorPicker({
                 {/* shadcn tokens */}
                 {shadcnTokens && shadcnTokens.length > 0 && (!search || "shadcn".includes(search.toLowerCase())) && (
                   <div>
-                    <p className="mb-1 text-[10px] font-medium uppercase text-muted-foreground">shadcn tokens</p>
+                    <p className="mb-1 text-xs font-medium uppercase text-muted-foreground">shadcn tokens</p>
                     <div className="flex flex-wrap gap-1">
                       {shadcnTokens.map((t) => (
                         <Tooltip key={t.value}>
@@ -2459,8 +2407,8 @@ function ColorPicker({
                 {/* Black & White */}
                 {(!search || "black white".includes(search.toLowerCase())) && (
                   <div>
-                    <p className="mb-1 text-[10px] font-medium uppercase text-muted-foreground">Black & White</p>
-                    <div className="flex gap-1">
+                    <p className="mb-1 text-xs font-medium uppercase text-muted-foreground">Black & White</p>
+                    <div className="flex flex-wrap gap-1">
                       {[
                         { s: "black", hex: "#000000" },
                         { s: "white", hex: "#ffffff" },
@@ -2488,8 +2436,8 @@ function ColorPicker({
                 {/* Full Tailwind palette */}
                 {filteredColors.map((colorName) => (
                   <div key={colorName}>
-                    <p className="mb-1 text-[10px] font-medium capitalize text-muted-foreground">{colorName}</p>
-                    <div className="flex gap-0.5">
+                    <p className="mb-1 text-xs font-medium capitalize text-muted-foreground">{colorName}</p>
+                    <div className="flex flex-wrap gap-0.5">
                       {TW_SHADES.map((shade) => {
                         const cls = `${prefix}-${colorName}-${shade}`
                         const h = TW_SWATCH_COLORS[colorName]?.[shade] ?? "#888"
@@ -2522,7 +2470,7 @@ function ColorPicker({
           </div>
         </PopoverContent>
       </Popover>
-    </ControlRow>
+    </EditPanelRow>
   )
 }
 
@@ -2624,7 +2572,7 @@ function GridNumberPicker({
 
   if (showCustom) {
     return (
-      <div className="flex items-center gap-1">
+      <div className="flex flex-wrap items-center gap-1">
         <Input
           value={customInput}
           onChange={(e) => setCustomInput(e.target.value)}
@@ -2649,7 +2597,7 @@ function GridNumberPicker({
   }
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex flex-wrap items-center gap-1">
       {/* Number input with up/down */}
       <div className="flex items-center rounded-md border">
         <Button
@@ -2760,25 +2708,23 @@ function GapControl({
     }
   }
 
+  const gapDisplayValue = split
+    ? `x:${gapX ? gapX.replace("gap-x-", "") : "0"} y:${gapY ? gapY.replace("gap-y-", "") : "0"}`
+    : gap ? gap.replace("gap-", "") : "0"
+
   return (
-    <ControlRow label="Gap">
+    <EditPanelRow label="Gap" value={gapDisplayValue}>
       <div className="space-y-2">
         {!split ? (
-          <div className="flex items-center gap-2">
-            <Slider
-              value={[gapValueToIndex(gap, "gap")]}
-              onValueChange={([v]) => onGapChange(indexToGapValue(v, "gap"))}
-              max={GAP_SLIDER_VALUES.length - 1}
-              step={1}
-              className="flex-1"
-            />
-            <span className="w-8 text-right text-xs text-muted-foreground">
-              {gap ? gap.replace("gap-", "") : "0"}
-            </span>
-          </div>
+          <Slider
+            value={[gapValueToIndex(gap, "gap")]}
+            onValueChange={([v]) => onGapChange(indexToGapValue(v, "gap"))}
+            max={GAP_SLIDER_VALUES.length - 1}
+            step={1}
+          />
         ) : (
           <>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="w-3 text-xs text-muted-foreground">x</span>
               <Slider
                 value={[gapValueToIndex(gapX, "gap-x")]}
@@ -2787,11 +2733,8 @@ function GapControl({
                 step={1}
                 className="flex-1"
               />
-              <span className="w-8 text-right text-xs text-muted-foreground">
-                {gapX ? gapX.replace("gap-x-", "") : "0"}
-              </span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="w-3 text-xs text-muted-foreground">y</span>
               <Slider
                 value={[gapValueToIndex(gapY, "gap-y")]}
@@ -2800,9 +2743,6 @@ function GapControl({
                 step={1}
                 className="flex-1"
               />
-              <span className="w-8 text-right text-xs text-muted-foreground">
-                {gapY ? gapY.replace("gap-y-", "") : "0"}
-              </span>
             </div>
           </>
         )}
@@ -2815,7 +2755,7 @@ function GapControl({
           {split ? "Merge to single gap" : "Split x / y"}
         </Button>
       </div>
-    </ControlRow>
+    </EditPanelRow>
   )
 }
 
@@ -3025,6 +2965,8 @@ export function VisualEditor({
   props,
   parentVariants,
   subComponentNames,
+  parentClasses,
+  parentTag,
 }: VisualEditorProps) {
   const [contexts, setContexts] = React.useState<string[]>([])
 
@@ -3094,12 +3036,16 @@ export function VisualEditor({
     layout: [
       "display", "direction", "justify", "align", "gap", "gapX", "gapY",
       "flexWrap", "alignContent", "gridCols", "gridRows", "gridFlow", "autoRows", "autoCols",
-      "justifyItems", "justifySelf", "colSpan", "rowSpan", "colStart", "colEnd", "rowStart", "rowEnd",
-      "flexShorthand", "flexGrow", "flexShrink", "flexBasis", "alignSelf", "order",
+      "justifyItems",
       "position", "overflow", "zIndex", "inset", "insetX", "insetY", "top", "right", "bottom", "left",
       "visibility", "aspectRatio", "float", "clear", "isolation", "objectFit", "objectPosition",
       "spaceY", "spaceX", "spaceXReverse", "spaceYReverse",
       "width", "height", "minWidth", "maxWidth", "minHeight", "maxHeight", "size",
+    ],
+    childPlacement: [
+      "justifySelf", "alignSelf", "order",
+      "flexShorthand", "flexGrow", "flexShrink", "flexBasis",
+      "colSpan", "rowSpan", "colStart", "colEnd", "rowStart", "rowEnd",
     ],
     spacing: [
       "padding", "paddingX", "paddingY", "paddingTop", "paddingRight", "paddingBottom", "paddingLeft",
@@ -3160,10 +3106,30 @@ export function VisualEditor({
   const isFlex = effectiveDisplay === "flex" || effectiveDisplay === "inline-flex"
   const isGrid = effectiveDisplay === "grid" || effectiveDisplay === "inline-grid"
 
+  // Derive parent's effective display for child placement controls
+  const parentEffectiveDisplay = React.useMemo(() => {
+    if (!parentClasses) return undefined
+    const parentNative = parentTag ? getNativeDisplay(parentTag) : "block"
+    // Check plain classes first, then try stripping any prefix (variant/responsive/state)
+    const plainMatch = parentClasses.find((c) => DISPLAY_OPTIONS.includes(c))
+    if (plainMatch) return plainMatch
+    // Also check for display classes that might be after a prefix like "data-[size=default]:flex"
+    for (const cls of parentClasses) {
+      const lastColon = cls.lastIndexOf(":")
+      if (lastColon !== -1) {
+        const unprefixed = cls.slice(lastColon + 1)
+        if (DISPLAY_OPTIONS.includes(unprefixed)) return unprefixed
+      }
+    }
+    return parentNative
+  }, [parentClasses, parentTag])
+  const parentIsFlex = parentEffectiveDisplay === "flex" || parentEffectiveDisplay === "inline-flex"
+  const parentIsGrid = parentEffectiveDisplay === "grid" || parentEffectiveDisplay === "inline-grid"
+
   const allClasses = mergeClasses(originalClasses.current, state)
 
   return (
-    <div className="flex h-full w-full flex-col">
+    <div className="flex h-full w-full min-w-96 flex-col overflow-hidden">
       {/* ── Header with context selector ────────────────── */}
       <div className="flex items-center gap-2 border-b px-3 py-2">
         <div className="min-w-0 flex-1">
@@ -3192,10 +3158,10 @@ export function VisualEditor({
       {/* ── Controls ─────────────────────────────────────── */}
       <ScrollArea className="flex-1">
         <TooltipProvider delayDuration={200}>
-        <div className="divide-y">
+        <div className="space-y-1">
           {/* ── Layout ────────────────────────────────────── */}
-          <ControlSection icon={Layout} title="Layout" defaultOpen hasValues={sectionHasValues("layout")} onClear={() => clearSection("layout")}>
-            <ControlRow label="Display">
+          <EditPanelSection icon={Layout} title="Layout" defaultOpen hasValues={sectionHasValues("layout")} onClear={() => clearSection("layout")}>
+            <EditPanelRow label="Display">
               <div className="flex flex-wrap gap-0.5">
                 {(() => {
                   const nativeDisp = getNativeDisplay(selectedElement.tagName)
@@ -3216,7 +3182,7 @@ export function VisualEditor({
                   )
                 })()}
               </div>
-            </ControlRow>
+            </EditPanelRow>
 
             {/* ── Controls below are conditional on display type ── */}
             {(() => {
@@ -3226,204 +3192,32 @@ export function VisualEditor({
               const isBlock = effectiveDisplay === "block" || effectiveDisplay === "inline-block"
               const showPosition = !isHidden && !isContents
               const showOverflow = !isHidden && !isContents && !isInline
+              const isPositioned = !!(state.position && state.position !== "static")
 
               return (
                 <>
-                  {/* ── Position (not hidden/contents) ──────── */}
-                  {showPosition && (
-                    <ControlRow label="Position">
-                      <div className="flex gap-0.5">
-                        {POSITION_OPTIONS.map((pos) => (
-                          <TextToggle
-                            key={pos}
-                            value={pos}
-                            label={pos}
-                            tooltip={pos === "static" ? "static (default)" : pos}
-                            isActive={state.position ? state.position === pos : pos === "static"}
-                            onClick={() => update("position", pos === "static" ? "" : (state.position === pos ? "" : pos))}
-                          />
-                        ))}
-                      </div>
-                    </ControlRow>
-                  )}
-
-                  {/* ── Overflow (not hidden/contents/inline) ─ */}
-                  {showOverflow && (
-                    <ControlRow label="Overflow">
-                      <div className="flex gap-0.5">
-                        {(["visible", "hidden", "scroll", "auto"] as const).map((ov) => (
-                          <TextToggle
-                            key={ov}
-                            value={`overflow-${ov}`}
-                            label={ov}
-                            tooltip={`overflow-${ov}`}
-                            isActive={state.overflow === `overflow-${ov}`}
-                            onClick={() => update("overflow", state.overflow === `overflow-${ov}` ? "" : `overflow-${ov}`)}
-                          />
-                        ))}
-                      </div>
-                    </ControlRow>
-                  )}
-
-                  {/* ── Z-index (when positioned) ──────────── */}
-                  {showPosition && state.position && state.position !== "static" && (
-                    <ControlRow label="Z-index">
-                      <div className="flex items-center gap-1">
-                        <ZIndexInput value={state.zIndex} onChange={(v) => update("zIndex", v)} />
-                        {[10, 20, 30, 40, 50].map((n) => (
-                          <TextToggle key={n} value={`z-${n}`} label={String(n)} tooltip={`z-${n}`} isActive={state.zIndex === `z-${n}`} onClick={(v) => update("zIndex", state.zIndex === v ? "" : v)} />
-                        ))}
-                        <TextToggle value="z-auto" label="auto" tooltip="z-auto — uses browser stacking order" isActive={state.zIndex === "z-auto"} onClick={(v) => update("zIndex", state.zIndex === v ? "" : v)} />
-                      </div>
-                    </ControlRow>
-                  )}
-
-                  {/* ── Inset (when positioned, not static) ─── */}
-                  {showPosition && state.position && state.position !== "static" && (
-                    <>
-                      <ControlRow label="Inset">
-                        <Select value={state.inset ? state.inset.replace("inset-", "") : "__none__"} onValueChange={(v) => update("inset", v === "__none__" ? "" : `inset-${v}`)}>
-                          <SelectTrigger className="h-6 w-20 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none__">–</SelectItem>
-                            {INSET_SCALE.map((v) => (<SelectItem key={v} value={v} className="text-xs">{v}</SelectItem>))}
-                          </SelectContent>
-                        </Select>
-                      </ControlRow>
-                      <ControlRow label="Top">
-                        <Select value={state.top ? state.top.replace("top-", "") : "__none__"} onValueChange={(v) => update("top", v === "__none__" ? "" : `top-${v}`)}>
-                          <SelectTrigger className="h-6 w-20 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none__">–</SelectItem>
-                            {INSET_SCALE.map((v) => (<SelectItem key={v} value={v} className="text-xs">{v}</SelectItem>))}
-                          </SelectContent>
-                        </Select>
-                      </ControlRow>
-                      <ControlRow label="Right">
-                        <Select value={state.right ? state.right.replace("right-", "") : "__none__"} onValueChange={(v) => update("right", v === "__none__" ? "" : `right-${v}`)}>
-                          <SelectTrigger className="h-6 w-20 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none__">–</SelectItem>
-                            {INSET_SCALE.map((v) => (<SelectItem key={v} value={v} className="text-xs">{v}</SelectItem>))}
-                          </SelectContent>
-                        </Select>
-                      </ControlRow>
-                      <ControlRow label="Bottom">
-                        <Select value={state.bottom ? state.bottom.replace("bottom-", "") : "__none__"} onValueChange={(v) => update("bottom", v === "__none__" ? "" : `bottom-${v}`)}>
-                          <SelectTrigger className="h-6 w-20 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none__">–</SelectItem>
-                            {INSET_SCALE.map((v) => (<SelectItem key={v} value={v} className="text-xs">{v}</SelectItem>))}
-                          </SelectContent>
-                        </Select>
-                      </ControlRow>
-                      <ControlRow label="Left">
-                        <Select value={state.left ? state.left.replace("left-", "") : "__none__"} onValueChange={(v) => update("left", v === "__none__" ? "" : `left-${v}`)}>
-                          <SelectTrigger className="h-6 w-20 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none__">–</SelectItem>
-                            {INSET_SCALE.map((v) => (<SelectItem key={v} value={v} className="text-xs">{v}</SelectItem>))}
-                          </SelectContent>
-                        </Select>
-                      </ControlRow>
-                    </>
-                  )}
-
-                  {/* ── Visibility (not hidden/contents) ────── */}
-                  {showPosition && (
-                    <ControlRow label="Visibility">
-                      <div className="flex gap-0.5">
-                        {VISIBILITY_OPTIONS.map((opt) => (
-                          <TextToggle key={opt} value={opt} label={opt} tooltip={opt} isActive={state.visibility === opt} onClick={(v) => update("visibility", state.visibility === v ? "" : v)} />
-                        ))}
-                      </div>
-                    </ControlRow>
-                  )}
-
-                  {/* ── Aspect ratio ────────────────────────── */}
-                  {showPosition && (
-                    <ControlRow label="Aspect">
-                      <div className="flex gap-0.5">
-                        {ASPECT_RATIO_OPTIONS.map((opt) => (
-                          <TextToggle key={opt} value={opt} label={opt.replace("aspect-", "")} tooltip={opt} isActive={state.aspectRatio === opt} onClick={(v) => update("aspectRatio", state.aspectRatio === v ? "" : v)} />
-                        ))}
-                      </div>
-                    </ControlRow>
-                  )}
-
-                  {/* ── Float + Clear (block-level) ─────────── */}
-                  {isBlock && (
-                    <>
-                      <ControlRow label="Float">
-                        <div className="flex gap-0.5">
-                          {FLOAT_OPTIONS.map((opt) => (
-                            <TextToggle key={opt} value={opt} label={opt.replace("float-", "")} tooltip={opt} isActive={state.float === opt} onClick={(v) => update("float", state.float === v ? "" : v)} />
-                          ))}
-                        </div>
-                      </ControlRow>
-                      <ControlRow label="Clear">
-                        <div className="flex gap-0.5">
-                          {CLEAR_OPTIONS.map((opt) => (
-                            <TextToggle key={opt} value={opt} label={opt.replace("clear-", "")} tooltip={opt} isActive={state.clear === opt} onClick={(v) => update("clear", state.clear === v ? "" : v)} />
-                          ))}
-                        </div>
-                      </ControlRow>
-                    </>
-                  )}
-
-                  {/* ── Isolation ────────────────────────────── */}
-                  {showPosition && (
-                    <ControlRow label="Isolation">
-                      <div className="flex gap-0.5">
-                        {ISOLATION_OPTIONS.map((opt) => (
-                          <TextToggle key={opt} value={opt} label={opt.replace("isolation-", "")} tooltip={opt} isActive={state.isolation === opt} onClick={(v) => update("isolation", state.isolation === v ? "" : v)} />
-                        ))}
-                      </div>
-                    </ControlRow>
-                  )}
-
-                  {/* ── Object fit + position (for images/replaced elements) ── */}
-                  {showPosition && (
-                    <>
-                      <ControlRow label="Object fit">
-                        <div className="flex flex-wrap gap-0.5">
-                          {OBJECT_FIT_OPTIONS.map((opt) => (
-                            <TextToggle key={opt} value={opt} label={opt.replace("object-", "")} tooltip={opt} isActive={state.objectFit === opt} onClick={(v) => update("objectFit", state.objectFit === v ? "" : v)} />
-                          ))}
-                        </div>
-                      </ControlRow>
-                      <ControlRow label="Object pos">
-                        <div className="flex flex-wrap gap-0.5">
-                          {OBJECT_POSITION_OPTIONS.map((opt) => (
-                            <TextToggle key={opt} value={opt} label={opt.replace("object-", "")} tooltip={opt} isActive={state.objectPosition === opt} onClick={(v) => update("objectPosition", state.objectPosition === v ? "" : v)} />
-                          ))}
-                        </div>
-                      </ControlRow>
-                    </>
-                  )}
-
-                  {/* ══════ FLEX-SPECIFIC ═══════════════════ */}
+                  {/* ── Flex container ────────────────────── */}
                   {isFlex && (
                     <>
-                      {/* ── Flex container controls ────────────── */}
-                      <ControlRow label="Direction">
-                        <div className="flex gap-0.5">
+
+                      <EditPanelRow label="Direction">
+                        <div className="flex flex-wrap gap-0.5">
                           <IconToggle value="flex-row" icon={ArrowRight} tooltip="flex-row (default)" isActive={state.direction === "flex-row" || !state.direction} onClick={() => update("direction", "")} />
                           <IconToggle value="flex-col" icon={ArrowDown} tooltip="flex-col" isActive={state.direction === "flex-col"} onClick={(v) => update("direction", v)} />
                           <IconToggle value="flex-row-reverse" icon={ArrowLeft} tooltip="flex-row-reverse" isActive={state.direction === "flex-row-reverse"} onClick={(v) => update("direction", v)} />
                           <IconToggle value="flex-col-reverse" icon={ArrowUp} tooltip="flex-col-reverse" isActive={state.direction === "flex-col-reverse"} onClick={(v) => update("direction", v)} />
                         </div>
-                      </ControlRow>
+                      </EditPanelRow>
 
-                      <ControlRow label="Wrap">
-                        <div className="flex gap-0.5">
+                      <EditPanelRow label="Wrap">
+                        <div className="flex flex-wrap gap-0.5">
                           <IconToggle value="flex-nowrap" icon={X} tooltip="flex-nowrap (default)" isActive={!state.flexWrap || state.flexWrap === "flex-nowrap"} onClick={() => update("flexWrap", "")} />
                           <IconToggle value="flex-wrap" icon={WrapText} tooltip="flex-wrap" isActive={state.flexWrap === "flex-wrap"} onClick={(v) => update("flexWrap", v)} />
                           <TextToggle value="flex-wrap-reverse" label="reverse" tooltip="flex-wrap-reverse" isActive={state.flexWrap === "flex-wrap-reverse"} onClick={(v) => update("flexWrap", v)} />
                         </div>
-                      </ControlRow>
+                      </EditPanelRow>
 
-                      <ControlRow label="Alignment">
+                      <EditPanelRow label="Alignment">
                         <PositionGrid
                           justify={state.justify}
                           align={state.align}
@@ -3431,80 +3225,44 @@ export function VisualEditor({
                           onJustifyChange={(v) => update("justify", v)}
                           onAlignChange={(v) => update("align", v)}
                         />
-                      </ControlRow>
+                      </EditPanelRow>
 
-                      {/* Align content — only relevant when wrapping */}
                       {(state.flexWrap === "flex-wrap" || state.flexWrap === "flex-wrap-reverse") && (
-                        <ControlRow label="Content">
+                        <EditPanelRow label="Content">
                           <div className="flex flex-wrap gap-0.5">
                             {ALIGN_CONTENT_OPTIONS.map((opt) => (
-                              <TextToggle
-                                key={opt}
-                                value={opt}
-                                label={opt.replace("content-", "")}
-                                tooltip={opt}
-                                isActive={state.alignContent === opt}
-                                onClick={(v) => update("alignContent", state.alignContent === v ? "" : v)}
-                              />
+                              <TextToggle key={opt} value={opt} label={opt.replace("content-", "")} tooltip={opt} isActive={state.alignContent === opt} onClick={(v) => update("alignContent", state.alignContent === v ? "" : v)} />
                             ))}
                           </div>
-                        </ControlRow>
+                        </EditPanelRow>
                       )}
 
                       <GapControl
-                        gap={state.gap}
-                        gapX={state.gapX}
-                        gapY={state.gapY}
-                        onGapChange={(v) => {
-                          isUserChange.current = true
-                          setState((prev) => ({ ...prev, gap: v, gapX: "", gapY: "" }))
-                        }}
-                        onGapXChange={(v) => {
-                          isUserChange.current = true
-                          setState((prev) => ({ ...prev, gapX: v, gap: "" }))
-                        }}
-                        onGapYChange={(v) => {
-                          isUserChange.current = true
-                          setState((prev) => ({ ...prev, gapY: v, gap: "" }))
-                        }}
+                        gap={state.gap} gapX={state.gapX} gapY={state.gapY}
+                        onGapChange={(v) => { isUserChange.current = true; setState((prev) => ({ ...prev, gap: v, gapX: "", gapY: "" })) }}
+                        onGapXChange={(v) => { isUserChange.current = true; setState((prev) => ({ ...prev, gapX: v, gap: "" })) }}
+                        onGapYChange={(v) => { isUserChange.current = true; setState((prev) => ({ ...prev, gapY: v, gap: "" })) }}
                       />
-
                     </>
                   )}
 
-                  {/* ══════ GRID-SPECIFIC ═══════════════════ */}
+                  {/* ── Grid container ──────────────────────── */}
                   {isGrid && (
                     <>
-                      {/* ── Grid container controls ────────── */}
-                      <ControlRow label="Columns">
-                        <GridNumberPicker
-                          value={state.gridCols}
-                          prefix="grid-cols"
-                          max={12}
-                          allowCustom
-                          extras={[
-                            { value: "grid-cols-none", label: "auto" },
-                            { value: "grid-cols-subgrid", label: "subgrid" },
-                          ]}
-                          onChange={(v) => update("gridCols", v)}
-                        />
-                      </ControlRow>
 
-                      <ControlRow label="Rows">
-                        <GridNumberPicker
-                          value={state.gridRows}
-                          prefix="grid-rows"
-                          max={12}
-                          allowCustom
-                          extras={[
-                            { value: "grid-rows-none", label: "auto" },
-                            { value: "grid-rows-subgrid", label: "subgrid" },
-                          ]}
-                          onChange={(v) => update("gridRows", v)}
-                        />
-                      </ControlRow>
+                      <EditPanelRow label="Columns">
+                        <GridNumberPicker value={state.gridCols} prefix="grid-cols" max={12} allowCustom
+                          extras={[{ value: "grid-cols-none", label: "auto" }, { value: "grid-cols-subgrid", label: "subgrid" }]}
+                          onChange={(v) => update("gridCols", v)} />
+                      </EditPanelRow>
 
-                      <ControlRow label="Flow">
+                      <EditPanelRow label="Rows">
+                        <GridNumberPicker value={state.gridRows} prefix="grid-rows" max={12} allowCustom
+                          extras={[{ value: "grid-rows-none", label: "auto" }, { value: "grid-rows-subgrid", label: "subgrid" }]}
+                          onChange={(v) => update("gridRows", v)} />
+                      </EditPanelRow>
+
+                      <EditPanelRow label="Flow">
                         <div className="flex flex-wrap gap-0.5">
                           <TextToggle value="grid-flow-row" label="row" tooltip="grid-flow-row (default)" isActive={!state.gridFlow || state.gridFlow === "grid-flow-row"} onClick={() => update("gridFlow", "")} />
                           <TextToggle value="grid-flow-col" label="col" tooltip="grid-flow-col" isActive={state.gridFlow === "grid-flow-col"} onClick={(v) => update("gridFlow", v)} />
@@ -3512,223 +3270,344 @@ export function VisualEditor({
                           <TextToggle value="grid-flow-row-dense" label="row+dense" tooltip="grid-flow-row-dense" isActive={state.gridFlow === "grid-flow-row-dense"} onClick={(v) => update("gridFlow", v)} />
                           <TextToggle value="grid-flow-col-dense" label="col+dense" tooltip="grid-flow-col-dense" isActive={state.gridFlow === "grid-flow-col-dense"} onClick={(v) => update("gridFlow", v)} />
                         </div>
-                      </ControlRow>
+                      </EditPanelRow>
 
-                      <ControlRow label="Alignment">
-                        <PositionGrid
-                          justify={state.justify}
-                          align={state.align}
-                          display={effectiveDisplay}
-                          onJustifyChange={(v) => update("justify", v)}
-                          onAlignChange={(v) => update("align", v)}
-                        />
-                      </ControlRow>
+                      <EditPanelRow label="Alignment">
+                        <PositionGrid justify={state.justify} align={state.align} display={effectiveDisplay}
+                          onJustifyChange={(v) => update("justify", v)} onAlignChange={(v) => update("align", v)} />
+                      </EditPanelRow>
 
                       <GapControl
-                        gap={state.gap}
-                        gapX={state.gapX}
-                        gapY={state.gapY}
-                        onGapChange={(v) => {
-                          isUserChange.current = true
-                          setState((prev) => ({ ...prev, gap: v, gapX: "", gapY: "" }))
-                        }}
-                        onGapXChange={(v) => {
-                          isUserChange.current = true
-                          setState((prev) => ({ ...prev, gapX: v, gap: "" }))
-                        }}
-                        onGapYChange={(v) => {
-                          isUserChange.current = true
-                          setState((prev) => ({ ...prev, gapY: v, gap: "" }))
-                        }}
+                        gap={state.gap} gapX={state.gapX} gapY={state.gapY}
+                        onGapChange={(v) => { isUserChange.current = true; setState((prev) => ({ ...prev, gap: v, gapX: "", gapY: "" })) }}
+                        onGapXChange={(v) => { isUserChange.current = true; setState((prev) => ({ ...prev, gapX: v, gap: "" })) }}
+                        onGapYChange={(v) => { isUserChange.current = true; setState((prev) => ({ ...prev, gapY: v, gap: "" })) }}
                       />
 
-                      <ControlRow label="Auto rows">
+                      <EditPanelRow label="Auto rows">
                         <div className="flex flex-wrap gap-0.5">
                           {AUTO_ROWS_OPTIONS.map((opt) => (
-                            <TextToggle
-                              key={opt}
-                              value={opt}
-                              label={opt.replace("auto-rows-", "")}
-                              tooltip={opt}
-                              isActive={state.autoRows === opt}
-                              onClick={(v) => update("autoRows", state.autoRows === v ? "" : v)}
-                            />
+                            <TextToggle key={opt} value={opt} label={opt.replace("auto-rows-", "")} tooltip={opt} isActive={state.autoRows === opt} onClick={(v) => update("autoRows", state.autoRows === v ? "" : v)} />
                           ))}
                         </div>
-                      </ControlRow>
+                      </EditPanelRow>
 
-                      <ControlRow label="Auto cols">
+                      <EditPanelRow label="Auto cols">
                         <div className="flex flex-wrap gap-0.5">
                           {AUTO_COLS_OPTIONS.map((opt) => (
-                            <TextToggle
-                              key={opt}
-                              value={opt}
-                              label={opt.replace("auto-cols-", "")}
-                              tooltip={opt}
-                              isActive={state.autoCols === opt}
-                              onClick={(v) => update("autoCols", state.autoCols === v ? "" : v)}
-                            />
+                            <TextToggle key={opt} value={opt} label={opt.replace("auto-cols-", "")} tooltip={opt} isActive={state.autoCols === opt} onClick={(v) => update("autoCols", state.autoCols === v ? "" : v)} />
                           ))}
                         </div>
-                      </ControlRow>
+                      </EditPanelRow>
 
-                      <ControlRow label="Justify items">
+                      <EditPanelRow label="Justify items">
                         <div className="flex flex-wrap gap-0.5">
                           {JUSTIFY_ITEMS_OPTIONS.map((opt) => (
-                            <TextToggle
-                              key={opt}
-                              value={opt}
-                              label={opt.replace("justify-items-", "")}
-                              tooltip={opt}
-                              isActive={state.justifyItems === opt}
-                              onClick={(v) => update("justifyItems", state.justifyItems === v ? "" : v)}
-                            />
+                            <TextToggle key={opt} value={opt} label={opt.replace("justify-items-", "")} tooltip={opt} isActive={state.justifyItems === opt} onClick={(v) => update("justifyItems", state.justifyItems === v ? "" : v)} />
                           ))}
                         </div>
-                      </ControlRow>
+                      </EditPanelRow>
 
-                      <ControlRow label="Align content">
+                      <EditPanelRow label="Align content">
                         <div className="flex flex-wrap gap-0.5">
                           {ALIGN_CONTENT_OPTIONS.map((opt) => (
-                            <TextToggle
-                              key={opt}
-                              value={opt}
-                              label={opt.replace("content-", "")}
-                              tooltip={opt}
-                              isActive={state.alignContent === opt}
-                              onClick={(v) => update("alignContent", state.alignContent === v ? "" : v)}
-                            />
+                            <TextToggle key={opt} value={opt} label={opt.replace("content-", "")} tooltip={opt} isActive={state.alignContent === opt} onClick={(v) => update("alignContent", state.alignContent === v ? "" : v)} />
                           ))}
                         </div>
-                      </ControlRow>
+                      </EditPanelRow>
                     </>
                   )}
 
-                  {/* ══════ CHILD PROPERTIES (always visible) ════ */}
-                  {effectiveDisplay !== "hidden" && effectiveDisplay !== "contents" && (
+                  {/* ── Position ────────────────────────────── */}
+                  {showPosition && (
                     <>
-                      <div className="border-t px-3 py-1.5">
-                        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground/60">Child placement</p>
-                      </div>
 
-                      <ControlRow label="Col span">
-                        <GridNumberPicker
-                          value={state.colSpan}
-                          prefix="col-span"
-                          max={12}
-                          extras={[{ value: "col-span-full", label: "full" }]}
-                          onChange={(v) => update("colSpan", v)}
-                        />
-                      </ControlRow>
-
-                      <ControlRow label="Row span">
-                        <GridNumberPicker
-                          value={state.rowSpan}
-                          prefix="row-span"
-                          max={12}
-                          extras={[{ value: "row-span-full", label: "full" }]}
-                          onChange={(v) => update("rowSpan", v)}
-                        />
-                      </ControlRow>
-
-                      <ControlRow label="Col start">
-                        <GridNumberPicker value={state.colStart} prefix="col-start" max={13} extras={[{ value: "col-start-auto", label: "auto" }]} onChange={(v) => update("colStart", v)} />
-                      </ControlRow>
-
-                      <ControlRow label="Col end">
-                        <GridNumberPicker value={state.colEnd} prefix="col-end" max={13} extras={[{ value: "col-end-auto", label: "auto" }]} onChange={(v) => update("colEnd", v)} />
-                      </ControlRow>
-
-                      <ControlRow label="Row start">
-                        <GridNumberPicker value={state.rowStart} prefix="row-start" max={7} extras={[{ value: "row-start-auto", label: "auto" }]} onChange={(v) => update("rowStart", v)} />
-                      </ControlRow>
-
-                      <ControlRow label="Row end">
-                        <GridNumberPicker value={state.rowEnd} prefix="row-end" max={7} extras={[{ value: "row-end-auto", label: "auto" }]} onChange={(v) => update("rowEnd", v)} />
-                      </ControlRow>
-
-                      <ControlRow label="Flex">
-                        <div className="flex gap-0.5">
-                          <TextToggle value="" label="–" tooltip="default" isActive={!state.flexShorthand} onClick={() => update("flexShorthand", "")} />
-                          <TextToggle value="flex-1" label="1" tooltip="flex-1" isActive={state.flexShorthand === "flex-1"} onClick={(v) => update("flexShorthand", v)} />
-                          <TextToggle value="flex-auto" label="auto" tooltip="flex-auto" isActive={state.flexShorthand === "flex-auto"} onClick={(v) => update("flexShorthand", v)} />
-                          <TextToggle value="flex-initial" label="initial" tooltip="flex-initial" isActive={state.flexShorthand === "flex-initial"} onClick={(v) => update("flexShorthand", v)} />
-                          <TextToggle value="flex-none" label="none" tooltip="flex-none" isActive={state.flexShorthand === "flex-none"} onClick={(v) => update("flexShorthand", v)} />
-                        </div>
-                      </ControlRow>
-
-                      <ControlRow label="Grow">
-                        <div className="flex gap-0.5">
-                          <TextToggle value="" label="–" tooltip="default" isActive={!state.flexGrow} onClick={() => update("flexGrow", "")} />
-                          <IconToggle value="grow" icon={Maximize2} tooltip="grow" isActive={state.flexGrow === "grow"} onClick={(v) => update("flexGrow", v)} />
-                          <TextToggle value="grow-0" label="0" tooltip="grow-0" isActive={state.flexGrow === "grow-0"} onClick={(v) => update("flexGrow", v)} />
-                        </div>
-                      </ControlRow>
-
-                      <ControlRow label="Shrink">
-                        <div className="flex gap-0.5">
-                          <TextToggle value="" label="–" tooltip="default" isActive={!state.flexShrink} onClick={() => update("flexShrink", "")} />
-                          <TextToggle value="shrink" label="shrink" tooltip="shrink" isActive={state.flexShrink === "shrink"} onClick={(v) => update("flexShrink", v)} />
-                          <TextToggle value="shrink-0" label="0" tooltip="shrink-0" isActive={state.flexShrink === "shrink-0"} onClick={(v) => update("flexShrink", v)} />
-                        </div>
-                      </ControlRow>
-
-                      <ControlRow label="Basis">
-                        <Select value={state.flexBasis || "__none__"} onValueChange={(v) => update("flexBasis", v === "__none__" ? "" : v)}>
-                          <SelectTrigger className="h-6 w-24 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                      <EditPanelRow label="Position">
+                        <Select
+                          value={state.position || "static"}
+                          onValueChange={(v) => update("position", v === "static" ? "" : v)}
+                        >
+                          <SelectTrigger className="h-6 text-xs"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="__none__">–</SelectItem>
-                            {FLEX_BASIS_OPTIONS.map((v) => (
-                              <SelectItem key={v} value={v} className="text-xs">{v.replace("basis-", "")}</SelectItem>
+                            {POSITION_OPTIONS.map((pos) => (
+                              <SelectItem key={pos} value={pos} className="text-xs">{pos}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
-                      </ControlRow>
+                      </EditPanelRow>
 
-                      <ControlRow label="Align self">
-                        <div className="flex flex-wrap gap-0.5">
-                          {ALIGN_SELF_OPTIONS.map((opt) => (
-                            <TextToggle key={opt} value={opt} label={opt.replace("self-", "")} tooltip={opt} isActive={state.alignSelf === opt} onClick={(v) => update("alignSelf", state.alignSelf === v ? "" : v)} />
-                          ))}
-                        </div>
-                      </ControlRow>
+                      {isPositioned && (
+                        <>
+                          <EditPanelRow label="Z-index">
+                            <div className="flex flex-wrap items-center gap-1">
+                              <ZIndexInput value={state.zIndex} onChange={(v) => update("zIndex", v)} />
+                              {[10, 20, 30, 40, 50].map((n) => (
+                                <TextToggle key={n} value={`z-${n}`} label={String(n)} tooltip={`z-${n}`} isActive={state.zIndex === `z-${n}`} onClick={(v) => update("zIndex", state.zIndex === v ? "" : v)} />
+                              ))}
+                              <TextToggle value="z-auto" label="auto" tooltip="z-auto" isActive={state.zIndex === "z-auto"} onClick={(v) => update("zIndex", state.zIndex === v ? "" : v)} />
+                            </div>
+                          </EditPanelRow>
 
-                      <ControlRow label="Justify self">
-                        <div className="flex flex-wrap gap-0.5">
-                          {JUSTIFY_SELF_OPTIONS.map((opt) => (
-                            <TextToggle key={opt} value={opt} label={opt.replace("justify-self-", "")} tooltip={opt} isActive={state.justifySelf === opt} onClick={(v) => update("justifySelf", state.justifySelf === v ? "" : v)} />
-                          ))}
-                        </div>
-                      </ControlRow>
-
-                      <ControlRow label="Order">
-                        <Select value={state.order || "__none__"} onValueChange={(v) => update("order", v === "__none__" ? "" : v)}>
-                          <SelectTrigger className="h-6 w-24 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none__">–</SelectItem>
-                            {ORDER_OPTIONS.map((v) => (
-                              <SelectItem key={v} value={v} className="text-xs">{v.replace("order-", "")}</SelectItem>
+                          <EditPanelRow label="Inset (all)">
+                            <Select value={state.inset ? state.inset.replace("inset-", "") : "__none__"} onValueChange={(v) => update("inset", v === "__none__" ? "" : `inset-${v}`)}>
+                              <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__">–</SelectItem>
+                                {INSET_SCALE.map((v) => (<SelectItem key={v} value={v} className="text-xs">{v}</SelectItem>))}
+                              </SelectContent>
+                            </Select>
+                          </EditPanelRow>
+                          <div className="grid grid-cols-2 gap-x-2 gap-y-1.5">
+                            {([
+                              { label: "Top", key: "top" as const, prefix: "top" },
+                              { label: "Right", key: "right" as const, prefix: "right" },
+                              { label: "Bottom", key: "bottom" as const, prefix: "bottom" },
+                              { label: "Left", key: "left" as const, prefix: "left" },
+                            ] as const).map(({ label, key, prefix }) => (
+                              <div key={key} className="space-y-0.5">
+                                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{label}</p>
+                                <Select value={state[key] ? (state[key] as string).replace(`${prefix}-`, "") : "__none__"} onValueChange={(v) => update(key, v === "__none__" ? "" : `${prefix}-${v}`)}>
+                                  <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="__none__">–</SelectItem>
+                                    {INSET_SCALE.map((v) => (<SelectItem key={v} value={v} className="text-xs">{v}</SelectItem>))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
                             ))}
-                          </SelectContent>
-                        </Select>
-                      </ControlRow>
+                          </div>
+                        </>
+                      )}
                     </>
                   )}
 
-                  {/* ══════ BLOCK-SPECIFIC (space-y moved to Spacing section) ══ */}
-                  {false && isBlock && (
-                    <div />
+                  {/* ── Overflow / Visibility / Aspect ─────── */}
+                  {showPosition && (
+                    <>
+
+
+                      {showOverflow && (
+                        <EditPanelRow label="Overflow">
+                          <div className="flex flex-wrap gap-0.5">
+                            {OVERFLOW_OPTIONS.map((opt) => (
+                              <TextToggle key={opt} value={opt} label={opt.replace("overflow-", "")} tooltip={opt} isActive={state.overflow === opt} onClick={(v) => update("overflow", state.overflow === v ? "" : v)} />
+                            ))}
+                          </div>
+                        </EditPanelRow>
+                      )}
+
+                      <EditPanelRow label="Visibility">
+                        <div className="flex flex-wrap gap-0.5">
+                          {VISIBILITY_OPTIONS.map((opt) => (
+                            <TextToggle key={opt} value={opt} label={opt} tooltip={opt} isActive={state.visibility === opt} onClick={(v) => update("visibility", state.visibility === v ? "" : v)} />
+                          ))}
+                        </div>
+                      </EditPanelRow>
+
+                      <EditPanelRow label="Aspect ratio">
+                        <div className="flex flex-wrap gap-0.5">
+                          {ASPECT_RATIO_OPTIONS.map((opt) => (
+                            <TextToggle key={opt} value={opt} label={opt.replace("aspect-", "")} tooltip={opt} isActive={state.aspectRatio === opt} onClick={(v) => update("aspectRatio", state.aspectRatio === v ? "" : v)} />
+                          ))}
+                        </div>
+                      </EditPanelRow>
+
+                      <EditPanelRow label="Isolation">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Switch
+                            checked={state.isolation === "isolate"}
+                            onCheckedChange={(checked) => update("isolation", checked ? "isolate" : "")}
+                          />
+                          <span className="text-xs text-muted-foreground">
+                            {state.isolation === "isolate" ? "isolate" : "auto"}
+                          </span>
+                        </div>
+                      </EditPanelRow>
+
+                      {isBlock && (
+                        <>
+                          <EditPanelRow label="Float">
+                            <div className="flex flex-wrap gap-0.5">
+                              {FLOAT_OPTIONS.map((opt) => (
+                                <TextToggle key={opt} value={opt} label={opt.replace("float-", "")} tooltip={opt} isActive={state.float === opt} onClick={(v) => update("float", state.float === v ? "" : v)} />
+                              ))}
+                            </div>
+                          </EditPanelRow>
+                          <EditPanelRow label="Clear">
+                            <div className="flex flex-wrap gap-0.5">
+                              {CLEAR_OPTIONS.map((opt) => (
+                                <TextToggle key={opt} value={opt} label={opt.replace("clear-", "")} tooltip={opt} isActive={state.clear === opt} onClick={(v) => update("clear", state.clear === v ? "" : v)} />
+                              ))}
+                            </div>
+                          </EditPanelRow>
+                        </>
+                      )}
+                    </>
                   )}
+
+                  {/* ── Object (replaced elements only) ──── */}
+                  {showPosition && (
+                    <>
+
+                      <EditPanelRow label="Object fit">
+                        <Select
+                          value={state.objectFit || "__none__"}
+                          onValueChange={(v) => update("objectFit", v === "__none__" ? "" : v)}
+                        >
+                          <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">–</SelectItem>
+                            {OBJECT_FIT_OPTIONS.map((opt) => (
+                              <SelectItem key={opt} value={opt} className="text-xs">{opt.replace("object-", "")}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </EditPanelRow>
+                      <EditPanelRow label="Object position">
+                        <ObjectPositionGrid
+                          value={state.objectPosition}
+                          onChange={(v) => update("objectPosition", v)}
+                        />
+                      </EditPanelRow>
+                    </>
+                  )}
+
+                  {/* Child placement moved to its own section below Layout */}
                 </>
               )
             })()}
-          </ControlSection>
+          </EditPanelSection>
+
+          {/* ── Child Placement (only when parent is flex/grid) ── */}
+          {(parentIsFlex || parentIsGrid) && (
+          <EditPanelSection
+            icon={AlignCenterVertical}
+            title={`Child — ${parentEffectiveDisplay}`}
+            hasValues={sectionHasValues("childPlacement")}
+            onClear={() => clearSection("childPlacement")}
+          >
+            {/* ── Shared: align-self, justify-self, order ── */}
+            <EditPanelRow label="Align self">
+              <div className="flex flex-wrap gap-0.5">
+                {ALIGN_SELF_OPTIONS.map((opt) => (
+                  <TextToggle key={opt} value={opt} label={opt.replace("self-", "")} tooltip={opt} isActive={state.alignSelf === opt} onClick={(v) => update("alignSelf", state.alignSelf === v ? "" : v)} />
+                ))}
+              </div>
+            </EditPanelRow>
+
+            <EditPanelRow label="Justify self">
+              <div className="flex flex-wrap gap-0.5">
+                {JUSTIFY_SELF_OPTIONS.map((opt) => (
+                  <TextToggle key={opt} value={opt} label={opt.replace("justify-self-", "")} tooltip={opt} isActive={state.justifySelf === opt} onClick={(v) => update("justifySelf", state.justifySelf === v ? "" : v)} />
+                ))}
+              </div>
+            </EditPanelRow>
+
+            <EditPanelRow label="Order">
+              <Select value={state.order || "__none__"} onValueChange={(v) => update("order", v === "__none__" ? "" : v)}>
+                <SelectTrigger className="h-6 w-24 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">–</SelectItem>
+                  {ORDER_OPTIONS.map((v) => (
+                    <SelectItem key={v} value={v} className="text-xs">{v.replace("order-", "")}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </EditPanelRow>
+
+            {/* ── Flex child controls ── */}
+            {parentIsFlex && (
+              <>
+
+                <EditPanelRow label="Flex">
+                  <div className="flex flex-wrap gap-0.5">
+                    <TextToggle value="" label="–" tooltip="default" isActive={!state.flexShorthand} onClick={() => update("flexShorthand", "")} />
+                    <TextToggle value="flex-1" label="1" tooltip="flex-1" isActive={state.flexShorthand === "flex-1"} onClick={(v) => update("flexShorthand", v)} />
+                    <TextToggle value="flex-auto" label="auto" tooltip="flex-auto" isActive={state.flexShorthand === "flex-auto"} onClick={(v) => update("flexShorthand", v)} />
+                    <TextToggle value="flex-initial" label="initial" tooltip="flex-initial" isActive={state.flexShorthand === "flex-initial"} onClick={(v) => update("flexShorthand", v)} />
+                    <TextToggle value="flex-none" label="none" tooltip="flex-none" isActive={state.flexShorthand === "flex-none"} onClick={(v) => update("flexShorthand", v)} />
+                  </div>
+                </EditPanelRow>
+
+                <EditPanelRow label="Grow">
+                  <div className="flex flex-wrap gap-0.5">
+                    <TextToggle value="" label="–" tooltip="default" isActive={!state.flexGrow} onClick={() => update("flexGrow", "")} />
+                    <IconToggle value="grow" icon={Maximize2} tooltip="grow" isActive={state.flexGrow === "grow"} onClick={(v) => update("flexGrow", v)} />
+                    <TextToggle value="grow-0" label="0" tooltip="grow-0" isActive={state.flexGrow === "grow-0"} onClick={(v) => update("flexGrow", v)} />
+                  </div>
+                </EditPanelRow>
+
+                <EditPanelRow label="Shrink">
+                  <div className="flex flex-wrap gap-0.5">
+                    <TextToggle value="" label="–" tooltip="default" isActive={!state.flexShrink} onClick={() => update("flexShrink", "")} />
+                    <TextToggle value="shrink" label="shrink" tooltip="shrink" isActive={state.flexShrink === "shrink"} onClick={(v) => update("flexShrink", v)} />
+                    <TextToggle value="shrink-0" label="0" tooltip="shrink-0" isActive={state.flexShrink === "shrink-0"} onClick={(v) => update("flexShrink", v)} />
+                  </div>
+                </EditPanelRow>
+
+                <EditPanelRow label="Basis">
+                  <Select value={state.flexBasis || "__none__"} onValueChange={(v) => update("flexBasis", v === "__none__" ? "" : v)}>
+                    <SelectTrigger className="h-6 w-24 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">–</SelectItem>
+                      {FLEX_BASIS_OPTIONS.map((v) => (
+                        <SelectItem key={v} value={v} className="text-xs">{v.replace("basis-", "")}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </EditPanelRow>
+              </>
+            )}
+
+            {/* ── Grid child controls ── */}
+            {parentIsGrid && (
+              <>
+
+                <EditPanelRow label="Col span">
+                  <GridNumberPicker
+                    value={state.colSpan}
+                    prefix="col-span"
+                    max={12}
+                    extras={[{ value: "col-span-full", label: "full" }]}
+                    onChange={(v) => update("colSpan", v)}
+                  />
+                </EditPanelRow>
+
+                <EditPanelRow label="Row span">
+                  <GridNumberPicker
+                    value={state.rowSpan}
+                    prefix="row-span"
+                    max={12}
+                    extras={[{ value: "row-span-full", label: "full" }]}
+                    onChange={(v) => update("rowSpan", v)}
+                  />
+                </EditPanelRow>
+
+                <EditPanelRow label="Col start">
+                  <GridNumberPicker value={state.colStart} prefix="col-start" max={13} extras={[{ value: "col-start-auto", label: "auto" }]} onChange={(v) => update("colStart", v)} />
+                </EditPanelRow>
+
+                <EditPanelRow label="Col end">
+                  <GridNumberPicker value={state.colEnd} prefix="col-end" max={13} extras={[{ value: "col-end-auto", label: "auto" }]} onChange={(v) => update("colEnd", v)} />
+                </EditPanelRow>
+
+                <EditPanelRow label="Row start">
+                  <GridNumberPicker value={state.rowStart} prefix="row-start" max={7} extras={[{ value: "row-start-auto", label: "auto" }]} onChange={(v) => update("rowStart", v)} />
+                </EditPanelRow>
+
+                <EditPanelRow label="Row end">
+                  <GridNumberPicker value={state.rowEnd} prefix="row-end" max={7} extras={[{ value: "row-end-auto", label: "auto" }]} onChange={(v) => update("rowEnd", v)} />
+                </EditPanelRow>
+              </>
+            )}
+          </EditPanelSection>
+          )}
 
           {/* ── Remaining sections hidden when display is hidden/contents ── */}
           {effectiveDisplay !== "hidden" && effectiveDisplay !== "contents" && (
           <>
           {/* ── Spacing ──────────────────────────────────── */}
-          <ControlSection icon={Box} title="Spacing" hasValues={sectionHasValues("spacing")} onClear={() => clearSection("spacing")}>
+          <EditPanelSection icon={Box} title="Spacing" hasValues={sectionHasValues("spacing")} onClear={() => clearSection("spacing")}>
             {(() => {
               const isInline = effectiveDisplay === "inline"
               const isBlockDisplay = effectiveDisplay === "block" || effectiveDisplay === "inline-block"
@@ -3739,7 +3618,7 @@ export function VisualEditor({
               return (
                 <>
                   {/* Padding */}
-                  <ControlRow label="Padding">
+                  <EditPanelRow label="Padding">
                     <BoxModelControl
                       label="Padding"
                       allPrefix="p"
@@ -3759,10 +3638,10 @@ export function VisualEditor({
                       <SpacingValueInput prefix="px" value={state.paddingX} onChange={(v) => update("paddingX", v)} />
                       <SpacingValueInput prefix="py" value={state.paddingY} onChange={(v) => update("paddingY", v)} />
                     </div>
-                  </ControlRow>
+                  </EditPanelRow>
 
                   {/* Margin */}
-                  <ControlRow label="Margin">
+                  <EditPanelRow label="Margin">
                     <BoxModelControl
                       label="Margin"
                       allPrefix="m"
@@ -3784,12 +3663,12 @@ export function VisualEditor({
                       <SpacingValueInput prefix="mx" value={state.marginX} onChange={(v) => update("marginX", v)} allowNegative allowAuto />
                       <SpacingValueInput prefix="my" value={state.marginY} onChange={(v) => update("marginY", v)} allowNegative allowAuto />
                     </div>
-                  </ControlRow>
+                  </EditPanelRow>
 
                   {/* Space between — conditional on display/direction */}
                   {isFlexRow && (
-                    <ControlRow label="Space-X">
-                      <div className="flex items-center gap-2">
+                    <EditPanelRow label="Space-X">
+                      <div className="flex flex-wrap items-center gap-2">
                         <Select value={state.spaceX ? state.spaceX.replace("space-x-", "") : "__none__"} onValueChange={(v) => update("spaceX", v === "__none__" ? "" : `space-x-${v}`)}>
                           <SelectTrigger className="h-6 w-20 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                           <SelectContent>
@@ -3799,11 +3678,11 @@ export function VisualEditor({
                         </Select>
                         <TextToggle value="space-x-reverse" label="rev" tooltip="space-x-reverse" isActive={!!state.spaceXReverse} onClick={() => update("spaceXReverse", state.spaceXReverse ? "" : "space-x-reverse")} />
                       </div>
-                    </ControlRow>
+                    </EditPanelRow>
                   )}
                   {(isBlockDisplay || isFlexCol) && (
-                    <ControlRow label="Space-Y">
-                      <div className="flex items-center gap-2">
+                    <EditPanelRow label="Space-Y">
+                      <div className="flex flex-wrap items-center gap-2">
                         <Select value={state.spaceY ? state.spaceY.replace("space-y-", "") : "__none__"} onValueChange={(v) => update("spaceY", v === "__none__" ? "" : `space-y-${v}`)}>
                           <SelectTrigger className="h-6 w-20 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                           <SelectContent>
@@ -3813,14 +3692,14 @@ export function VisualEditor({
                         </Select>
                         <TextToggle value="space-y-reverse" label="rev" tooltip="space-y-reverse" isActive={!!state.spaceYReverse} onClick={() => update("spaceYReverse", state.spaceYReverse ? "" : "space-y-reverse")} />
                       </div>
-                    </ControlRow>
+                    </EditPanelRow>
                   )}
 
                   {/* Width / Height — not for inline */}
                   {acceptsSize && (
                     <>
-                      <Separator className="my-1" />
-                      <ControlRow label="Width">
+
+                      <EditPanelRow label="Width">
                         <Select value={state.width || "__none__"} onValueChange={(v) => update("width", v === "__none__" ? "" : v)}>
                           <SelectTrigger className="h-6 w-24 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                           <SelectContent>
@@ -3828,9 +3707,9 @@ export function VisualEditor({
                             {WIDTH_OPTIONS.map((v) => (<SelectItem key={v} value={v} className="text-xs">{v.replace("w-", "")}</SelectItem>))}
                           </SelectContent>
                         </Select>
-                      </ControlRow>
+                      </EditPanelRow>
 
-                      <ControlRow label="Height">
+                      <EditPanelRow label="Height">
                         <Select value={state.height || "__none__"} onValueChange={(v) => update("height", v === "__none__" ? "" : v)}>
                           <SelectTrigger className="h-6 w-24 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                           <SelectContent>
@@ -3838,9 +3717,9 @@ export function VisualEditor({
                             {HEIGHT_OPTIONS.map((v) => (<SelectItem key={v} value={v} className="text-xs">{v.replace("h-", "")}</SelectItem>))}
                           </SelectContent>
                         </Select>
-                      </ControlRow>
+                      </EditPanelRow>
 
-                      <ControlRow label="Size">
+                      <EditPanelRow label="Size">
                         <Select value={state.size || "__none__"} onValueChange={(v) => update("size", v === "__none__" ? "" : v)}>
                           <SelectTrigger className="h-6 w-24 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                           <SelectContent>
@@ -3848,11 +3727,11 @@ export function VisualEditor({
                             {SIZE_OPTIONS.map((v) => (<SelectItem key={v} value={v} className="text-xs">{v.replace("size-", "")}</SelectItem>))}
                           </SelectContent>
                         </Select>
-                      </ControlRow>
+                      </EditPanelRow>
 
-                      <Separator className="my-1" />
 
-                      <ControlRow label="Min W">
+
+                      <EditPanelRow label="Min W">
                         <Select value={state.minWidth || "__none__"} onValueChange={(v) => update("minWidth", v === "__none__" ? "" : v)}>
                           <SelectTrigger className="h-6 w-24 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                           <SelectContent>
@@ -3860,9 +3739,9 @@ export function VisualEditor({
                             {MIN_WIDTH_OPTIONS.map((v) => (<SelectItem key={v} value={v} className="text-xs">{v.replace("min-w-", "")}</SelectItem>))}
                           </SelectContent>
                         </Select>
-                      </ControlRow>
+                      </EditPanelRow>
 
-                      <ControlRow label="Max W">
+                      <EditPanelRow label="Max W">
                         <Select value={state.maxWidth || "__none__"} onValueChange={(v) => update("maxWidth", v === "__none__" ? "" : v)}>
                           <SelectTrigger className="h-6 w-24 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                           <SelectContent>
@@ -3870,9 +3749,9 @@ export function VisualEditor({
                             {MAX_WIDTH_OPTIONS.map((v) => (<SelectItem key={v} value={v} className="text-xs">{v.replace("max-w-", "")}</SelectItem>))}
                           </SelectContent>
                         </Select>
-                      </ControlRow>
+                      </EditPanelRow>
 
-                      <ControlRow label="Min H">
+                      <EditPanelRow label="Min H">
                         <Select value={state.minHeight || "__none__"} onValueChange={(v) => update("minHeight", v === "__none__" ? "" : v)}>
                           <SelectTrigger className="h-6 w-24 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                           <SelectContent>
@@ -3880,9 +3759,9 @@ export function VisualEditor({
                             {MIN_HEIGHT_OPTIONS.map((v) => (<SelectItem key={v} value={v} className="text-xs">{v.replace("min-h-", "")}</SelectItem>))}
                           </SelectContent>
                         </Select>
-                      </ControlRow>
+                      </EditPanelRow>
 
-                      <ControlRow label="Max H">
+                      <EditPanelRow label="Max H">
                         <Select value={state.maxHeight || "__none__"} onValueChange={(v) => update("maxHeight", v === "__none__" ? "" : v)}>
                           <SelectTrigger className="h-6 w-24 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                           <SelectContent>
@@ -3890,25 +3769,25 @@ export function VisualEditor({
                             {MAX_HEIGHT_OPTIONS.map((v) => (<SelectItem key={v} value={v} className="text-xs">{v.replace("max-h-", "")}</SelectItem>))}
                           </SelectContent>
                         </Select>
-                      </ControlRow>
+                      </EditPanelRow>
                     </>
                   )}
                 </>
               )
             })()}
-          </ControlSection>
+          </EditPanelSection>
 
           {/* ── Typography ───────────────────────────────── */}
-          <ControlSection icon={Type} title="Typography" hasValues={sectionHasValues("typography")} onClear={() => clearSection("typography")}>
-            <ControlRow label="Family">
-              <div className="flex gap-0.5">
+          <EditPanelSection icon={Type} title="Typography" hasValues={sectionHasValues("typography")} onClear={() => clearSection("typography")}>
+            <EditPanelRow label="Family">
+              <div className="flex flex-wrap gap-0.5">
                 {FONT_FAMILY_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt.replace("font-", "")} tooltip={opt} isActive={state.fontFamily === opt} onClick={(v) => update("fontFamily", state.fontFamily === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
+            </EditPanelRow>
 
-            <ControlRow label="Size">
+            <EditPanelRow label="Size">
               <Select value={state.fontSize || "__none__"} onValueChange={(v) => update("fontSize", v === "__none__" ? "" : v)}>
                 <SelectTrigger className="h-6 w-20 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                 <SelectContent>
@@ -3918,9 +3797,9 @@ export function VisualEditor({
                   ))}
                 </SelectContent>
               </Select>
-            </ControlRow>
+            </EditPanelRow>
 
-            <ControlRow label="Weight">
+            <EditPanelRow label="Weight">
               <Select value={state.fontWeight || "__none__"} onValueChange={(v) => update("fontWeight", v === "__none__" ? "" : v)}>
                 <SelectTrigger className="h-6 w-24 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                 <SelectContent>
@@ -3930,17 +3809,17 @@ export function VisualEditor({
                   ))}
                 </SelectContent>
               </Select>
-            </ControlRow>
+            </EditPanelRow>
 
-            <ControlRow label="Style">
-              <div className="flex gap-0.5">
+            <EditPanelRow label="Style">
+              <div className="flex flex-wrap gap-0.5">
                 {FONT_STYLE_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt} tooltip={opt} isActive={state.fontStyle === opt} onClick={(v) => update("fontStyle", state.fontStyle === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
+            </EditPanelRow>
 
-            <ControlRow label="Align">
+            <EditPanelRow label="Align">
               <div className="flex flex-wrap gap-0.5">
                 <IconToggle value="text-left" icon={AlignLeft} tooltip="text-left" isActive={state.textAlign === "text-left"} onClick={(v) => update("textAlign", state.textAlign === v ? "" : v)} />
                 <IconToggle value="text-center" icon={AlignCenter} tooltip="text-center" isActive={state.textAlign === "text-center"} onClick={(v) => update("textAlign", state.textAlign === v ? "" : v)} />
@@ -3949,51 +3828,51 @@ export function VisualEditor({
                   <TextToggle key={opt} value={opt} label={opt.replace("text-", "")} tooltip={opt} isActive={state.textAlign === opt} onClick={(v) => update("textAlign", state.textAlign === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
+            </EditPanelRow>
 
-            <ControlRow label="Decoration">
+            <EditPanelRow label="Decoration">
               <div className="flex flex-wrap gap-0.5">
                 {TEXT_DECORATION_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt.replace("no-", "none").replace("line-through", "strike")} tooltip={opt} isActive={state.textDecoration === opt} onClick={(v) => update("textDecoration", state.textDecoration === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
+            </EditPanelRow>
 
             {state.textDecoration && state.textDecoration !== "no-underline" && (
               <>
-                <ControlRow label="Dec. style">
+                <EditPanelRow label="Dec. style">
                   <div className="flex flex-wrap gap-0.5">
                     {TEXT_DECORATION_STYLE_OPTIONS.map((opt) => (
                       <TextToggle key={opt} value={opt} label={opt.replace("decoration-", "")} tooltip={opt} isActive={state.textDecorationStyle === opt} onClick={(v) => update("textDecorationStyle", state.textDecorationStyle === v ? "" : v)} />
                     ))}
                   </div>
-                </ControlRow>
-                <ControlRow label="Dec. thick">
+                </EditPanelRow>
+                <EditPanelRow label="Dec. thick">
                   <div className="flex flex-wrap gap-0.5">
                     {TEXT_DECORATION_THICKNESS_OPTIONS.map((opt) => (
                       <TextToggle key={opt} value={opt} label={opt.replace("decoration-", "")} tooltip={opt} isActive={state.textDecorationThickness === opt} onClick={(v) => update("textDecorationThickness", state.textDecorationThickness === v ? "" : v)} />
                     ))}
                   </div>
-                </ControlRow>
-                <ControlRow label="Underline offset">
+                </EditPanelRow>
+                <EditPanelRow label="Underline offset">
                   <div className="flex flex-wrap gap-0.5">
                     {TEXT_UNDERLINE_OFFSET_OPTIONS.map((opt) => (
                       <TextToggle key={opt} value={opt} label={opt.replace("underline-offset-", "")} tooltip={opt} isActive={state.textUnderlineOffset === opt} onClick={(v) => update("textUnderlineOffset", state.textUnderlineOffset === v ? "" : v)} />
                     ))}
                   </div>
-                </ControlRow>
+                </EditPanelRow>
               </>
             )}
 
-            <ControlRow label="Transform">
+            <EditPanelRow label="Transform">
               <div className="flex flex-wrap gap-0.5">
                 {TEXT_TRANSFORM_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt.replace("normal-case", "none")} tooltip={opt} isActive={state.textTransform === opt} onClick={(v) => update("textTransform", state.textTransform === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
+            </EditPanelRow>
 
-            <ControlRow label="Line height">
+            <EditPanelRow label="Line height">
               <Select value={state.lineHeight || "__none__"} onValueChange={(v) => update("lineHeight", v === "__none__" ? "" : v)}>
                 <SelectTrigger className="h-6 w-28 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                 <SelectContent>
@@ -4003,33 +3882,33 @@ export function VisualEditor({
                   ))}
                 </SelectContent>
               </Select>
-            </ControlRow>
+            </EditPanelRow>
 
-            <ControlRow label="Letter space">
+            <EditPanelRow label="Letter space">
               <div className="flex flex-wrap gap-0.5">
                 {LETTER_SPACING_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt.replace("tracking-", "")} tooltip={opt} isActive={state.letterSpacing === opt} onClick={(v) => update("letterSpacing", state.letterSpacing === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
+            </EditPanelRow>
 
-            <ControlRow label="Overflow">
+            <EditPanelRow label="Overflow">
               <div className="flex flex-wrap gap-0.5">
                 {TEXT_OVERFLOW_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt.replace("text-", "")} tooltip={opt} isActive={state.textOverflow === opt} onClick={(v) => update("textOverflow", state.textOverflow === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
+            </EditPanelRow>
 
-            <ControlRow label="Wrap">
+            <EditPanelRow label="Wrap">
               <div className="flex flex-wrap gap-0.5">
                 {TEXT_WRAP_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt.replace("text-", "")} tooltip={opt} isActive={state.textWrap === opt} onClick={(v) => update("textWrap", state.textWrap === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
+            </EditPanelRow>
 
-            <ControlRow label="Whitespace">
+            <EditPanelRow label="Whitespace">
               <Select value={state.whitespace || "__none__"} onValueChange={(v) => update("whitespace", v === "__none__" ? "" : v)}>
                 <SelectTrigger className="h-6 w-28 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                 <SelectContent>
@@ -4039,33 +3918,33 @@ export function VisualEditor({
                   ))}
                 </SelectContent>
               </Select>
-            </ControlRow>
+            </EditPanelRow>
 
-            <ControlRow label="Word break">
+            <EditPanelRow label="Word break">
               <div className="flex flex-wrap gap-0.5">
                 {WORD_BREAK_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt.replace("break-", "")} tooltip={opt} isActive={state.wordBreak === opt} onClick={(v) => update("wordBreak", state.wordBreak === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
+            </EditPanelRow>
 
-            <ControlRow label="Hyphens">
+            <EditPanelRow label="Hyphens">
               <div className="flex flex-wrap gap-0.5">
                 {HYPHENS_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt.replace("hyphens-", "")} tooltip={opt} isActive={state.hyphens === opt} onClick={(v) => update("hyphens", state.hyphens === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
+            </EditPanelRow>
 
-            <ControlRow label="Line clamp">
+            <EditPanelRow label="Line clamp">
               <div className="flex flex-wrap gap-0.5">
                 {LINE_CLAMP_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt.replace("line-clamp-", "")} tooltip={opt} isActive={state.lineClamp === opt} onClick={(v) => update("lineClamp", state.lineClamp === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
+            </EditPanelRow>
 
-            <ControlRow label="Indent">
+            <EditPanelRow label="Indent">
               <Select value={state.textIndent || "__none__"} onValueChange={(v) => update("textIndent", v === "__none__" ? "" : v)}>
                 <SelectTrigger className="h-6 w-20 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                 <SelectContent>
@@ -4075,9 +3954,9 @@ export function VisualEditor({
                   ))}
                 </SelectContent>
               </Select>
-            </ControlRow>
+            </EditPanelRow>
 
-            <ControlRow label="V-align">
+            <EditPanelRow label="V-align">
               <Select value={state.verticalAlign || "__none__"} onValueChange={(v) => update("verticalAlign", v === "__none__" ? "" : v)}>
                 <SelectTrigger className="h-6 w-24 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                 <SelectContent>
@@ -4087,25 +3966,25 @@ export function VisualEditor({
                   ))}
                 </SelectContent>
               </Select>
-            </ControlRow>
+            </EditPanelRow>
 
-            <ControlRow label="List type">
+            <EditPanelRow label="List type">
               <div className="flex flex-wrap gap-0.5">
                 {LIST_STYLE_TYPE_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt.replace("list-", "")} tooltip={opt} isActive={state.listStyleType === opt} onClick={(v) => update("listStyleType", state.listStyleType === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
+            </EditPanelRow>
 
-            <ControlRow label="List pos">
-              <div className="flex gap-0.5">
+            <EditPanelRow label="List pos">
+              <div className="flex flex-wrap gap-0.5">
                 {LIST_STYLE_POSITION_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt.replace("list-", "")} tooltip={opt} isActive={state.listStylePosition === opt} onClick={(v) => update("listStylePosition", state.listStylePosition === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
+            </EditPanelRow>
 
-            <ControlRow label="Num variant">
+            <EditPanelRow label="Num variant">
               <Select value={state.fontVariantNumeric || "__none__"} onValueChange={(v) => update("fontVariantNumeric", v === "__none__" ? "" : v)}>
                 <SelectTrigger className="h-6 w-32 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                 <SelectContent>
@@ -4115,11 +3994,11 @@ export function VisualEditor({
                   ))}
                 </SelectContent>
               </Select>
-            </ControlRow>
-          </ControlSection>
+            </EditPanelRow>
+          </EditPanelSection>
 
           {/* ── Colours ──────────────────────────────────── */}
-          <ControlSection icon={Palette} title="Colours" hasValues={sectionHasValues("colours")} onClear={() => clearSection("colours")}>
+          <EditPanelSection icon={Palette} title="Colours" hasValues={sectionHasValues("colours")} onClear={() => clearSection("colours")}>
             <ColorPicker
               label="Text"
               prefix="text"
@@ -4161,30 +4040,25 @@ export function VisualEditor({
               onChange={(v) => update("outlineColor", v)}
             />
 
-            <Separator className="my-1" />
+
 
             {/* Opacity */}
-            <ControlRow label="Opacity">
-              <div className="space-y-1.5">
-                <Slider
-                  value={[state.opacity ? parseInt(state.opacity.replace("opacity-", ""), 10) : 100]}
-                  min={0}
-                  max={100}
-                  step={5}
-                  onValueChange={([v]) =>
-                    update("opacity", v === 100 ? "" : `opacity-${v}`)
-                  }
-                />
-                <div className="text-center text-[10px] text-muted-foreground">
-                  {state.opacity ? state.opacity.replace("opacity-", "") + "%" : "100%"}
-                </div>
-              </div>
-            </ControlRow>
+            <EditPanelRow label="Opacity" value={state.opacity ? state.opacity.replace("opacity-", "") + "%" : "100%"}>
+              <Slider
+                value={[state.opacity ? parseInt(state.opacity.replace("opacity-", ""), 10) : 100]}
+                min={0}
+                max={100}
+                step={5}
+                onValueChange={([v]) =>
+                  update("opacity", v === 100 ? "" : `opacity-${v}`)
+                }
+              />
+            </EditPanelRow>
 
-            <Separator className="my-1" />
+
 
             {/* Gradient */}
-            <ControlRow label="Gradient dir.">
+            <EditPanelRow label="Gradient dir.">
               <div className="flex flex-wrap gap-0.5">
                 {[
                   { value: "bg-gradient-to-t", label: "↑" },
@@ -4206,7 +4080,7 @@ export function VisualEditor({
                   />
                 ))}
               </div>
-            </ControlRow>
+            </EditPanelRow>
             <ColorPicker
               label="From"
               prefix="from"
@@ -4225,12 +4099,12 @@ export function VisualEditor({
               value={state.gradientTo}
               onChange={(v) => update("gradientTo", v)}
             />
-          </ControlSection>
+          </EditPanelSection>
 
           {/* ── Borders ──────────────────────────────────── */}
-          <ControlSection icon={Square} title="Borders" hasValues={sectionHasValues("borders")} onClear={() => clearSection("borders")}>
+          <EditPanelSection icon={Square} title="Borders" hasValues={sectionHasValues("borders")} onClear={() => clearSection("borders")}>
             {/* Radius — all */}
-            <ControlRow label="Radius">
+            <EditPanelRow label="Radius">
               <Select value={state.borderRadius || "__none__"} onValueChange={(v) => update("borderRadius", v === "__none__" ? "" : v)}>
                 <SelectTrigger className="h-6 flex-1 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                 <SelectContent>
@@ -4240,7 +4114,7 @@ export function VisualEditor({
                   ))}
                 </SelectContent>
               </Select>
-            </ControlRow>
+            </EditPanelRow>
             {/* Per-corner radius */}
             {[
               { label: "TL", key: "borderRadiusTL" as const, options: BORDER_RADIUS_TL_OPTIONS },
@@ -4248,25 +4122,25 @@ export function VisualEditor({
               { label: "BR", key: "borderRadiusBR" as const, options: BORDER_RADIUS_BR_OPTIONS },
               { label: "BL", key: "borderRadiusBL" as const, options: BORDER_RADIUS_BL_OPTIONS },
             ].map((corner) => (
-              <ControlRow key={corner.label} label={`Radius ${corner.label}`}>
+              <EditPanelRow key={corner.label} label={`Radius ${corner.label}`}>
                 <div className="flex flex-wrap gap-0.5">
                   {corner.options.map((opt) => (
                     <TextToggle key={opt} value={opt} label={opt.split("-").pop()!} tooltip={opt} isActive={state[corner.key] === opt} onClick={(v) => update(corner.key, state[corner.key] === v ? "" : v)} />
                   ))}
                 </div>
-              </ControlRow>
+              </EditPanelRow>
             ))}
 
-            <Separator className="my-1" />
+
 
             {/* Border width — all */}
-            <ControlRow label="Width">
+            <EditPanelRow label="Width">
               <div className="flex flex-wrap gap-0.5">
                 {BORDER_WIDTH_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt === "border" ? "1" : opt.replace("border-", "")} tooltip={opt} isActive={state.borderWidth === opt} onClick={(v) => update("borderWidth", state.borderWidth === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
+            </EditPanelRow>
             {/* Per-side border width */}
             {[
               { label: "Width T", key: "borderWidthT" as const, options: BORDER_WIDTH_T_OPTIONS, prefix: "border-t-" },
@@ -4274,110 +4148,110 @@ export function VisualEditor({
               { label: "Width B", key: "borderWidthB" as const, options: BORDER_WIDTH_B_OPTIONS, prefix: "border-b-" },
               { label: "Width L", key: "borderWidthL" as const, options: BORDER_WIDTH_L_OPTIONS, prefix: "border-l-" },
             ].map((side) => (
-              <ControlRow key={side.label} label={side.label}>
+              <EditPanelRow key={side.label} label={side.label}>
                 <div className="flex flex-wrap gap-0.5">
                   {side.options.map((opt) => {
                     const short = opt === `border-${side.label.split(" ")[1]?.toLowerCase()}` ? "1" : opt.replace(side.prefix, "").replace(/^border-[trbl]$/, "1")
                     return <TextToggle key={opt} value={opt} label={short} tooltip={opt} isActive={state[side.key] === opt} onClick={(v) => update(side.key, state[side.key] === v ? "" : v)} />
                   })}
                 </div>
-              </ControlRow>
+              </EditPanelRow>
             ))}
 
             {/* Border style */}
-            <ControlRow label="Style">
+            <EditPanelRow label="Style">
               <div className="flex flex-wrap gap-0.5">
                 {BORDER_STYLE_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt.replace("border-", "")} tooltip={opt} isActive={state.borderStyle === opt} onClick={(v) => update("borderStyle", state.borderStyle === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
+            </EditPanelRow>
 
-            <Separator className="my-1" />
+
 
             {/* Ring */}
-            <ControlRow label="Ring">
+            <EditPanelRow label="Ring">
               <div className="flex flex-wrap gap-0.5">
                 {RING_WIDTH_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt === "ring" ? "3" : opt.replace("ring-", "")} tooltip={opt} isActive={state.ringWidth === opt} onClick={(v) => update("ringWidth", state.ringWidth === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
-            <ControlRow label="Ring offset">
+            </EditPanelRow>
+            <EditPanelRow label="Ring offset">
               <div className="flex flex-wrap gap-0.5">
                 {RING_OFFSET_WIDTH_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt.replace("ring-offset-", "")} tooltip={opt} isActive={state.ringOffsetWidth === opt} onClick={(v) => update("ringOffsetWidth", state.ringOffsetWidth === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
+            </EditPanelRow>
 
-            <Separator className="my-1" />
+
 
             {/* Outline */}
-            <ControlRow label="Outline W">
+            <EditPanelRow label="Outline W">
               <div className="flex flex-wrap gap-0.5">
                 {OUTLINE_WIDTH_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt.replace("outline-", "")} tooltip={opt} isActive={state.outlineWidth === opt} onClick={(v) => update("outlineWidth", state.outlineWidth === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
-            <ControlRow label="Outline style">
+            </EditPanelRow>
+            <EditPanelRow label="Outline style">
               <div className="flex flex-wrap gap-0.5">
                 {OUTLINE_STYLE_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt === "outline" ? "solid" : opt.replace("outline-", "")} tooltip={opt} isActive={state.outlineStyle === opt} onClick={(v) => update("outlineStyle", state.outlineStyle === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
-            <ControlRow label="Outline offset">
+            </EditPanelRow>
+            <EditPanelRow label="Outline offset">
               <div className="flex flex-wrap gap-0.5">
                 {OUTLINE_OFFSET_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt.replace("outline-offset-", "")} tooltip={opt} isActive={state.outlineOffset === opt} onClick={(v) => update("outlineOffset", state.outlineOffset === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
+            </EditPanelRow>
 
-            <Separator className="my-1" />
+
 
             {/* Divide */}
-            <ControlRow label="Divide X">
+            <EditPanelRow label="Divide X">
               <div className="flex flex-wrap gap-0.5">
                 {DIVIDE_X_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt === "divide-x" ? "1" : opt.replace("divide-x-", "")} tooltip={opt} isActive={state.divideX === opt} onClick={(v) => update("divideX", state.divideX === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
-            <ControlRow label="Divide Y">
+            </EditPanelRow>
+            <EditPanelRow label="Divide Y">
               <div className="flex flex-wrap gap-0.5">
                 {DIVIDE_Y_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt === "divide-y" ? "1" : opt.replace("divide-y-", "")} tooltip={opt} isActive={state.divideY === opt} onClick={(v) => update("divideY", state.divideY === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
-            <ControlRow label="Divide style">
+            </EditPanelRow>
+            <EditPanelRow label="Divide style">
               <div className="flex flex-wrap gap-0.5">
                 {DIVIDE_STYLE_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt.replace("divide-", "")} tooltip={opt} isActive={state.divideStyle === opt} onClick={(v) => update("divideStyle", state.divideStyle === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
-            <ControlRow label="Divide rev.">
+            </EditPanelRow>
+            <EditPanelRow label="Divide rev.">
               <div className="flex flex-wrap gap-0.5">
                 {DIVIDE_REVERSE_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt.replace("divide-", "")} tooltip={opt} isActive={state.divideReverse === opt} onClick={(v) => update("divideReverse", state.divideReverse === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
-          </ControlSection>
+            </EditPanelRow>
+          </EditPanelSection>
 
           {/* ── Effects ──────────────────────────────────── */}
-          <ControlSection icon={Sparkles} title="Effects" hasValues={sectionHasValues("effects")} onClear={() => clearSection("effects")}>
-            <ControlRow label="Shadow">
+          <EditPanelSection icon={Sparkles} title="Effects" hasValues={sectionHasValues("effects")} onClear={() => clearSection("effects")}>
+            <EditPanelRow label="Shadow">
               <div className="flex flex-wrap gap-0.5">
                 {SHADOW_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt === "shadow" ? "base" : opt.replace("shadow-", "")} tooltip={opt} isActive={state.shadow === opt} onClick={(v) => update("shadow", state.shadow === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
+            </EditPanelRow>
             <ColorPicker
               label="Shadow colour"
               prefix="shadow"
@@ -4385,9 +4259,9 @@ export function VisualEditor({
               onChange={(v) => update("shadowColor", v)}
             />
 
-            <Separator className="my-1" />
 
-            <ControlRow label="Mix blend">
+
+            <EditPanelRow label="Mix blend">
               <Select value={state.mixBlend || "__none__"} onValueChange={(v) => update("mixBlend", v === "__none__" ? "" : v)}>
                 <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                 <SelectContent>
@@ -4397,8 +4271,8 @@ export function VisualEditor({
                   ))}
                 </SelectContent>
               </Select>
-            </ControlRow>
-            <ControlRow label="BG blend">
+            </EditPanelRow>
+            <EditPanelRow label="BG blend">
               <Select value={state.bgBlend || "__none__"} onValueChange={(v) => update("bgBlend", v === "__none__" ? "" : v)}>
                 <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                 <SelectContent>
@@ -4408,19 +4282,19 @@ export function VisualEditor({
                   ))}
                 </SelectContent>
               </Select>
-            </ControlRow>
-          </ControlSection>
+            </EditPanelRow>
+          </EditPanelSection>
 
           {/* ── Filters ──────────────────────────────────── */}
-          <ControlSection icon={SlidersHorizontal} title="Filters" hasValues={sectionHasValues("filters")} onClear={() => clearSection("filters")}>
-            <ControlRow label="Blur">
+          <EditPanelSection icon={SlidersHorizontal} title="Filters" hasValues={sectionHasValues("filters")} onClear={() => clearSection("filters")}>
+            <EditPanelRow label="Blur">
               <div className="flex flex-wrap gap-0.5">
                 {BLUR_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt === "blur" ? "base" : opt.replace("blur-", "")} tooltip={opt} isActive={state.blur === opt} onClick={(v) => update("blur", state.blur === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
-            <ControlRow label="Brightness">
+            </EditPanelRow>
+            <EditPanelRow label="Brightness">
               <Select value={state.brightness || "__none__"} onValueChange={(v) => update("brightness", v === "__none__" ? "" : v)}>
                 <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                 <SelectContent>
@@ -4430,8 +4304,8 @@ export function VisualEditor({
                   ))}
                 </SelectContent>
               </Select>
-            </ControlRow>
-            <ControlRow label="Contrast">
+            </EditPanelRow>
+            <EditPanelRow label="Contrast">
               <Select value={state.contrast || "__none__"} onValueChange={(v) => update("contrast", v === "__none__" ? "" : v)}>
                 <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                 <SelectContent>
@@ -4441,29 +4315,29 @@ export function VisualEditor({
                   ))}
                 </SelectContent>
               </Select>
-            </ControlRow>
-            <ControlRow label="Grayscale">
+            </EditPanelRow>
+            <EditPanelRow label="Grayscale">
               <div className="flex flex-wrap gap-0.5">
                 {GRAYSCALE_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt === "grayscale" ? "on" : "off"} tooltip={opt} isActive={state.grayscale === opt} onClick={(v) => update("grayscale", state.grayscale === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
-            <ControlRow label="Hue rotate">
+            </EditPanelRow>
+            <EditPanelRow label="Hue rotate">
               <div className="flex flex-wrap gap-0.5">
                 {HUE_ROTATE_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt.replace("hue-rotate-", "") + "°"} tooltip={opt} isActive={state.hueRotate === opt} onClick={(v) => update("hueRotate", state.hueRotate === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
-            <ControlRow label="Invert">
+            </EditPanelRow>
+            <EditPanelRow label="Invert">
               <div className="flex flex-wrap gap-0.5">
                 {INVERT_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt === "invert" ? "on" : "off"} tooltip={opt} isActive={state.invert === opt} onClick={(v) => update("invert", state.invert === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
-            <ControlRow label="Saturate">
+            </EditPanelRow>
+            <EditPanelRow label="Saturate">
               <Select value={state.saturate || "__none__"} onValueChange={(v) => update("saturate", v === "__none__" ? "" : v)}>
                 <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                 <SelectContent>
@@ -4473,33 +4347,33 @@ export function VisualEditor({
                   ))}
                 </SelectContent>
               </Select>
-            </ControlRow>
-            <ControlRow label="Sepia">
+            </EditPanelRow>
+            <EditPanelRow label="Sepia">
               <div className="flex flex-wrap gap-0.5">
                 {SEPIA_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt === "sepia" ? "on" : "off"} tooltip={opt} isActive={state.sepia === opt} onClick={(v) => update("sepia", state.sepia === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
-            <ControlRow label="Drop shadow">
+            </EditPanelRow>
+            <EditPanelRow label="Drop shadow">
               <div className="flex flex-wrap gap-0.5">
                 {DROP_SHADOW_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt === "drop-shadow" ? "base" : opt.replace("drop-shadow-", "")} tooltip={opt} isActive={state.dropShadow === opt} onClick={(v) => update("dropShadow", state.dropShadow === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
+            </EditPanelRow>
 
-            <Separator className="my-1" />
-            <p className="px-1 text-[10px] font-medium uppercase text-muted-foreground">Backdrop</p>
 
-            <ControlRow label="Blur">
+            <EditPanelRow label="Backdrop" />
+
+            <EditPanelRow label="Blur">
               <div className="flex flex-wrap gap-0.5">
                 {BACKDROP_BLUR_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt === "backdrop-blur" ? "base" : opt.replace("backdrop-blur-", "")} tooltip={opt} isActive={state.backdropBlur === opt} onClick={(v) => update("backdropBlur", state.backdropBlur === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
-            <ControlRow label="Brightness">
+            </EditPanelRow>
+            <EditPanelRow label="Brightness">
               <Select value={state.backdropBrightness || "__none__"} onValueChange={(v) => update("backdropBrightness", v === "__none__" ? "" : v)}>
                 <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                 <SelectContent>
@@ -4509,8 +4383,8 @@ export function VisualEditor({
                   ))}
                 </SelectContent>
               </Select>
-            </ControlRow>
-            <ControlRow label="Contrast">
+            </EditPanelRow>
+            <EditPanelRow label="Contrast">
               <Select value={state.backdropContrast || "__none__"} onValueChange={(v) => update("backdropContrast", v === "__none__" ? "" : v)}>
                 <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                 <SelectContent>
@@ -4520,29 +4394,29 @@ export function VisualEditor({
                   ))}
                 </SelectContent>
               </Select>
-            </ControlRow>
-            <ControlRow label="Grayscale">
+            </EditPanelRow>
+            <EditPanelRow label="Grayscale">
               <div className="flex flex-wrap gap-0.5">
                 {BACKDROP_GRAYSCALE_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt === "backdrop-grayscale" ? "on" : "off"} tooltip={opt} isActive={state.backdropGrayscale === opt} onClick={(v) => update("backdropGrayscale", state.backdropGrayscale === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
-            <ControlRow label="Hue rotate">
+            </EditPanelRow>
+            <EditPanelRow label="Hue rotate">
               <div className="flex flex-wrap gap-0.5">
                 {BACKDROP_HUE_ROTATE_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt.replace("backdrop-hue-rotate-", "") + "°"} tooltip={opt} isActive={state.backdropHueRotate === opt} onClick={(v) => update("backdropHueRotate", state.backdropHueRotate === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
-            <ControlRow label="Invert">
+            </EditPanelRow>
+            <EditPanelRow label="Invert">
               <div className="flex flex-wrap gap-0.5">
                 {BACKDROP_INVERT_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt === "backdrop-invert" ? "on" : "off"} tooltip={opt} isActive={state.backdropInvert === opt} onClick={(v) => update("backdropInvert", state.backdropInvert === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
-            <ControlRow label="Opacity">
+            </EditPanelRow>
+            <EditPanelRow label="Opacity">
               <Select value={state.backdropOpacity || "__none__"} onValueChange={(v) => update("backdropOpacity", v === "__none__" ? "" : v)}>
                 <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                 <SelectContent>
@@ -4552,8 +4426,8 @@ export function VisualEditor({
                   ))}
                 </SelectContent>
               </Select>
-            </ControlRow>
-            <ControlRow label="Saturate">
+            </EditPanelRow>
+            <EditPanelRow label="Saturate">
               <Select value={state.backdropSaturate || "__none__"} onValueChange={(v) => update("backdropSaturate", v === "__none__" ? "" : v)}>
                 <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                 <SelectContent>
@@ -4563,51 +4437,51 @@ export function VisualEditor({
                   ))}
                 </SelectContent>
               </Select>
-            </ControlRow>
-            <ControlRow label="Sepia">
+            </EditPanelRow>
+            <EditPanelRow label="Sepia">
               <div className="flex flex-wrap gap-0.5">
                 {BACKDROP_SEPIA_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt === "backdrop-sepia" ? "on" : "off"} tooltip={opt} isActive={state.backdropSepia === opt} onClick={(v) => update("backdropSepia", state.backdropSepia === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
-          </ControlSection>
+            </EditPanelRow>
+          </EditPanelSection>
 
           {/* ── Transitions & Animation ──────────────────── */}
-          <ControlSection icon={Move} title="Motion" hasValues={sectionHasValues("motion")} onClear={() => clearSection("motion")}>
-            <ControlRow label="Transition">
+          <EditPanelSection icon={Move} title="Motion" hasValues={sectionHasValues("motion")} onClear={() => clearSection("motion")}>
+            <EditPanelRow label="Transition">
               <div className="flex flex-wrap gap-0.5">
                 {TRANSITION_PROPERTY_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt === "transition" ? "default" : opt.replace("transition-", "")} tooltip={opt} isActive={state.transitionProperty === opt} onClick={(v) => update("transitionProperty", state.transitionProperty === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
-            <ControlRow label="Duration">
+            </EditPanelRow>
+            <EditPanelRow label="Duration">
               <div className="flex flex-wrap gap-0.5">
                 {TRANSITION_DURATION_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt.replace("duration-", "")} tooltip={opt} isActive={state.transitionDuration === opt} onClick={(v) => update("transitionDuration", state.transitionDuration === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
-            <ControlRow label="Easing">
+            </EditPanelRow>
+            <EditPanelRow label="Easing">
               <div className="flex flex-wrap gap-0.5">
                 {TRANSITION_TIMING_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt.replace("ease-", "")} tooltip={opt} isActive={state.transitionTiming === opt} onClick={(v) => update("transitionTiming", state.transitionTiming === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
-            <ControlRow label="Delay">
+            </EditPanelRow>
+            <EditPanelRow label="Delay">
               <div className="flex flex-wrap gap-0.5">
                 {TRANSITION_DELAY_OPTIONS.map((opt) => (
                   <TextToggle key={opt} value={opt} label={opt.replace("delay-", "")} tooltip={opt} isActive={state.transitionDelay === opt} onClick={(v) => update("transitionDelay", state.transitionDelay === v ? "" : v)} />
                 ))}
               </div>
-            </ControlRow>
+            </EditPanelRow>
 
             {/* Animation & Transforms are mutually exclusive */}
-            <ControlRow label="Animation">
+            <EditPanelRow label="Animation">
               {(state.scale || state.scaleX || state.scaleY || state.rotate || state.translateX || state.translateY || state.skewX || state.skewY) ? (
-                <p className="text-[10px] text-muted-foreground">Disabled — clear transforms first</p>
+                <p className="text-xs text-muted-foreground">Disabled — clear transforms first</p>
               ) : (
                 <div className="flex flex-wrap gap-0.5">
                   {ANIMATION_OPTIONS.map((opt) => (
@@ -4615,16 +4489,16 @@ export function VisualEditor({
                   ))}
                 </div>
               )}
-            </ControlRow>
+            </EditPanelRow>
 
-            <Separator className="my-1" />
+
 
             {(state.animation && state.animation !== "animate-none") ? (
-              <p className="px-1 text-[10px] text-muted-foreground">Transforms disabled — clear animation first</p>
+              <EditPanelRow label="Transforms" value="disabled — clear animation first" />
             ) : (
               <>
-              <p className="px-1 text-[10px] font-medium uppercase text-muted-foreground">Transforms</p>
-              <ControlRow label="Scale">
+              <EditPanelRow label="Transforms" />
+              <EditPanelRow label="Scale">
                 <Select value={state.scale || "__none__"} onValueChange={(v) => update("scale", v === "__none__" ? "" : v)}>
                   <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                   <SelectContent>
@@ -4634,8 +4508,8 @@ export function VisualEditor({
                     ))}
                   </SelectContent>
                 </Select>
-              </ControlRow>
-              <ControlRow label="Scale X">
+              </EditPanelRow>
+              <EditPanelRow label="Scale X">
                 <Select value={state.scaleX || "__none__"} onValueChange={(v) => update("scaleX", v === "__none__" ? "" : v)}>
                   <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                   <SelectContent>
@@ -4645,8 +4519,8 @@ export function VisualEditor({
                     ))}
                   </SelectContent>
                 </Select>
-              </ControlRow>
-              <ControlRow label="Scale Y">
+              </EditPanelRow>
+              <EditPanelRow label="Scale Y">
                 <Select value={state.scaleY || "__none__"} onValueChange={(v) => update("scaleY", v === "__none__" ? "" : v)}>
                   <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                   <SelectContent>
@@ -4656,15 +4530,15 @@ export function VisualEditor({
                     ))}
                   </SelectContent>
                 </Select>
-              </ControlRow>
-              <ControlRow label="Rotate">
+              </EditPanelRow>
+              <EditPanelRow label="Rotate">
                 <div className="flex flex-wrap gap-0.5">
                   {ROTATE_OPTIONS.map((opt) => (
                     <TextToggle key={opt} value={opt} label={opt.replace("rotate-", "") + "°"} tooltip={opt} isActive={state.rotate === opt} onClick={(v) => update("rotate", state.rotate === v ? "" : v)} />
                   ))}
                 </div>
-              </ControlRow>
-              <ControlRow label="Translate X">
+              </EditPanelRow>
+              <EditPanelRow label="Translate X">
                 <Select value={state.translateX || "__none__"} onValueChange={(v) => update("translateX", v === "__none__" ? "" : v)}>
                   <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                   <SelectContent>
@@ -4674,8 +4548,8 @@ export function VisualEditor({
                     ))}
                   </SelectContent>
                 </Select>
-              </ControlRow>
-              <ControlRow label="Translate Y">
+              </EditPanelRow>
+              <EditPanelRow label="Translate Y">
                 <Select value={state.translateY || "__none__"} onValueChange={(v) => update("translateY", v === "__none__" ? "" : v)}>
                   <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                   <SelectContent>
@@ -4685,22 +4559,22 @@ export function VisualEditor({
                     ))}
                   </SelectContent>
                 </Select>
-              </ControlRow>
-              <ControlRow label="Skew X">
+              </EditPanelRow>
+              <EditPanelRow label="Skew X">
                 <div className="flex flex-wrap gap-0.5">
                   {SKEW_X_OPTIONS.map((opt) => (
                     <TextToggle key={opt} value={opt} label={opt.replace("skew-x-", "").replace("-skew-x-", "-") + "°"} tooltip={opt} isActive={state.skewX === opt} onClick={(v) => update("skewX", state.skewX === v ? "" : v)} />
                   ))}
                 </div>
-              </ControlRow>
-              <ControlRow label="Skew Y">
+              </EditPanelRow>
+              <EditPanelRow label="Skew Y">
                 <div className="flex flex-wrap gap-0.5">
                   {SKEW_Y_OPTIONS.map((opt) => (
                     <TextToggle key={opt} value={opt} label={opt.replace("skew-y-", "").replace("-skew-y-", "-") + "°"} tooltip={opt} isActive={state.skewY === opt} onClick={(v) => update("skewY", state.skewY === v ? "" : v)} />
                   ))}
                 </div>
-              </ControlRow>
-              <ControlRow label="Origin">
+              </EditPanelRow>
+              <EditPanelRow label="Origin">
                 <Select value={state.transformOrigin || "__none__"} onValueChange={(v) => update("transformOrigin", v === "__none__" ? "" : v)}>
                   <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                   <SelectContent>
@@ -4710,10 +4584,10 @@ export function VisualEditor({
                     ))}
                   </SelectContent>
                 </Select>
-              </ControlRow>
+              </EditPanelRow>
               </>
             )}
-          </ControlSection>
+          </EditPanelSection>
           </>
           )}
         </div>
