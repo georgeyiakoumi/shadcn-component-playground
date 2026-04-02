@@ -64,7 +64,7 @@ import { getCssPrefix } from "@/lib/style-context"
 import type { ControlState } from "@/lib/style-state"
 import { classesToControlState, controlStateToClasses, mergeClasses } from "@/lib/style-state"
 
-import { IconToggle, TextToggle, PositionGrid, ObjectPositionGrid, SpacingValueInput, BoxModelControl, ColorPicker, ZIndexInput, GridNumberPicker, GapControl, ContentDistributionPicker } from "@/components/playground/style-controls"
+import { IconToggle, TextToggle, PositionGrid, ObjectPositionGrid, SpacingValueInput, BoxModelControl, ColorPicker, ZIndexInput, GridNumberPicker, GapControl, ContentDistributionPicker, TransformOriginGrid, SteppedSlider } from "@/components/playground/style-controls"
 import { ContextPicker } from "@/components/playground/context-picker"
 import { AppliedClassesSection } from "@/components/playground/applied-classes"
 import { EditPanelRow } from "@/components/playground/edit-panel-row"
@@ -1622,147 +1622,126 @@ export function VisualEditor({
             </EditPanelRow>
           </EditPanelSection>
 
-          {/* ── Transitions & Animation ──────────────────── */}
-          <EditPanelSection icon={Move} title="Motion" hasValues={sectionHasValues("motion")} onClear={() => clearSection("motion")}>
-            <EditPanelRow label="Transition">
-              <div className="flex flex-wrap gap-0.5">
-                {TRANSITION_PROPERTY_OPTIONS.map((opt) => (
-                  <TextToggle key={opt} value={opt} label={opt === "transition" ? "default" : opt.replace("transition-", "")} tooltip={opt} isActive={state.transitionProperty === opt} onClick={(v) => update("transitionProperty", state.transitionProperty === v ? "" : v)} />
-                ))}
-              </div>
-            </EditPanelRow>
-            <EditPanelRow label="Duration">
-              <div className="flex flex-wrap gap-0.5">
-                {TRANSITION_DURATION_OPTIONS.map((opt) => (
-                  <TextToggle key={opt} value={opt} label={opt.replace("duration-", "")} tooltip={opt} isActive={state.transitionDuration === opt} onClick={(v) => update("transitionDuration", state.transitionDuration === v ? "" : v)} />
-                ))}
-              </div>
-            </EditPanelRow>
-            <EditPanelRow label="Easing">
-              <div className="flex flex-wrap gap-0.5">
-                {TRANSITION_TIMING_OPTIONS.map((opt) => (
-                  <TextToggle key={opt} value={opt} label={opt.replace("ease-", "")} tooltip={opt} isActive={state.transitionTiming === opt} onClick={(v) => update("transitionTiming", state.transitionTiming === v ? "" : v)} />
-                ))}
-              </div>
-            </EditPanelRow>
-            <EditPanelRow label="Delay">
-              <div className="flex flex-wrap gap-0.5">
-                {TRANSITION_DELAY_OPTIONS.map((opt) => (
-                  <TextToggle key={opt} value={opt} label={opt.replace("delay-", "")} tooltip={opt} isActive={state.transitionDelay === opt} onClick={(v) => update("transitionDelay", state.transitionDelay === v ? "" : v)} />
-                ))}
-              </div>
-            </EditPanelRow>
+          {/* ── Motion ──────────────────────────────────────── */}
+          <EditSection icon={Move} title="Motion" hasValues={sectionHasValues("motion")} onClear={() => clearSection("motion")}>
 
-            {/* Animation & Transforms are mutually exclusive */}
-            <EditPanelRow label="Animation">
-              {(state.scale || state.scaleX || state.scaleY || state.rotate || state.translateX || state.translateY || state.skewX || state.skewY) ? (
-                <p className="text-xs text-muted-foreground">Disabled — clear transforms first</p>
-              ) : (
-                <div className="flex flex-wrap gap-0.5">
-                  {ANIMATION_OPTIONS.map((opt) => (
-                    <TextToggle key={opt} value={opt} label={opt.replace("animate-", "")} tooltip={opt} isActive={state.animation === opt} onClick={(v) => update("animation", state.animation === v ? "" : v)} />
-                  ))}
-                </div>
-              )}
-            </EditPanelRow>
+            {/* ── Transitions ── */}
+            <EditSubSectionWrapper>
+              <EditSubSection>
+                <EditSubSectionTitle>Transitions</EditSubSectionTitle>
+                <EditSubSectionContent>
+                  <EditPanelRow label="Property" variant="nested">
+                    <div className="flex flex-wrap gap-0.5">
+                      {TRANSITION_PROPERTY_OPTIONS.map((opt) => (
+                        <TextToggle key={opt} value={opt} label={opt === "transition" ? "default" : opt.replace("transition-", "")} tooltip={opt} isActive={state.transitionProperty === opt} onClick={(v) => update("transitionProperty", state.transitionProperty === v ? "" : v)} />
+                      ))}
+                    </div>
+                  </EditPanelRow>
+                  <SteppedSlider label="Duration" values={["0", "75", "100", "150", "200", "300", "500", "700", "1000"]} prefix="duration" value={state.transitionDuration} onChange={(v) => update("transitionDuration", v)} suffix="ms" />
+                  <EditPanelRow label="Easing" variant="nested">
+                    <div className="flex flex-wrap gap-0.5">
+                      {TRANSITION_TIMING_OPTIONS.map((opt) => (
+                        <TextToggle key={opt} value={opt} label={opt.replace("ease-", "")} tooltip={opt} isActive={state.transitionTiming === opt} onClick={(v) => update("transitionTiming", state.transitionTiming === v ? "" : v)} />
+                      ))}
+                    </div>
+                  </EditPanelRow>
+                  <SteppedSlider label="Delay" values={["0", "75", "100", "150", "200", "300", "500", "700", "1000"]} prefix="delay" value={state.transitionDelay} onChange={(v) => update("transitionDelay", v)} suffix="ms" />
+                </EditSubSectionContent>
+              </EditSubSection>
+            </EditSubSectionWrapper>
 
+            {/* ── Animation ── */}
+            <EditSubSectionWrapper>
+              <EditSubSection>
+                <EditSubSectionTitle>Animation</EditSubSectionTitle>
+                <EditSubSectionContent>
+                  {(state.scale || state.scaleX || state.scaleY || state.rotate || state.translateX || state.translateY || state.skewX || state.skewY) ? (
+                    <p className="text-xs text-muted-foreground">
+                      Disabled —{" "}
+                      <button
+                        type="button"
+                        className="text-xs font-medium text-destructive hover:underline"
+                        onClick={() => {
+                          isUserChange.current = true
+                          setState((prev) => ({ ...prev, scale: "", scaleX: "", scaleY: "", rotate: "", translateX: "", translateY: "", skewX: "", skewY: "", transformOrigin: "" }))
+                        }}
+                      >
+                        clear transforms
+                      </button>
+                    </p>
+                  ) : (
+                    <div className="flex flex-wrap gap-0.5">
+                      {ANIMATION_OPTIONS.map((opt) => (
+                        <TextToggle key={opt} value={opt} label={opt.replace("animate-", "")} tooltip={opt} isActive={state.animation === opt} onClick={(v) => update("animation", state.animation === v ? "" : v)} />
+                      ))}
+                    </div>
+                  )}
+                </EditSubSectionContent>
+              </EditSubSection>
+            </EditSubSectionWrapper>
 
+            {/* ── Transforms ── */}
+            <EditSubSectionWrapper>
+              <EditSubSection>
+                <EditSubSectionTitle>Transforms</EditSubSectionTitle>
+                <EditSubSectionContent>
+                  {(state.animation && state.animation !== "animate-none") ? (
+                    <p className="text-xs text-muted-foreground">
+                      Disabled —{" "}
+                      <button
+                        type="button"
+                        className="text-xs font-medium text-destructive hover:underline"
+                        onClick={() => {
+                          isUserChange.current = true
+                          setState((prev) => ({ ...prev, animation: "" }))
+                        }}
+                      >
+                        clear animation
+                      </button>
+                    </p>
+                  ) : (
+                    <>
+                      <SteppedSlider label="Scale" values={["0", "50", "75", "90", "95", "100", "105", "110", "125", "150"]} prefix="scale" value={state.scale} onChange={(v) => update("scale", v)} suffix="%" />
+                      <SteppedSlider label="Scale X" values={["0", "50", "75", "90", "95", "100", "105", "110", "125", "150"]} prefix="scale-x" value={state.scaleX} onChange={(v) => update("scaleX", v)} suffix="%" />
+                      <SteppedSlider label="Scale Y" values={["0", "50", "75", "90", "95", "100", "105", "110", "125", "150"]} prefix="scale-y" value={state.scaleY} onChange={(v) => update("scaleY", v)} suffix="%" />
+                      <SteppedSlider label="Rotate" values={["0", "1", "2", "3", "6", "12", "45", "90", "180"]} prefix="rotate" value={state.rotate} onChange={(v) => update("rotate", v)} suffix="°" />
+                      <EditPanelRow label="Translate X" variant="nested">
+                        <Select value={state.translateX || "__none__"} onValueChange={(v) => update("translateX", v === "__none__" ? "" : v)}>
+                          <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">–</SelectItem>
+                            {TRANSLATE_X_OPTIONS.map((opt) => (
+                              <SelectItem key={opt} value={opt} className="text-xs">{opt.replace("translate-x-", "").replace("-translate-x-", "-")}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </EditPanelRow>
+                      <EditPanelRow label="Translate Y" variant="nested">
+                        <Select value={state.translateY || "__none__"} onValueChange={(v) => update("translateY", v === "__none__" ? "" : v)}>
+                          <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">–</SelectItem>
+                            {TRANSLATE_Y_OPTIONS.map((opt) => (
+                              <SelectItem key={opt} value={opt} className="text-xs">{opt.replace("translate-y-", "").replace("-translate-y-", "-")}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </EditPanelRow>
+                      <SteppedSlider label="Skew X" values={["0", "1", "2", "3", "6", "12"]} prefix="skew-x" value={state.skewX} onChange={(v) => update("skewX", v)} suffix="°" />
+                      <SteppedSlider label="Skew Y" values={["0", "1", "2", "3", "6", "12"]} prefix="skew-y" value={state.skewY} onChange={(v) => update("skewY", v)} suffix="°" />
+                      <EditPanelRow label="Origin" variant="nested">
+                        <TransformOriginGrid
+                          value={state.transformOrigin}
+                          onChange={(v) => update("transformOrigin", v)}
+                        />
+                      </EditPanelRow>
+                    </>
+                  )}
+                </EditSubSectionContent>
+              </EditSubSection>
+            </EditSubSectionWrapper>
 
-            {(state.animation && state.animation !== "animate-none") ? (
-              <EditPanelRow label="Transforms" value="disabled — clear animation first" />
-            ) : (
-              <>
-              <EditPanelRow label="Transforms" />
-              <EditPanelRow label="Scale">
-                <Select value={state.scale || "__none__"} onValueChange={(v) => update("scale", v === "__none__" ? "" : v)}>
-                  <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">–</SelectItem>
-                    {SCALE_OPTIONS.map((opt) => (
-                      <SelectItem key={opt} value={opt} className="text-xs">{opt.replace("scale-", "")}%</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </EditPanelRow>
-              <EditPanelRow label="Scale X">
-                <Select value={state.scaleX || "__none__"} onValueChange={(v) => update("scaleX", v === "__none__" ? "" : v)}>
-                  <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">–</SelectItem>
-                    {SCALE_X_OPTIONS.map((opt) => (
-                      <SelectItem key={opt} value={opt} className="text-xs">{opt.replace("scale-x-", "")}%</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </EditPanelRow>
-              <EditPanelRow label="Scale Y">
-                <Select value={state.scaleY || "__none__"} onValueChange={(v) => update("scaleY", v === "__none__" ? "" : v)}>
-                  <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">–</SelectItem>
-                    {SCALE_Y_OPTIONS.map((opt) => (
-                      <SelectItem key={opt} value={opt} className="text-xs">{opt.replace("scale-y-", "")}%</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </EditPanelRow>
-              <EditPanelRow label="Rotate">
-                <div className="flex flex-wrap gap-0.5">
-                  {ROTATE_OPTIONS.map((opt) => (
-                    <TextToggle key={opt} value={opt} label={opt.replace("rotate-", "") + "°"} tooltip={opt} isActive={state.rotate === opt} onClick={(v) => update("rotate", state.rotate === v ? "" : v)} />
-                  ))}
-                </div>
-              </EditPanelRow>
-              <EditPanelRow label="Translate X">
-                <Select value={state.translateX || "__none__"} onValueChange={(v) => update("translateX", v === "__none__" ? "" : v)}>
-                  <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">–</SelectItem>
-                    {TRANSLATE_X_OPTIONS.map((opt) => (
-                      <SelectItem key={opt} value={opt} className="text-xs">{opt.replace("translate-x-", "").replace("-translate-x-", "-")}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </EditPanelRow>
-              <EditPanelRow label="Translate Y">
-                <Select value={state.translateY || "__none__"} onValueChange={(v) => update("translateY", v === "__none__" ? "" : v)}>
-                  <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">–</SelectItem>
-                    {TRANSLATE_Y_OPTIONS.map((opt) => (
-                      <SelectItem key={opt} value={opt} className="text-xs">{opt.replace("translate-y-", "").replace("-translate-y-", "-")}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </EditPanelRow>
-              <EditPanelRow label="Skew X">
-                <div className="flex flex-wrap gap-0.5">
-                  {SKEW_X_OPTIONS.map((opt) => (
-                    <TextToggle key={opt} value={opt} label={opt.replace("skew-x-", "").replace("-skew-x-", "-") + "°"} tooltip={opt} isActive={state.skewX === opt} onClick={(v) => update("skewX", state.skewX === v ? "" : v)} />
-                  ))}
-                </div>
-              </EditPanelRow>
-              <EditPanelRow label="Skew Y">
-                <div className="flex flex-wrap gap-0.5">
-                  {SKEW_Y_OPTIONS.map((opt) => (
-                    <TextToggle key={opt} value={opt} label={opt.replace("skew-y-", "").replace("-skew-y-", "-") + "°"} tooltip={opt} isActive={state.skewY === opt} onClick={(v) => update("skewY", state.skewY === v ? "" : v)} />
-                  ))}
-                </div>
-              </EditPanelRow>
-              <EditPanelRow label="Origin">
-                <Select value={state.transformOrigin || "__none__"} onValueChange={(v) => update("transformOrigin", v === "__none__" ? "" : v)}>
-                  <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">–</SelectItem>
-                    {TRANSFORM_ORIGIN_OPTIONS.map((opt) => (
-                      <SelectItem key={opt} value={opt} className="text-xs">{opt.replace("origin-", "")}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </EditPanelRow>
-              </>
-            )}
-          </EditPanelSection>
+          </EditSection>
           </>
           )}
         </div>

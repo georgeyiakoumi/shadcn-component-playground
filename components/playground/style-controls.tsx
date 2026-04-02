@@ -248,21 +248,27 @@ function PositionGrid({
   )
 }
 
-/* ── Object position grid (3×3 spatial picker) ───────────────────── */
+/* ── Spatial grid (3×3 position picker — reusable) ───────────────── */
 
-function ObjectPositionGrid({
+function SpatialGrid({
+  options,
   value,
   onChange,
+  labelPrefix,
 }: {
+  /** 3×3 array of class values */
+  options: readonly (readonly string[])[]
   value: string
   onChange: (v: string) => void
+  /** Prefix to strip from label display, e.g. "object-" or "origin-" */
+  labelPrefix?: string
 }) {
   return (
     <div className="inline-grid grid-cols-3 gap-0.5 rounded-md border p-0.5">
-      {OBJECT_POSITION_GRID.map((row) =>
+      {options.map((row) =>
         row.map((pos) => {
           const isActive = value === pos
-          const label = pos.replace("object-", "")
+          const label = labelPrefix ? pos.replace(labelPrefix, "") : pos
           return (
             <Tooltip key={pos}>
               <TooltipTrigger asChild>
@@ -276,9 +282,7 @@ function ObjectPositionGrid({
                   )}
                   onClick={() => onChange(value === pos ? "" : pos)}
                 >
-                  <div className={cn(
-                    "size-2 rounded-full bg-current",
-                  )} />
+                  <div className="size-2 rounded-full bg-current" />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-xs font-mono">
@@ -288,6 +292,76 @@ function ObjectPositionGrid({
           )
         }),
       )}
+    </div>
+  )
+}
+
+/** Object position uses SpatialGrid with object-* values */
+function ObjectPositionGrid({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return <SpatialGrid options={OBJECT_POSITION_GRID} value={value} onChange={onChange} labelPrefix="object-" />
+}
+
+/** Transform origin grid */
+const TRANSFORM_ORIGIN_GRID = [
+  ["origin-top-left", "origin-top", "origin-top-right"],
+  ["origin-left", "origin-center", "origin-right"],
+  ["origin-bottom-left", "origin-bottom", "origin-bottom-right"],
+] as const
+
+function TransformOriginGrid({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return <SpatialGrid options={TRANSFORM_ORIGIN_GRID} value={value} onChange={onChange} labelPrefix="origin-" />
+}
+
+/* ── Stepped slider (maps index to discrete values) ──────────────── */
+
+function SteppedSlider({
+  label,
+  values,
+  prefix,
+  value,
+  onChange,
+  suffix,
+}: {
+  label: string
+  /** The discrete values (without prefix), e.g. ["0", "75", "100", ...] */
+  values: readonly string[]
+  /** Class prefix, e.g. "duration" → "duration-100" */
+  prefix: string
+  value: string
+  onChange: (v: string) => void
+  /** Display suffix, e.g. "ms" or "°" or "%" */
+  suffix?: string
+}) {
+  const currentIndex = value ? values.indexOf(value.replace(`${prefix}-`, "")) : -1
+  const hasValue = currentIndex >= 0
+  const displayValue = hasValue ? values[currentIndex] + (suffix ?? "") : "–"
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-1">
+        <p className="flex-1 text-xs font-medium text-foreground">
+          {label}
+          <span className="ml-1 font-normal text-muted-foreground">{displayValue}</span>
+        </p>
+        {hasValue && (
+          <button
+            type="button"
+            className="text-muted-foreground hover:text-destructive"
+            onClick={() => onChange("")}
+          >
+            <X className="size-3" />
+          </button>
+        )}
+      </div>
+      <Slider
+        value={[Math.max(0, currentIndex)]}
+        min={0}
+        max={values.length - 1}
+        step={1}
+        onValueChange={([idx]) => {
+          onChange(`${prefix}-${values[idx]}`)
+        }}
+      />
     </div>
   )
 }
@@ -1139,4 +1213,7 @@ export {
   indexToGapValue,
   GapControl,
   ContentDistributionPicker,
+  SpatialGrid,
+  TransformOriginGrid,
+  SteppedSlider,
 }
