@@ -375,6 +375,7 @@ function SteppedSlider({
         {inline && label && <span className="shrink-0 text-xs font-medium text-muted-foreground">{label}</span>}
         <Slider
           className="flex-1"
+          active={hasValue}
           value={[Math.max(0, currentIndex)]}
           min={0}
           max={values.length - 1}
