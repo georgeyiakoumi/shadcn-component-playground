@@ -2,19 +2,31 @@
 
 import * as React from "react"
 
+import { cn } from "@/lib/utils"
+
 interface EditPanelRowProps {
-  /** Row label (displayed uppercase) */
+  /** Row label */
   label: string
   /** Optional inline value displayed next to the label */
   value?: string
+  /** Visual level — "default" has background card, "nested" is plain (for nesting inside a default row) */
+  variant?: "default" | "nested"
   /** Control content — omit for a sub-heading with no controls */
   children?: React.ReactNode
 }
 
-function EditPanelRow({ label, value, children }: EditPanelRowProps) {
+function EditPanelRow({ label, value, variant = "default", children }: EditPanelRowProps) {
   return (
-    <div className={children ? "space-y-2 p-2 bg-muted/50 rounded-md" : undefined}>
-      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+    <div className={cn(
+      children && "space-y-2",
+      variant === "default" && children && "rounded-md bg-muted/50 p-2",
+    )}>
+      <p className={cn(
+        "text-xs text-muted-foreground",
+        variant === "default"
+          ? "font-semibold uppercase tracking-widest"
+          : "font-medium",
+      )}>
         {label}
         {value && (
           <span className="ml-1 font-normal normal-case tracking-normal">{value}</span>

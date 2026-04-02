@@ -39,6 +39,10 @@ import {
   Check,
   Move,
   SlidersHorizontal,
+  Layers,
+  Crosshair,
+  Pin,
+  Anchor,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -62,7 +66,17 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
-import { EditPanelSection } from "@/components/playground/edit-panel-section"
+import {
+  EditPanelSection,
+  EditSection,
+  EditSectionTitle,
+  EditSectionContent,
+  EditSubSectionWrapper,
+  EditSubSection,
+  EditSubSectionTitle,
+  EditSubSectionContent,
+  EditNestedGroup,
+} from "@/components/playground/edit-panel-section"
 import { EditPanelRow } from "@/components/playground/edit-panel-row"
 import {
   Select,
@@ -3160,29 +3174,57 @@ export function VisualEditor({
         <TooltipProvider delayDuration={200}>
         <div className="space-y-1">
           {/* ── Layout ────────────────────────────────────── */}
-          <EditPanelSection icon={Layout} title="Layout" defaultOpen hasValues={sectionHasValues("layout")} onClear={() => clearSection("layout")}>
-            <EditPanelRow label="Display">
-              <div className="flex flex-wrap gap-0.5">
-                {(() => {
-                  const nativeDisp = getNativeDisplay(selectedElement.tagName)
-                  // The "effective" display: either explicitly set or native
-                  const effectiveDisplay = state.display || nativeDisp
-                  return (
-                    <>
-                      <IconToggle value="block" icon={PanelTop} tooltip="block" isActive={effectiveDisplay === "block"} onClick={() => update("display", nativeDisp === "block" ? "" : "block")} />
-                      <IconToggle value="inline-block" icon={Box} tooltip="inline-block" isActive={effectiveDisplay === "inline-block"} onClick={() => update("display", nativeDisp === "inline-block" ? "" : "inline-block")} />
-                      <IconToggle value="inline" icon={Minus} tooltip="inline" isActive={effectiveDisplay === "inline"} onClick={() => update("display", nativeDisp === "inline" ? "" : "inline")} />
-                      <IconToggle value="flex" icon={Columns3} tooltip="flex" isActive={effectiveDisplay === "flex"} onClick={() => update("display", nativeDisp === "flex" ? "" : "flex")} />
-                      <IconToggle value="inline-flex" icon={Columns3} tooltip="inline-flex" isActive={effectiveDisplay === "inline-flex"} onClick={() => update("display", nativeDisp === "inline-flex" ? "" : "inline-flex")} />
-                      <IconToggle value="grid" icon={LayoutGrid} tooltip="grid" isActive={effectiveDisplay === "grid"} onClick={() => update("display", nativeDisp === "grid" ? "" : "grid")} />
-                      <IconToggle value="inline-grid" icon={LayoutGrid} tooltip="inline-grid" isActive={effectiveDisplay === "inline-grid"} onClick={() => update("display", nativeDisp === "inline-grid" ? "" : "inline-grid")} />
-                      <IconToggle value="contents" icon={Box} tooltip="contents" isActive={effectiveDisplay === "contents"} onClick={() => update("display", nativeDisp === "contents" ? "" : "contents")} />
-                      <IconToggle value="hidden" icon={EyeOff} tooltip="hidden" isActive={effectiveDisplay === "hidden"} onClick={() => update("display", nativeDisp === "hidden" ? "" : "hidden")} />
-                    </>
-                  )
-                })()}
-              </div>
-            </EditPanelRow>
+          <EditSection icon={Layout} defaultOpen hasValues={sectionHasValues("layout")} onClear={() => clearSection("layout")}>
+            <EditSectionTitle>Layout</EditSectionTitle>
+
+            {/* ── Display ── */}
+            <EditSubSectionWrapper>
+              <EditSubSection>
+                <EditSubSectionTitle>Display</EditSubSectionTitle>
+                <EditSubSectionContent>
+                  <div className="flex flex-wrap gap-0.5">
+                    {(() => {
+                      const nativeDisp = getNativeDisplay(selectedElement.tagName)
+                      const effectiveDisplay = state.display || nativeDisp
+                      return (
+                        <>
+                          <IconToggle value="block" icon={PanelTop} tooltip="block" isActive={effectiveDisplay === "block"} onClick={() => update("display", nativeDisp === "block" ? "" : "block")} />
+                          <IconToggle value="inline-block" icon={Box} tooltip="inline-block" isActive={effectiveDisplay === "inline-block"} onClick={() => update("display", nativeDisp === "inline-block" ? "" : "inline-block")} />
+                          <IconToggle value="inline" icon={Minus} tooltip="inline" isActive={effectiveDisplay === "inline"} onClick={() => update("display", nativeDisp === "inline" ? "" : "inline")} />
+                          <IconToggle value="flex" icon={Columns3} tooltip="flex" isActive={effectiveDisplay === "flex"} onClick={() => update("display", nativeDisp === "flex" ? "" : "flex")} />
+                          <IconToggle value="inline-flex" icon={Columns3} tooltip="inline-flex" isActive={effectiveDisplay === "inline-flex"} onClick={() => update("display", nativeDisp === "inline-flex" ? "" : "inline-flex")} />
+                          <IconToggle value="grid" icon={LayoutGrid} tooltip="grid" isActive={effectiveDisplay === "grid"} onClick={() => update("display", nativeDisp === "grid" ? "" : "grid")} />
+                          <IconToggle value="inline-grid" icon={LayoutGrid} tooltip="inline-grid" isActive={effectiveDisplay === "inline-grid"} onClick={() => update("display", nativeDisp === "inline-grid" ? "" : "inline-grid")} />
+                          <IconToggle value="contents" icon={Box} tooltip="contents" isActive={effectiveDisplay === "contents"} onClick={() => update("display", nativeDisp === "contents" ? "" : "contents")} />
+                          <IconToggle value="hidden" icon={EyeOff} tooltip="hidden" isActive={effectiveDisplay === "hidden"} onClick={() => update("display", nativeDisp === "hidden" ? "" : "hidden")} />
+                        </>
+                      )
+                    })()}
+                  </div>
+
+                  {/* Flex: direction + wrap nested under Display */}
+                  {isFlex && (
+                    <EditNestedGroup>
+                      <EditPanelRow label="Direction" variant="nested">
+                        <div className="flex flex-wrap gap-0.5">
+                          <IconToggle value="flex-row" icon={ArrowRight} tooltip="flex-row (default)" isActive={state.direction === "flex-row" || !state.direction} onClick={() => update("direction", "")} />
+                          <IconToggle value="flex-col" icon={ArrowDown} tooltip="flex-col" isActive={state.direction === "flex-col"} onClick={(v) => update("direction", v)} />
+                          <IconToggle value="flex-row-reverse" icon={ArrowLeft} tooltip="flex-row-reverse" isActive={state.direction === "flex-row-reverse"} onClick={(v) => update("direction", v)} />
+                          <IconToggle value="flex-col-reverse" icon={ArrowUp} tooltip="flex-col-reverse" isActive={state.direction === "flex-col-reverse"} onClick={(v) => update("direction", v)} />
+                        </div>
+                      </EditPanelRow>
+                      <EditPanelRow label="Wrap" variant="nested">
+                        <div className="flex flex-wrap gap-0.5">
+                          <IconToggle value="flex-nowrap" icon={X} tooltip="flex-nowrap (default)" isActive={!state.flexWrap || state.flexWrap === "flex-nowrap"} onClick={() => update("flexWrap", "")} />
+                          <IconToggle value="flex-wrap" icon={WrapText} tooltip="flex-wrap" isActive={state.flexWrap === "flex-wrap"} onClick={(v) => update("flexWrap", v)} />
+                          <TextToggle value="flex-wrap-reverse" label="reverse" tooltip="flex-wrap-reverse" isActive={state.flexWrap === "flex-wrap-reverse"} onClick={(v) => update("flexWrap", v)} />
+                        </div>
+                      </EditPanelRow>
+                    </EditNestedGroup>
+                  )}
+                </EditSubSectionContent>
+              </EditSubSection>
+            </EditSubSectionWrapper>
 
             {/* ── Controls below are conditional on display type ── */}
             {(() => {
@@ -3196,287 +3238,288 @@ export function VisualEditor({
 
               return (
                 <>
-                  {/* ── Flex container ────────────────────── */}
-                  {isFlex && (
-                    <>
-
-                      <EditPanelRow label="Direction">
-                        <div className="flex flex-wrap gap-0.5">
-                          <IconToggle value="flex-row" icon={ArrowRight} tooltip="flex-row (default)" isActive={state.direction === "flex-row" || !state.direction} onClick={() => update("direction", "")} />
-                          <IconToggle value="flex-col" icon={ArrowDown} tooltip="flex-col" isActive={state.direction === "flex-col"} onClick={(v) => update("direction", v)} />
-                          <IconToggle value="flex-row-reverse" icon={ArrowLeft} tooltip="flex-row-reverse" isActive={state.direction === "flex-row-reverse"} onClick={(v) => update("direction", v)} />
-                          <IconToggle value="flex-col-reverse" icon={ArrowUp} tooltip="flex-col-reverse" isActive={state.direction === "flex-col-reverse"} onClick={(v) => update("direction", v)} />
-                        </div>
-                      </EditPanelRow>
-
-                      <EditPanelRow label="Wrap">
-                        <div className="flex flex-wrap gap-0.5">
-                          <IconToggle value="flex-nowrap" icon={X} tooltip="flex-nowrap (default)" isActive={!state.flexWrap || state.flexWrap === "flex-nowrap"} onClick={() => update("flexWrap", "")} />
-                          <IconToggle value="flex-wrap" icon={WrapText} tooltip="flex-wrap" isActive={state.flexWrap === "flex-wrap"} onClick={(v) => update("flexWrap", v)} />
-                          <TextToggle value="flex-wrap-reverse" label="reverse" tooltip="flex-wrap-reverse" isActive={state.flexWrap === "flex-wrap-reverse"} onClick={(v) => update("flexWrap", v)} />
-                        </div>
-                      </EditPanelRow>
-
-                      <EditPanelRow label="Alignment">
-                        <PositionGrid
-                          justify={state.justify}
-                          align={state.align}
-                          display={effectiveDisplay}
-                          onJustifyChange={(v) => update("justify", v)}
-                          onAlignChange={(v) => update("align", v)}
-                        />
-                      </EditPanelRow>
-
-                      {(state.flexWrap === "flex-wrap" || state.flexWrap === "flex-wrap-reverse") && (
-                        <EditPanelRow label="Content">
-                          <div className="flex flex-wrap gap-0.5">
-                            {ALIGN_CONTENT_OPTIONS.map((opt) => (
-                              <TextToggle key={opt} value={opt} label={opt.replace("content-", "")} tooltip={opt} isActive={state.alignContent === opt} onClick={(v) => update("alignContent", state.alignContent === v ? "" : v)} />
-                            ))}
-                          </div>
-                        </EditPanelRow>
-                      )}
-
-                      <GapControl
-                        gap={state.gap} gapX={state.gapX} gapY={state.gapY}
-                        onGapChange={(v) => { isUserChange.current = true; setState((prev) => ({ ...prev, gap: v, gapX: "", gapY: "" })) }}
-                        onGapXChange={(v) => { isUserChange.current = true; setState((prev) => ({ ...prev, gapX: v, gap: "" })) }}
-                        onGapYChange={(v) => { isUserChange.current = true; setState((prev) => ({ ...prev, gapY: v, gap: "" })) }}
-                      />
-                    </>
-                  )}
-
-                  {/* ── Grid container ──────────────────────── */}
-                  {isGrid && (
-                    <>
-
-                      <EditPanelRow label="Columns">
-                        <GridNumberPicker value={state.gridCols} prefix="grid-cols" max={12} allowCustom
-                          extras={[{ value: "grid-cols-none", label: "auto" }, { value: "grid-cols-subgrid", label: "subgrid" }]}
-                          onChange={(v) => update("gridCols", v)} />
-                      </EditPanelRow>
-
-                      <EditPanelRow label="Rows">
-                        <GridNumberPicker value={state.gridRows} prefix="grid-rows" max={12} allowCustom
-                          extras={[{ value: "grid-rows-none", label: "auto" }, { value: "grid-rows-subgrid", label: "subgrid" }]}
-                          onChange={(v) => update("gridRows", v)} />
-                      </EditPanelRow>
-
-                      <EditPanelRow label="Flow">
-                        <div className="flex flex-wrap gap-0.5">
-                          <TextToggle value="grid-flow-row" label="row" tooltip="grid-flow-row (default)" isActive={!state.gridFlow || state.gridFlow === "grid-flow-row"} onClick={() => update("gridFlow", "")} />
-                          <TextToggle value="grid-flow-col" label="col" tooltip="grid-flow-col" isActive={state.gridFlow === "grid-flow-col"} onClick={(v) => update("gridFlow", v)} />
-                          <TextToggle value="grid-flow-dense" label="dense" tooltip="grid-flow-dense" isActive={state.gridFlow === "grid-flow-dense"} onClick={(v) => update("gridFlow", v)} />
-                          <TextToggle value="grid-flow-row-dense" label="row+dense" tooltip="grid-flow-row-dense" isActive={state.gridFlow === "grid-flow-row-dense"} onClick={(v) => update("gridFlow", v)} />
-                          <TextToggle value="grid-flow-col-dense" label="col+dense" tooltip="grid-flow-col-dense" isActive={state.gridFlow === "grid-flow-col-dense"} onClick={(v) => update("gridFlow", v)} />
-                        </div>
-                      </EditPanelRow>
-
-                      <EditPanelRow label="Alignment">
-                        <PositionGrid justify={state.justify} align={state.align} display={effectiveDisplay}
-                          onJustifyChange={(v) => update("justify", v)} onAlignChange={(v) => update("align", v)} />
-                      </EditPanelRow>
-
-                      <GapControl
-                        gap={state.gap} gapX={state.gapX} gapY={state.gapY}
-                        onGapChange={(v) => { isUserChange.current = true; setState((prev) => ({ ...prev, gap: v, gapX: "", gapY: "" })) }}
-                        onGapXChange={(v) => { isUserChange.current = true; setState((prev) => ({ ...prev, gapX: v, gap: "" })) }}
-                        onGapYChange={(v) => { isUserChange.current = true; setState((prev) => ({ ...prev, gapY: v, gap: "" })) }}
-                      />
-
-                      <EditPanelRow label="Auto rows">
-                        <div className="flex flex-wrap gap-0.5">
-                          {AUTO_ROWS_OPTIONS.map((opt) => (
-                            <TextToggle key={opt} value={opt} label={opt.replace("auto-rows-", "")} tooltip={opt} isActive={state.autoRows === opt} onClick={(v) => update("autoRows", state.autoRows === v ? "" : v)} />
-                          ))}
-                        </div>
-                      </EditPanelRow>
-
-                      <EditPanelRow label="Auto cols">
-                        <div className="flex flex-wrap gap-0.5">
-                          {AUTO_COLS_OPTIONS.map((opt) => (
-                            <TextToggle key={opt} value={opt} label={opt.replace("auto-cols-", "")} tooltip={opt} isActive={state.autoCols === opt} onClick={(v) => update("autoCols", state.autoCols === v ? "" : v)} />
-                          ))}
-                        </div>
-                      </EditPanelRow>
-
-                      <EditPanelRow label="Justify items">
-                        <div className="flex flex-wrap gap-0.5">
-                          {JUSTIFY_ITEMS_OPTIONS.map((opt) => (
-                            <TextToggle key={opt} value={opt} label={opt.replace("justify-items-", "")} tooltip={opt} isActive={state.justifyItems === opt} onClick={(v) => update("justifyItems", state.justifyItems === v ? "" : v)} />
-                          ))}
-                        </div>
-                      </EditPanelRow>
-
-                      <EditPanelRow label="Align content">
-                        <div className="flex flex-wrap gap-0.5">
-                          {ALIGN_CONTENT_OPTIONS.map((opt) => (
-                            <TextToggle key={opt} value={opt} label={opt.replace("content-", "")} tooltip={opt} isActive={state.alignContent === opt} onClick={(v) => update("alignContent", state.alignContent === v ? "" : v)} />
-                          ))}
-                        </div>
-                      </EditPanelRow>
-                    </>
-                  )}
-
-                  {/* ── Position ────────────────────────────── */}
+                  {/* ── Position ── */}
                   {showPosition && (
-                    <>
+                    <EditSubSectionWrapper>
+                      <EditSubSection>
+                        <EditSubSectionTitle>Position</EditSubSectionTitle>
+                        <EditSubSectionContent>
+                          <div className="flex flex-wrap gap-0.5">
+                            <IconToggle value="static" icon={Square} tooltip="static (default)" isActive={!state.position || state.position === "static"} onClick={() => update("position", "")} />
+                            <IconToggle value="relative" icon={Layers} tooltip="relative" isActive={state.position === "relative"} onClick={() => update("position", state.position === "relative" ? "" : "relative")} />
+                            <IconToggle value="absolute" icon={Crosshair} tooltip="absolute" isActive={state.position === "absolute"} onClick={() => update("position", state.position === "absolute" ? "" : "absolute")} />
+                            <IconToggle value="fixed" icon={Pin} tooltip="fixed" isActive={state.position === "fixed"} onClick={() => update("position", state.position === "fixed" ? "" : "fixed")} />
+                            <IconToggle value="sticky" icon={Anchor} tooltip="sticky" isActive={state.position === "sticky"} onClick={() => update("position", state.position === "sticky" ? "" : "sticky")} />
+                          </div>
 
-                      <EditPanelRow label="Position">
-                        <Select
-                          value={state.position || "static"}
-                          onValueChange={(v) => update("position", v === "static" ? "" : v)}
-                        >
-                          <SelectTrigger className="h-6 text-xs"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {POSITION_OPTIONS.map((pos) => (
-                              <SelectItem key={pos} value={pos} className="text-xs">{pos}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </EditPanelRow>
-
-                      {isPositioned && (
-                        <>
-                          <EditPanelRow label="Z-index">
-                            <div className="flex flex-wrap items-center gap-1">
-                              <ZIndexInput value={state.zIndex} onChange={(v) => update("zIndex", v)} />
-                              {[10, 20, 30, 40, 50].map((n) => (
-                                <TextToggle key={n} value={`z-${n}`} label={String(n)} tooltip={`z-${n}`} isActive={state.zIndex === `z-${n}`} onClick={(v) => update("zIndex", state.zIndex === v ? "" : v)} />
-                              ))}
-                              <TextToggle value="z-auto" label="auto" tooltip="z-auto" isActive={state.zIndex === "z-auto"} onClick={(v) => update("zIndex", state.zIndex === v ? "" : v)} />
-                            </div>
-                          </EditPanelRow>
-
-                          <EditPanelRow label="Inset (all)">
-                            <Select value={state.inset ? state.inset.replace("inset-", "") : "__none__"} onValueChange={(v) => update("inset", v === "__none__" ? "" : `inset-${v}`)}>
-                              <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__none__">–</SelectItem>
-                                {INSET_SCALE.map((v) => (<SelectItem key={v} value={v} className="text-xs">{v}</SelectItem>))}
-                              </SelectContent>
-                            </Select>
-                          </EditPanelRow>
-                          <div className="grid grid-cols-2 gap-x-2 gap-y-1.5">
-                            {([
-                              { label: "Top", key: "top" as const, prefix: "top" },
-                              { label: "Right", key: "right" as const, prefix: "right" },
-                              { label: "Bottom", key: "bottom" as const, prefix: "bottom" },
-                              { label: "Left", key: "left" as const, prefix: "left" },
-                            ] as const).map(({ label, key, prefix }) => (
-                              <div key={key} className="space-y-0.5">
-                                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{label}</p>
-                                <Select value={state[key] ? (state[key] as string).replace(`${prefix}-`, "") : "__none__"} onValueChange={(v) => update(key, v === "__none__" ? "" : `${prefix}-${v}`)}>
+                          {isPositioned && (
+                            <>
+                              <EditPanelRow label="Z-index" variant="nested">
+                                <div className="flex flex-wrap items-center gap-1">
+                                  <ZIndexInput value={state.zIndex} onChange={(v) => update("zIndex", v)} />
+                                  {[10, 20, 30, 40, 50].map((n) => (
+                                    <TextToggle key={n} value={`z-${n}`} label={String(n)} tooltip={`z-${n}`} isActive={state.zIndex === `z-${n}`} onClick={(v) => update("zIndex", state.zIndex === v ? "" : v)} />
+                                  ))}
+                                  <TextToggle value="z-auto" label="auto" tooltip="z-auto" isActive={state.zIndex === "z-auto"} onClick={(v) => update("zIndex", state.zIndex === v ? "" : v)} />
+                                </div>
+                              </EditPanelRow>
+                              <EditPanelRow label="Inset (all)" variant="nested">
+                                <Select value={state.inset ? state.inset.replace("inset-", "") : "__none__"} onValueChange={(v) => update("inset", v === "__none__" ? "" : `inset-${v}`)}>
                                   <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
                                   <SelectContent>
                                     <SelectItem value="__none__">–</SelectItem>
                                     {INSET_SCALE.map((v) => (<SelectItem key={v} value={v} className="text-xs">{v}</SelectItem>))}
                                   </SelectContent>
                                 </Select>
+                              </EditPanelRow>
+                              <div className="grid grid-cols-2 gap-x-2 gap-y-1.5">
+                                {([
+                                  { label: "Top", key: "top" as const, prefix: "top" },
+                                  { label: "Right", key: "right" as const, prefix: "right" },
+                                  { label: "Bottom", key: "bottom" as const, prefix: "bottom" },
+                                  { label: "Left", key: "left" as const, prefix: "left" },
+                                ] as const).map(({ label, key, prefix }) => (
+                                  <EditPanelRow key={key} label={label} variant="nested">
+                                    <Select value={state[key] ? (state[key] as string).replace(`${prefix}-`, "") : "__none__"} onValueChange={(v) => update(key, v === "__none__" ? "" : `${prefix}-${v}`)}>
+                                      <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="__none__">–</SelectItem>
+                                        {INSET_SCALE.map((v) => (<SelectItem key={v} value={v} className="text-xs">{v}</SelectItem>))}
+                                      </SelectContent>
+                                    </Select>
+                                  </EditPanelRow>
+                                ))}
                               </div>
-                            ))}
-                          </div>
-                        </>
-                      )}
-                    </>
+                            </>
+                          )}
+                        </EditSubSectionContent>
+                      </EditSubSection>
+                    </EditSubSectionWrapper>
                   )}
 
-                  {/* ── Overflow / Visibility / Aspect ─────── */}
-                  {showPosition && (
-                    <>
+                  {/* ── Flex container ── */}
+                  {isFlex && (
+                    <EditSubSectionWrapper>
+                      <EditSubSection>
+                        <EditSubSectionTitle>Alignment</EditSubSectionTitle>
+                        <EditSubSectionContent>
+                          <PositionGrid justify={state.justify} align={state.align} display={effectiveDisplay}
+                            onJustifyChange={(v) => update("justify", v)} onAlignChange={(v) => update("align", v)} />
+                        </EditSubSectionContent>
+                      </EditSubSection>
 
-
-                      {showOverflow && (
-                        <EditPanelRow label="Overflow">
-                          <div className="flex flex-wrap gap-0.5">
-                            {OVERFLOW_OPTIONS.map((opt) => (
-                              <TextToggle key={opt} value={opt} label={opt.replace("overflow-", "")} tooltip={opt} isActive={state.overflow === opt} onClick={(v) => update("overflow", state.overflow === v ? "" : v)} />
-                            ))}
-                          </div>
-                        </EditPanelRow>
+                      {(state.flexWrap === "flex-wrap" || state.flexWrap === "flex-wrap-reverse") && (
+                        <EditSubSection>
+                          <EditSubSectionTitle>Content</EditSubSectionTitle>
+                          <EditSubSectionContent>
+                            <div className="flex flex-wrap gap-0.5">
+                              {ALIGN_CONTENT_OPTIONS.map((opt) => (
+                                <TextToggle key={opt} value={opt} label={opt.replace("content-", "")} tooltip={opt} isActive={state.alignContent === opt} onClick={(v) => update("alignContent", state.alignContent === v ? "" : v)} />
+                              ))}
+                            </div>
+                          </EditSubSectionContent>
+                        </EditSubSection>
                       )}
 
-                      <EditPanelRow label="Visibility">
-                        <div className="flex flex-wrap gap-0.5">
-                          {VISIBILITY_OPTIONS.map((opt) => (
-                            <TextToggle key={opt} value={opt} label={opt} tooltip={opt} isActive={state.visibility === opt} onClick={(v) => update("visibility", state.visibility === v ? "" : v)} />
-                          ))}
-                        </div>
-                      </EditPanelRow>
+                      <GapControl
+                        gap={state.gap} gapX={state.gapX} gapY={state.gapY}
+                        onGapChange={(v) => { isUserChange.current = true; setState((prev) => ({ ...prev, gap: v, gapX: "", gapY: "" })) }}
+                        onGapXChange={(v) => { isUserChange.current = true; setState((prev) => ({ ...prev, gapX: v, gap: "" })) }}
+                        onGapYChange={(v) => { isUserChange.current = true; setState((prev) => ({ ...prev, gapY: v, gap: "" })) }}
+                      />
+                    </EditSubSectionWrapper>
+                  )}
 
-                      <EditPanelRow label="Aspect ratio">
-                        <div className="flex flex-wrap gap-0.5">
-                          {ASPECT_RATIO_OPTIONS.map((opt) => (
-                            <TextToggle key={opt} value={opt} label={opt.replace("aspect-", "")} tooltip={opt} isActive={state.aspectRatio === opt} onClick={(v) => update("aspectRatio", state.aspectRatio === v ? "" : v)} />
-                          ))}
-                        </div>
-                      </EditPanelRow>
+                  {/* ── Grid container ── */}
+                  {isGrid && (
+                    <EditSubSectionWrapper>
+                      <EditSubSection>
+                        <EditSubSectionTitle>Grid</EditSubSectionTitle>
+                        <EditSubSectionContent>
+                          <EditPanelRow label="Columns" variant="nested">
+                            <GridNumberPicker value={state.gridCols} prefix="grid-cols" max={12} allowCustom
+                              extras={[{ value: "grid-cols-none", label: "auto" }, { value: "grid-cols-subgrid", label: "subgrid" }]}
+                              onChange={(v) => update("gridCols", v)} />
+                          </EditPanelRow>
+                          <EditPanelRow label="Rows" variant="nested">
+                            <GridNumberPicker value={state.gridRows} prefix="grid-rows" max={12} allowCustom
+                              extras={[{ value: "grid-rows-none", label: "auto" }, { value: "grid-rows-subgrid", label: "subgrid" }]}
+                              onChange={(v) => update("gridRows", v)} />
+                          </EditPanelRow>
+                          <EditPanelRow label="Flow" variant="nested">
+                            <div className="flex flex-wrap gap-0.5">
+                              <TextToggle value="grid-flow-row" label="row" tooltip="grid-flow-row (default)" isActive={!state.gridFlow || state.gridFlow === "grid-flow-row"} onClick={() => update("gridFlow", "")} />
+                              <TextToggle value="grid-flow-col" label="col" tooltip="grid-flow-col" isActive={state.gridFlow === "grid-flow-col"} onClick={(v) => update("gridFlow", v)} />
+                              <TextToggle value="grid-flow-dense" label="dense" tooltip="grid-flow-dense" isActive={state.gridFlow === "grid-flow-dense"} onClick={(v) => update("gridFlow", v)} />
+                              <TextToggle value="grid-flow-row-dense" label="row+dense" tooltip="grid-flow-row-dense" isActive={state.gridFlow === "grid-flow-row-dense"} onClick={(v) => update("gridFlow", v)} />
+                              <TextToggle value="grid-flow-col-dense" label="col+dense" tooltip="grid-flow-col-dense" isActive={state.gridFlow === "grid-flow-col-dense"} onClick={(v) => update("gridFlow", v)} />
+                            </div>
+                          </EditPanelRow>
+                          <EditPanelRow label="Auto rows" variant="nested">
+                            <div className="flex flex-wrap gap-0.5">
+                              {AUTO_ROWS_OPTIONS.map((opt) => (
+                                <TextToggle key={opt} value={opt} label={opt.replace("auto-rows-", "")} tooltip={opt} isActive={state.autoRows === opt} onClick={(v) => update("autoRows", state.autoRows === v ? "" : v)} />
+                              ))}
+                            </div>
+                          </EditPanelRow>
+                          <EditPanelRow label="Auto cols" variant="nested">
+                            <div className="flex flex-wrap gap-0.5">
+                              {AUTO_COLS_OPTIONS.map((opt) => (
+                                <TextToggle key={opt} value={opt} label={opt.replace("auto-cols-", "")} tooltip={opt} isActive={state.autoCols === opt} onClick={(v) => update("autoCols", state.autoCols === v ? "" : v)} />
+                              ))}
+                            </div>
+                          </EditPanelRow>
+                          <EditPanelRow label="Justify items" variant="nested">
+                            <div className="flex flex-wrap gap-0.5">
+                              {JUSTIFY_ITEMS_OPTIONS.map((opt) => (
+                                <TextToggle key={opt} value={opt} label={opt.replace("justify-items-", "")} tooltip={opt} isActive={state.justifyItems === opt} onClick={(v) => update("justifyItems", state.justifyItems === v ? "" : v)} />
+                              ))}
+                            </div>
+                          </EditPanelRow>
+                          <EditPanelRow label="Align content" variant="nested">
+                            <div className="flex flex-wrap gap-0.5">
+                              {ALIGN_CONTENT_OPTIONS.map((opt) => (
+                                <TextToggle key={opt} value={opt} label={opt.replace("content-", "")} tooltip={opt} isActive={state.alignContent === opt} onClick={(v) => update("alignContent", state.alignContent === v ? "" : v)} />
+                              ))}
+                            </div>
+                          </EditPanelRow>
+                        </EditSubSectionContent>
+                      </EditSubSection>
 
-                      <EditPanelRow label="Isolation">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Switch
-                            checked={state.isolation === "isolate"}
-                            onCheckedChange={(checked) => update("isolation", checked ? "isolate" : "")}
-                          />
-                          <span className="text-xs text-muted-foreground">
-                            {state.isolation === "isolate" ? "isolate" : "auto"}
-                          </span>
-                        </div>
-                      </EditPanelRow>
+                      <EditSubSection>
+                        <EditSubSectionTitle>Alignment</EditSubSectionTitle>
+                        <EditSubSectionContent>
+                          <PositionGrid justify={state.justify} align={state.align} display={effectiveDisplay}
+                            onJustifyChange={(v) => update("justify", v)} onAlignChange={(v) => update("align", v)} />
+                        </EditSubSectionContent>
+                      </EditSubSection>
+
+                      <GapControl
+                        gap={state.gap} gapX={state.gapX} gapY={state.gapY}
+                        onGapChange={(v) => { isUserChange.current = true; setState((prev) => ({ ...prev, gap: v, gapX: "", gapY: "" })) }}
+                        onGapXChange={(v) => { isUserChange.current = true; setState((prev) => ({ ...prev, gapX: v, gap: "" })) }}
+                        onGapYChange={(v) => { isUserChange.current = true; setState((prev) => ({ ...prev, gapY: v, gap: "" })) }}
+                      />
+                    </EditSubSectionWrapper>
+                  )}
+
+                  {/* ── Overflow / Visibility / Aspect ── */}
+                  {showPosition && (
+                    <EditSubSectionWrapper>
+                      {showOverflow && (
+                        <EditSubSection>
+                          <EditSubSectionTitle>Overflow</EditSubSectionTitle>
+                          <EditSubSectionContent>
+                            <div className="flex flex-wrap gap-0.5">
+                              {OVERFLOW_OPTIONS.map((opt) => (
+                                <TextToggle key={opt} value={opt} label={opt.replace("overflow-", "")} tooltip={opt} isActive={state.overflow === opt} onClick={(v) => update("overflow", state.overflow === v ? "" : v)} />
+                              ))}
+                            </div>
+                          </EditSubSectionContent>
+                        </EditSubSection>
+                      )}
+
+                      <EditSubSection>
+                        <EditSubSectionTitle>Visibility</EditSubSectionTitle>
+                        <EditSubSectionContent>
+                          <div className="flex flex-wrap gap-0.5">
+                            {VISIBILITY_OPTIONS.map((opt) => (
+                              <TextToggle key={opt} value={opt} label={opt} tooltip={opt} isActive={state.visibility === opt} onClick={(v) => update("visibility", state.visibility === v ? "" : v)} />
+                            ))}
+                          </div>
+                        </EditSubSectionContent>
+                      </EditSubSection>
+
+                      <EditSubSection>
+                        <EditSubSectionTitle>Aspect ratio</EditSubSectionTitle>
+                        <EditSubSectionContent>
+                          <div className="flex flex-wrap gap-0.5">
+                            {ASPECT_RATIO_OPTIONS.map((opt) => (
+                              <TextToggle key={opt} value={opt} label={opt.replace("aspect-", "")} tooltip={opt} isActive={state.aspectRatio === opt} onClick={(v) => update("aspectRatio", state.aspectRatio === v ? "" : v)} />
+                            ))}
+                          </div>
+                        </EditSubSectionContent>
+                      </EditSubSection>
+
+                      <EditSubSection>
+                        <EditSubSectionTitle>Isolation</EditSubSectionTitle>
+                        <EditSubSectionContent>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Switch
+                              checked={state.isolation === "isolate"}
+                              onCheckedChange={(checked) => update("isolation", checked ? "isolate" : "")}
+                            />
+                            <span className="text-xs text-muted-foreground">
+                              {state.isolation === "isolate" ? "isolate" : "auto"}
+                            </span>
+                          </div>
+                        </EditSubSectionContent>
+                      </EditSubSection>
 
                       {isBlock && (
                         <>
-                          <EditPanelRow label="Float">
-                            <div className="flex flex-wrap gap-0.5">
-                              {FLOAT_OPTIONS.map((opt) => (
-                                <TextToggle key={opt} value={opt} label={opt.replace("float-", "")} tooltip={opt} isActive={state.float === opt} onClick={(v) => update("float", state.float === v ? "" : v)} />
-                              ))}
-                            </div>
-                          </EditPanelRow>
-                          <EditPanelRow label="Clear">
-                            <div className="flex flex-wrap gap-0.5">
-                              {CLEAR_OPTIONS.map((opt) => (
-                                <TextToggle key={opt} value={opt} label={opt.replace("clear-", "")} tooltip={opt} isActive={state.clear === opt} onClick={(v) => update("clear", state.clear === v ? "" : v)} />
-                              ))}
-                            </div>
-                          </EditPanelRow>
+                          <EditSubSection>
+                            <EditSubSectionTitle>Float</EditSubSectionTitle>
+                            <EditSubSectionContent>
+                              <div className="flex flex-wrap gap-0.5">
+                                {FLOAT_OPTIONS.map((opt) => (
+                                  <TextToggle key={opt} value={opt} label={opt.replace("float-", "")} tooltip={opt} isActive={state.float === opt} onClick={(v) => update("float", state.float === v ? "" : v)} />
+                                ))}
+                              </div>
+                            </EditSubSectionContent>
+                          </EditSubSection>
+                          <EditSubSection>
+                            <EditSubSectionTitle>Clear</EditSubSectionTitle>
+                            <EditSubSectionContent>
+                              <div className="flex flex-wrap gap-0.5">
+                                {CLEAR_OPTIONS.map((opt) => (
+                                  <TextToggle key={opt} value={opt} label={opt.replace("clear-", "")} tooltip={opt} isActive={state.clear === opt} onClick={(v) => update("clear", state.clear === v ? "" : v)} />
+                                ))}
+                              </div>
+                            </EditSubSectionContent>
+                          </EditSubSection>
                         </>
                       )}
-                    </>
+                    </EditSubSectionWrapper>
                   )}
 
-                  {/* ── Object (replaced elements only) ──── */}
+                  {/* ── Object ── */}
                   {showPosition && (
-                    <>
-
-                      <EditPanelRow label="Object fit">
-                        <Select
-                          value={state.objectFit || "__none__"}
-                          onValueChange={(v) => update("objectFit", v === "__none__" ? "" : v)}
-                        >
-                          <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none__">–</SelectItem>
-                            {OBJECT_FIT_OPTIONS.map((opt) => (
-                              <SelectItem key={opt} value={opt} className="text-xs">{opt.replace("object-", "")}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </EditPanelRow>
-                      <EditPanelRow label="Object position">
-                        <ObjectPositionGrid
-                          value={state.objectPosition}
-                          onChange={(v) => update("objectPosition", v)}
-                        />
-                      </EditPanelRow>
-                    </>
+                    <EditSubSectionWrapper>
+                      <EditSubSection>
+                        <EditSubSectionTitle>Object fit</EditSubSectionTitle>
+                        <EditSubSectionContent>
+                          <Select
+                            value={state.objectFit || "__none__"}
+                            onValueChange={(v) => update("objectFit", v === "__none__" ? "" : v)}
+                          >
+                            <SelectTrigger className="h-6 text-xs"><SelectValue placeholder="–" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none__">–</SelectItem>
+                              {OBJECT_FIT_OPTIONS.map((opt) => (
+                                <SelectItem key={opt} value={opt} className="text-xs">{opt.replace("object-", "")}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </EditSubSectionContent>
+                      </EditSubSection>
+                      <EditSubSection>
+                        <EditSubSectionTitle>Object position</EditSubSectionTitle>
+                        <EditSubSectionContent>
+                          <ObjectPositionGrid
+                            value={state.objectPosition}
+                            onChange={(v) => update("objectPosition", v)}
+                          />
+                        </EditSubSectionContent>
+                      </EditSubSection>
+                    </EditSubSectionWrapper>
                   )}
 
                   {/* Child placement moved to its own section below Layout */}
                 </>
               )
             })()}
-          </EditPanelSection>
+          </EditSection>
 
           {/* ── Child Placement (only when parent is flex/grid) ── */}
           {(parentIsFlex || parentIsGrid) && (
