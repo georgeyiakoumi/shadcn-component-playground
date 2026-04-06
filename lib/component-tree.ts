@@ -21,24 +21,11 @@ export interface ComponentProp {
   defaultValue?: string
 }
 
-export type SubComponentUsecase =
-  | "plain-text"
-  | "heading"
-  | "button"
-  | "image"
-  | "input"
-  | "list"
-  | "wrapper"
-  | "icon"
-
 export interface SubComponentDef {
   id: string
   name: string
   baseElement: string
   dataSlot: string
-  /** What kind of content this sub-component wraps. Used to generate
-   *  realistic placeholder content in the canvas preview (not exported). */
-  usecases: SubComponentUsecase[]
   /** Tailwind classes applied to this sub-component (exported to .tsx) */
   classes: string[]
   props: ComponentProp[]
@@ -118,7 +105,6 @@ export function createSubComponent(
   parentName: string,
   name: string,
   baseElement: string,
-  usecases: SubComponentUsecase[] = [],
 ): SubComponentDef {
   const fullName = `${parentName}${name}`
   return {
@@ -126,12 +112,11 @@ export function createSubComponent(
     name: fullName,
     dataSlot: toDataSlot(fullName),
     baseElement,
-    usecases,
     classes: [],
     props: [],
     variants: [],
     namedGroup: false,
-    headingFont: usecases.includes("heading"),
+    headingFont: false,
   }
 }
 

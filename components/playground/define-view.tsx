@@ -57,7 +57,6 @@ import type {
   ComponentTree,
   ComponentProp,
   SubComponentDef,
-  SubComponentUsecase,
   ElementNode,
 } from "@/lib/component-tree"
 import { createElementNode, toDataSlot } from "@/lib/component-tree"
@@ -402,12 +401,11 @@ export function DefineView({ tree, onTreeChange }: DefineViewProps) {
                   <EditSettingsDialog
                     name={sc.name}
                     baseElement={sc.baseElement}
-                    usecases={sc.usecases}
                     nestInside={sc.nestInside}
                     namedGroup={sc.namedGroup}
                     headingFont={sc.headingFont}
                     existingSubComponents={tree.subComponents.filter((s) => s.id !== sc.id)}
-                    onSave={(newName, newBaseElement, newUsecases, newNestInside, newNamedGroup, newHeadingFont) => {
+                    onSave={(newName, newBaseElement, newNestInside, newNamedGroup, newHeadingFont) => {
                       const newSubs = [...tree.subComponents]
                       const oldName = sc.name
                       newSubs[i] = {
@@ -415,7 +413,6 @@ export function DefineView({ tree, onTreeChange }: DefineViewProps) {
                         name: newName,
                         dataSlot: toDataSlot(newName),
                         baseElement: newBaseElement,
-                        usecases: newUsecases ?? sc.usecases,
                         nestInside: newNestInside,
                         namedGroup: newNamedGroup,
                         headingFont: newHeadingFont,
@@ -1114,12 +1111,11 @@ function VariantOptionsEditor({
   )
 }
 
-/* ── EditSettingsDialog — general settings only (name, base element, content type, nests inside) ── */
+/* ── EditSettingsDialog — general settings only (name, base element, nests inside, conventions) ── */
 
 function EditSettingsDialog({
   name: initialName,
   baseElement: initialBaseElement,
-  usecases: initialUsecases,
   nestInside: initialNestInside,
   namedGroup: initialNamedGroup,
   headingFont: initialHeadingFont,
@@ -1129,7 +1125,6 @@ function EditSettingsDialog({
 }: {
   name: string
   baseElement: string
-  usecases?: SubComponentUsecase[]
   nestInside?: string
   namedGroup?: boolean
   headingFont?: boolean
@@ -1138,7 +1133,6 @@ function EditSettingsDialog({
   onSave: (
     name: string,
     baseElement: string,
-    usecases?: SubComponentUsecase[],
     nestInside?: string,
     namedGroup?: boolean,
     headingFont?: boolean,
@@ -1147,7 +1141,6 @@ function EditSettingsDialog({
   const [open, setOpen] = React.useState(false)
   const [editName, setEditName] = React.useState(initialName)
   const [baseElement, setBaseElement] = React.useState(initialBaseElement)
-  const [usecases, setUsecases] = React.useState<SubComponentUsecase[]>(initialUsecases ?? [])
   const [nestInside, setNestInside] = React.useState(initialNestInside ?? "")
   const [namedGroup, setNamedGroup] = React.useState<boolean>(initialNamedGroup ?? false)
   const [headingFont, setHeadingFont] = React.useState<boolean>(initialHeadingFont ?? false)
@@ -1157,7 +1150,6 @@ function EditSettingsDialog({
     if (open) {
       setEditName(initialName)
       setBaseElement(initialBaseElement)
-      setUsecases(initialUsecases ?? [])
       setNestInside(initialNestInside ?? "")
       setNamedGroup(initialNamedGroup ?? false)
       setHeadingFont(initialHeadingFont ?? false)
@@ -1166,7 +1158,6 @@ function EditSettingsDialog({
     open,
     initialName,
     initialBaseElement,
-    initialUsecases,
     initialNestInside,
     initialNamedGroup,
     initialHeadingFont,
@@ -1299,7 +1290,6 @@ function EditSettingsDialog({
               onSave(
                 pascalName || initialName,
                 baseElement,
-                isSubComponent ? usecases : undefined,
                 isSubComponent ? (nestInside || undefined) : undefined,
                 isSubComponent ? namedGroup : undefined,
                 isSubComponent ? headingFont : undefined,
@@ -1415,7 +1405,6 @@ function AddSubComponentDialog({
   const [open, setOpen] = React.useState(false)
   const [name, setName] = React.useState("")
   const [baseElement, setBaseElement] = React.useState("div")
-  const [usecases, setUsecases] = React.useState<SubComponentUsecase[]>([])
   const [nestInside, setNestInside] = React.useState("")
   const [namedGroup, setNamedGroup] = React.useState<boolean>(false)
   const [headingFont, setHeadingFont] = React.useState<boolean>(false)
@@ -1430,11 +1419,25 @@ function AddSubComponentDialog({
   function resetForm() {
     setName("")
     setBaseElement("div")
-    setUsecases([])
     setNestInside("")
     setNamedGroup(false)
     setHeadingFont(false)
     setError(null)
+  }
+
+  function buildSubComponent(): SubComponentDef & { nestInside?: string } {
+    return {
+      id: `sc_${Date.now().toString(36)}`,
+      name: pascalName,
+      baseElement,
+      dataSlot: toDataSlot(pascalName),
+      classes: [],
+      props: [],
+      variants: [],
+      nestInside: nestInside || undefined,
+      namedGroup,
+      headingFont,
+    }
   }
 
   function handleAdd() {
@@ -1447,21 +1450,7 @@ function AddSubComponentDialog({
       return
     }
 
-    const sc: SubComponentDef & { nestInside?: string } = {
-      id: `sc_${Date.now().toString(36)}`,
-      name: pascalName,
-      baseElement,
-      dataSlot: toDataSlot(pascalName),
-      usecases,
-      classes: [],
-      props: [],
-      variants: [],
-      nestInside: nestInside || undefined,
-      namedGroup,
-      headingFont,
-    }
-
-    onAdd(sc)
+    onAdd(buildSubComponent())
     resetForm()
     setOpen(false)
   }
@@ -1476,21 +1465,7 @@ function AddSubComponentDialog({
       return
     }
 
-    const sc: SubComponentDef & { nestInside?: string } = {
-      id: `sc_${Date.now().toString(36)}`,
-      name: pascalName,
-      baseElement,
-      dataSlot: toDataSlot(pascalName),
-      usecases,
-      classes: [],
-      props: [],
-      variants: [],
-      nestInside: nestInside || undefined,
-      namedGroup,
-      headingFont,
-    }
-
-    onAdd(sc)
+    onAdd(buildSubComponent())
     // Clear form but keep nestInside and baseElement for convenience
     const keepNestInside = nestInside
     const keepBaseElement = baseElement
