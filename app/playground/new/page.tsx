@@ -60,6 +60,17 @@ const BASE_ELEMENTS = [
 /* ── Page ───────────────────────────────────────────────────────── */
 
 export default function NewComponentPage() {
+  // useSearchParams() requires a Suspense boundary in Next 15 / React 19.
+  // We wrap the actual UI in <Suspense> here so the page can statically
+  // pre-render and the body hydrates with the search params on the client.
+  return (
+    <React.Suspense fallback={null}>
+      <NewComponentPageInner />
+    </React.Suspense>
+  )
+}
+
+function NewComponentPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
