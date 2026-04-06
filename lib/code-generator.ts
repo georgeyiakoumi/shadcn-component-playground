@@ -899,9 +899,22 @@ function generateSubComponent(
     ...sub.props.map((p) => p.name),
   ]
 
-  const subUserClasses = (sub.classes ?? []).join(" ")
-  const classNameExpr = subUserClasses
-    ? `cn("${subUserClasses}", className)`
+  // Prepend convention classes (named group + heading font) so they sit
+  // before user-applied classes in the className output.
+  const conventionClasses: string[] = []
+  if (sub.namedGroup) {
+    const subKebab = sub.name.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase()
+    conventionClasses.push(`group/${subKebab}`)
+  }
+  if (sub.headingFont) {
+    conventionClasses.push("cn-font-heading")
+  }
+
+  const subBaseClasses = [...conventionClasses, ...(sub.classes ?? [])]
+    .filter(Boolean)
+    .join(" ")
+  const classNameExpr = subBaseClasses
+    ? `cn("${subBaseClasses}", className)`
     : "className"
 
   // Build data-* attributes for each variant prop

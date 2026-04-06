@@ -21,30 +21,24 @@ export interface ComponentProp {
   defaultValue?: string
 }
 
-export type SubComponentUsecase =
-  | "plain-text"
-  | "heading"
-  | "button"
-  | "image"
-  | "input"
-  | "list"
-  | "wrapper"
-  | "icon"
-
 export interface SubComponentDef {
   id: string
   name: string
   baseElement: string
   dataSlot: string
-  /** What kind of content this sub-component wraps. Used to generate
-   *  realistic placeholder content in the canvas preview (not exported). */
-  usecases: SubComponentUsecase[]
   /** Tailwind classes applied to this sub-component (exported to .tsx) */
   classes: string[]
   props: ComponentProp[]
   variants: CustomVariantDef[]
   /** Name of the parent sub-component this nests inside, or undefined for root level */
   nestInside?: string
+  /** When true, emit `group/{kebab-name}` on the root element so children
+   *  can target this sub-component with `group-data-[...]/name:` modifiers.
+   *  Defaults to false — user opts in per sub-component. */
+  namedGroup?: boolean
+  /** When true, emit `cn-font-heading` on the root element. shadcn convention
+   *  for separating heading vs body fonts via `--font-heading` CSS variable. */
+  headingFont?: boolean
 }
 
 export interface ComponentTree {
@@ -90,6 +84,7 @@ export function toDataSlot(name: string): string {
     .toLowerCase()
 }
 
+
 export function createComponentTree(
   name: string,
   baseElement: string,
@@ -110,7 +105,6 @@ export function createSubComponent(
   parentName: string,
   name: string,
   baseElement: string,
-  usecases: SubComponentUsecase[] = [],
 ): SubComponentDef {
   const fullName = `${parentName}${name}`
   return {
@@ -118,10 +112,11 @@ export function createSubComponent(
     name: fullName,
     dataSlot: toDataSlot(fullName),
     baseElement,
-    usecases,
     classes: [],
     props: [],
     variants: [],
+    namedGroup: false,
+    headingFont: false,
   }
 }
 
