@@ -71,7 +71,7 @@ const SPACING_PATTERNS = [
 ]
 
 const config: Config = {
-  darkMode: ['class'],
+  darkMode: 'class',
   content: [
     './pages/**/*.{ts,tsx}',
     './components/**/*.{ts,tsx}',
@@ -79,7 +79,13 @@ const config: Config = {
     './src/**/*.{ts,tsx}',
     './lib/**/*.{ts,tsx}',
   ],
-  safelist: SPACING_PATTERNS,
+  // NOTE: The v3 `safelist` key is no longer supported in Tailwind v4's
+  // JS config. The safelist for visual-editor-generated dynamic classes
+  // (the SPACING_NUMBERS / FRACTIONS / SPACING_PATTERNS arrays at the
+  // top of this file) lives in `app/globals.css` as @source inline()
+  // directives instead. The arrays are kept in this file as a reference
+  // for what the safelist needs to cover, since the visual editor still
+  // imports from lib/tailwind-options.ts which uses the same scale.
   theme: {
   	container: {
   		center: true,
@@ -181,7 +187,11 @@ const config: Config = {
   		}
   	}
   },
-  plugins: [require('tailwindcss-animate')],
+  // Plugins are loaded in app/globals.css via Tailwind v4's @plugin directive.
+  // In v4, JS-side plugin registration is replaced by CSS-side @plugin "<name>";
+  // tw-animate-css (the v4-compatible successor to tailwindcss-animate) is
+  // imported from globals.css instead.
+  plugins: [],
 }
 
 export default config
