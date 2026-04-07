@@ -57,18 +57,20 @@ export function ExportDialog({
   const [isExporting, setIsExporting] = React.useState(false)
   const [exported, setExported] = React.useState(false)
 
-  // Generate the code from current state
+  // Generate the code from current state. Pillar 6 removed the M2
+  // `originalSource` branch — `generateComponentCode` now always emits
+  // from-scratch using the M3 builder state. The `source` prop is still
+  // here because the dependency analysis / preview UI uses it.
   const generatedCode = React.useMemo(
     () =>
       generateComponentCode({
         slug,
-        originalSource: source,
         customClasses: edit.customClasses,
         customVariantDefs: edit.customVariantDefs,
         activeSubComponents: edit.activeSubComponents,
         componentName,
       }),
-    [slug, source, edit, componentName],
+    [slug, edit, componentName],
   )
 
   const fileSize = React.useMemo(

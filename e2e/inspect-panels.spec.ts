@@ -36,23 +36,36 @@ test.describe("Inspect Panels", () => {
     await expect(htmlButton).toBeVisible()
   })
 
-  test("Styles tab present in edit mode right panel", async ({ page }) => {
+  // Pillar 6 (GEO-291) deleted the M2 right-panel tabs (Styles / Classes
+  // / Variants / Parts). The right panel now shows an empty-state prompt
+  // until an element is selected. The tests below were rewritten to
+  // reflect the v2 right panel.
+  test("right panel shows empty-state prompt in edit mode", async ({
+    page,
+  }) => {
     await enterEditMode(page)
-    await expect(page.getByRole("tab", { name: /styles/i })).toBeAttached()
+    await expect(
+      page.getByText(/select an element on the canvas/i),
+    ).toBeVisible()
   })
 
-  test("compound component shows Parts tab in edit mode", async ({ page }) => {
+  test("right panel never renders the deleted M2 tabs", async ({ page }) => {
+    await enterEditMode(page)
+    await expect(page.getByRole("tab", { name: /styles/i })).toHaveCount(0)
+    await expect(page.getByRole("tab", { name: /classes/i })).toHaveCount(0)
+    await expect(page.getByRole("tab", { name: /variants/i })).toHaveCount(0)
+    await expect(page.getByRole("tab", { name: /parts/i })).toHaveCount(0)
+  })
+
+  test("compound component (Dialog) still loads in edit mode without crashing", async ({
+    page,
+  }) => {
     await page.goto("/playground/dialog")
-    // Use exact match to avoid "Edit profile" button in Dialog preview
     await page.getByRole("button", { name: "Edit", exact: true }).click()
     await page.waitForTimeout(500)
-    await expect(page.getByRole("tab", { name: /parts/i })).toBeAttached()
-  })
-
-  test("non-compound component has no Parts tab", async ({ page }) => {
-    await enterEditMode(page)
-    const partsTab = page.getByRole("tab", { name: /parts/i })
-    await expect(partsTab).toHaveCount(0)
+    await expect(
+      page.getByText(/select an element on the canvas/i),
+    ).toBeVisible()
   })
 })
 

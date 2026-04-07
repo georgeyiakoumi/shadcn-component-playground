@@ -6,7 +6,6 @@ import { useParams } from "next/navigation"
 import { registry } from "@/lib/registry"
 import { componentSources } from "@/lib/component-source"
 import { parseCvaVariants } from "@/lib/cva-parser"
-import { ComponentEditProvider } from "@/lib/component-state"
 import type { ElementInfo } from "@/components/playground/element-selector"
 import {
   PlaygroundToolbar,
@@ -241,12 +240,15 @@ export default function ComponentPage() {
   )
 
   return (
-    <ComponentEditProvider slug={slug}>
+    <>
       {/* ── Toolbar ──────────────────────────────────────────── */}
       <PlaygroundToolbar
         componentName={component.name}
         slug={slug}
-        source={source}
+        // Pillar 6 (GEO-291) — the toolbar's M2 Export button is gated
+        // behind `source`. Stock components now use the v2 Download .tsx
+        // button in the right panel; the toolbar export is M3-only.
+        // Passing no source disables the toolbar export branch.
         mode={mode}
         onModeChange={setMode}
       />
@@ -379,6 +381,6 @@ export default function ComponentPage() {
         breakpoint={breakpoint}
         onBreakpointChange={setBreakpoint}
       />
-    </ComponentEditProvider>
+    </>
   )
 }

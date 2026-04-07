@@ -7,14 +7,18 @@ test.describe("Inspect/Edit Mode Toggle", () => {
     await expect(inspectButton).toBeVisible()
   })
 
-  test("switching to edit mode shows right panel with tabs", async ({ page }) => {
+  test("switching to edit mode shows the right-panel empty state", async ({
+    page,
+  }) => {
+    // Pillar 6 (GEO-291) deleted the M2 right-panel tabs (Styles /
+    // Classes / Variants / Parts). The right panel now shows an
+    // empty-state prompt until the user selects an element on the canvas.
     await page.goto("/playground/button")
     await page.getByRole("button", { name: /edit/i }).click()
     await page.waitForTimeout(500)
-    // Right panel tabs should be in the DOM
-    await expect(page.getByRole("tab", { name: /styles/i })).toBeAttached()
-    await expect(page.getByRole("tab", { name: /classes/i })).toBeAttached()
-    await expect(page.getByRole("tab", { name: /variants/i })).toBeAttached()
+    await expect(
+      page.getByText(/select an element on the canvas/i),
+    ).toBeVisible()
   })
 
   test("switching back to inspect mode", async ({ page }) => {
