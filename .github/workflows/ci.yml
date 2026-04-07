@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   verify:
-    name: Typecheck, Build, E2E
+    name: Typecheck, Build, Unit, E2E
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -38,6 +38,9 @@ jobs:
 
       - name: TypeScript check
         run: npx tsc --noEmit
+
+      - name: Unit tests (Vitest)
+        run: npm test
 
       - name: Next.js production build
         run: npm run build
