@@ -519,30 +519,6 @@ export const registry: readonly ComponentMeta[] = [
     ],
   },
   {
-    name: "Toast",
-    slug: "toast",
-    description:
-      "A brief, auto-dismissing notification that appears at the edge of the screen.",
-    category: "Feedback",
-    isCompound: true,
-    subComponents: [
-      "ToastAction",
-      "ToastClose",
-      "ToastTitle",
-      "ToastDescription",
-      "Toaster",
-    ],
-    variants: ["default", "destructive"],
-    keywords: [
-      "notification",
-      "snackbar",
-      "flash message",
-      "alert",
-      "temporary",
-      "auto dismiss",
-    ],
-  },
-  {
     name: "Tooltip",
     slug: "tooltip",
     description:
