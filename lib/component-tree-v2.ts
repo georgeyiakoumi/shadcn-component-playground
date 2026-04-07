@@ -20,6 +20,25 @@
  */
 
 /* ══════════════════════════════════════════════════════════════════════════
+ * Source ranges (Pillar 3b — slow-path generator support)
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * A byte range in `originalSource`. Used by the slow-path generator
+ * (Pillar 3b) to surgically splice edited values back into the source
+ * without regenerating untouched regions. `start` is inclusive; `end` is
+ * exclusive (matching `String.prototype.slice`).
+ *
+ * Ranges are populated by the parser from `node.getStart(sourceFile)` and
+ * `node.getEnd()`. They're optional because programmatically-built trees
+ * (M3 from-scratch builder) have no source positions.
+ */
+export interface SourceRange {
+  start: number
+  end: number
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
  * Top-level tree
  * ══════════════════════════════════════════════════════════════════════════ */
 
@@ -265,6 +284,13 @@ export type ClassNameExpr =
       /** Plain string literal, e.g. `className="flex items-center"`. */
       kind: "literal"
       value: string
+      /**
+       * Range covering the *contents* of the string literal — i.e. the
+       * characters between the quotes. The slow-path generator uses this
+       * range to splice an edited class string back into the source without
+       * touching the surrounding quotes or whitespace.
+       */
+      range?: SourceRange
     }
   | {
       /** A cva() invocation, e.g. `className={buttonVariants({ variant, size, className })}`. */
@@ -279,6 +305,20 @@ export type ClassNameExpr =
       kind: "cn-call"
       /** The source of each argument to cn(), in order. Strings are verbatim. */
       args: string[]
+      /**
+       * Source range for the FIRST argument to cn() *only when it is a
+       * string literal* — covers the characters between the quotes. Used
+       * by the slow-path generator (Pillar 3b) to splice an edited base
+       * class string back into the source.
+       *
+       * This is the most common case in shadcn: `cn("base classes", className)`
+       * where the literal is the editable surface and `className` is the
+       * user-passed override. Editing the literal becomes a one-line splice.
+       *
+       * Undefined when the first cn() argument is not a string literal
+       * (e.g. when cn wraps a cva call: `cn(buttonVariants({ ... }))`).
+       */
+      baseRange?: SourceRange
     }
   | {
       /** Any other expression the parser didn't model — emitted verbatim. */
@@ -317,10 +357,28 @@ export interface CvaExport {
   baseClasses: string
 
   /**
+   * Source range for `baseClasses` — the characters between the quotes of
+   * the first argument to cva(). Used by the slow-path generator (Pillar 3b)
+   * to splice an edited base class string back into the source.
+   */
+  baseClassesRange?: SourceRange
+
+  /**
    * The variants object — a map of variant group name (e.g. "variant", "size")
    * to a map of variant value name to class string.
    */
   variants: Record<string, Record<string, string>>
+
+  /**
+   * Per-variant-value source ranges. Same shape as `variants` but each leaf
+   * is a `SourceRange` covering the characters between the quotes of that
+   * variant value's class string. The slow-path generator uses these to
+   * splice individual variant edits.
+   *
+   * Example: `variantRanges.variant.destructive` gives the range of the
+   * `"bg-destructive text-white ..."` string in `variants.variant.destructive`.
+   */
+  variantRanges?: Record<string, Record<string, SourceRange>>
 
   /** The defaultVariants map, if present. */
   defaultVariants?: Record<string, string>

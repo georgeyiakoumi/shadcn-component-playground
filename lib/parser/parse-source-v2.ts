@@ -566,6 +566,7 @@ function tryParseCvaExport(
     )
   }
   const baseClasses = baseArg.text
+  const baseClassesRange = stringLiteralInnerRange(baseArg, ctx)
 
   // Second argument is optional: when cva is called with just a base class
   // string and no config, the component has no variants.
@@ -574,6 +575,7 @@ function tryParseCvaExport(
     return {
       name,
       baseClasses,
+      baseClassesRange,
       variants: {},
       exported: true,
     }
@@ -587,6 +589,10 @@ function tryParseCvaExport(
   }
 
   const variants: Record<string, Record<string, string>> = {}
+  // Parallel structure to `variants` but holding source ranges for each
+  // individual variant value's class string. Pillar 3b's slow path uses
+  // these ranges to splice variant edits back into the source surgically.
+  const variantRanges: Record<string, Record<string, { start: number; end: number }>> = {}
   let defaultVariants: Record<string, string> | undefined
 
   for (const prop of configArg.properties) {
@@ -619,6 +625,7 @@ function tryParseCvaExport(
           )
         }
         const groupMap: Record<string, string> = {}
+        const groupRanges: Record<string, { start: number; end: number }> = {}
         for (const valueProp of groupProp.initializer.properties) {
           if (!ts.isPropertyAssignment(valueProp)) {
             throw parserError(
@@ -636,8 +643,13 @@ function tryParseCvaExport(
             )
           }
           groupMap[valueName] = valueProp.initializer.text
+          groupRanges[valueName] = stringLiteralInnerRange(
+            valueProp.initializer,
+            ctx,
+          )
         }
         variants[groupName] = groupMap
+        variantRanges[groupName] = groupRanges
       }
     } else if (key === "defaultVariants") {
       if (!ts.isObjectLiteralExpression(prop.initializer)) {
@@ -680,7 +692,9 @@ function tryParseCvaExport(
   return {
     name,
     baseClasses,
+    baseClassesRange,
     variants,
+    variantRanges,
     ...(defaultVariants ? { defaultVariants } : {}),
     exported: true,
   }
@@ -694,6 +708,26 @@ function getPropertyName(
   if (ts.isIdentifier(name)) return name.text
   if (ts.isStringLiteral(name)) return name.text
   throw parserError(prop, ctx, "Property name must be an identifier or string literal.")
+}
+
+/**
+ * Get the source range of the *contents* of a string literal — the
+ * characters between the quotes (or backticks for no-substitution template
+ * literals). Returns `{ start, end }` byte offsets in `originalSource`.
+ *
+ * Used by the slow-path generator (Pillar 3b / GEO-301) to splice edited
+ * class strings back into the source without disturbing the surrounding
+ * quotes.
+ */
+function stringLiteralInnerRange(
+  lit: ts.StringLiteral | ts.NoSubstitutionTemplateLiteral,
+  ctx: ParserContext,
+): { start: number; end: number } {
+  const start = lit.getStart(ctx.sourceFile)
+  const end = lit.getEnd()
+  // Both string literals and no-substitution template literals have a
+  // single-character delimiter on each side (`"`, `'`, or `` ` ``).
+  return { start: start + 1, end: end - 1 }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -1270,9 +1304,16 @@ function parseClassNameAttribute(
   if (!attr.initializer) {
     return { kind: "literal", value: "" }
   }
-  // `className="foo"`
+  // `className="foo"` — string literal value. Range covers the chars
+  // BETWEEN the quotes (not the quotes themselves) so the slow path can
+  // splice without disturbing them.
   if (ts.isStringLiteral(attr.initializer)) {
-    return { kind: "literal", value: attr.initializer.text }
+    const lit = attr.initializer
+    return {
+      kind: "literal",
+      value: lit.text,
+      range: stringLiteralInnerRange(lit, ctx),
+    }
   }
   // `className={...}`
   if (
@@ -1308,9 +1349,22 @@ function parseClassNameAttribute(
         }
       }
       // Plain cn(...) with unstructured args → capture argument sources verbatim.
+      // If the first argument is a string literal (the most common shadcn
+      // shape: `cn("base classes", className)`), record its inner range so
+      // the slow path can splice an edit without touching anything else.
+      let baseRange: { start: number; end: number } | undefined
+      if (firstArg && ts.isStringLiteral(firstArg)) {
+        baseRange = stringLiteralInnerRange(firstArg, ctx)
+      } else if (
+        firstArg &&
+        ts.isNoSubstitutionTemplateLiteral(firstArg)
+      ) {
+        baseRange = stringLiteralInnerRange(firstArg, ctx)
+      }
       return {
         kind: "cn-call",
         args: expr.arguments.map((a) => a.getText(ctx.sourceFile)),
+        ...(baseRange ? { baseRange } : {}),
       }
     }
     // Bare cva call: `className={buttonVariants({ variant, size, className })}`
