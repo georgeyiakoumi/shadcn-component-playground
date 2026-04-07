@@ -255,8 +255,8 @@ export default function ComponentPage() {
                     size="xs"
                     variant="default"
                     className="h-7 flex-1 gap-1.5"
-                    disabled={!isDirty}
                     onClick={handleDownload}
+                    disabled={!editTree}
                     data-testid="download-tsx-button"
                     data-dirty={isDirty ? "true" : "false"}
                   >

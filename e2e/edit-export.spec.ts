@@ -30,7 +30,7 @@ test.describe("Pillar 5b — edit-export UI controls", () => {
     await expect(page.getByTestId("reset-edits-button")).toHaveCount(0)
   })
 
-  test("Download .tsx button appears in edit mode and starts disabled", async ({
+  test("Download .tsx button appears in edit mode and is always enabled (Reset gated)", async ({
     page,
   }) => {
     await page.goto("/playground/card")
@@ -42,13 +42,14 @@ test.describe("Pillar 5b — edit-export UI controls", () => {
     )
     // Switch to edit mode.
     await page.getByRole("button", { name: /^edit$/i }).click()
-    // The Download button is now visible.
+    // The Download button is visible AND clickable even with no edits — the
+    // user can always grab a clean copy of the source. The data-dirty flag
+    // tells the test (and curious users via DevTools) whether edits exist.
     const download = page.getByTestId("download-tsx-button")
     await expect(download).toBeVisible()
-    // It starts disabled because no edits have been made.
-    await expect(download).toBeDisabled()
+    await expect(download).toBeEnabled()
     await expect(download).toHaveAttribute("data-dirty", "false")
-    // Reset is also visible and disabled.
+    // Reset stays disabled because there's nothing to revert to.
     const reset = page.getByTestId("reset-edits-button")
     await expect(reset).toBeVisible()
     await expect(reset).toBeDisabled()
