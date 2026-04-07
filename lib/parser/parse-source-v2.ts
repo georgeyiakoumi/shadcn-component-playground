@@ -70,10 +70,38 @@ export function parseSource(
     thirdPartyAliases: new Map(),
     componentRefs: new Set(),
     thirdParty: undefined,
+    localComponentNames: new Set(),
+    localContextNames: new Set(),
+  }
+
+  // Pre-scan: collect top-level identifier names so the JSX walker can
+  // disambiguate `<LocalFoo />` (component-ref) from `<ImportedFoo />`
+  // (dynamic-ref). Also surfaces React.createContext names so qualified
+  // `<CtxName.Provider>` JSX tags can be resolved as local context provider
+  // references rather than unknown namespaces.
+  for (const stmt of sourceFile.statements) {
+    if (ts.isFunctionDeclaration(stmt) && stmt.name) {
+      ctx.localComponentNames.add(stmt.name.text)
+    }
+    if (ts.isVariableStatement(stmt)) {
+      for (const decl of stmt.declarationList.declarations) {
+        if (!ts.isIdentifier(decl.name)) continue
+        ctx.localComponentNames.add(decl.name.text)
+        if (
+          decl.initializer &&
+          ts.isCallExpression(decl.initializer) &&
+          isReactCreateContextCall(decl.initializer)
+        ) {
+          ctx.localContextNames.add(decl.name.text)
+        }
+      }
+    }
   }
 
   const imports: ImportDecl[] = []
   const cvaExports: CvaExport[] = []
+  const contextExports: ComponentTreeV2["contextExports"] = []
+  const hookExports: ComponentTreeV2["hookExports"] = []
   const subComponents: SubComponentV2[] = []
   const directives: string[] = []
   const filePassthrough: ComponentTreeV2["filePassthrough"] = []
@@ -113,10 +141,11 @@ export function parseSource(
     }
 
     if (ts.isVariableStatement(stmt)) {
-      // Three kinds of top-level `const` we recognise:
+      // Four kinds of top-level `const` we recognise:
       // (a) `const fooVariants = cva(...)` → cva export
-      // (b) `const Foo = (...) => <JSX />` → arrow-function component (Sonner)
-      // (c) anything else → error (Pillar 2b scope)
+      // (b) `const Foo = (...) => <JSX />` → arrow-function component
+      // (c) `const FooContext = React.createContext<T>(default)` → context export
+      // (d) anything else → error
       const cva = tryParseCvaExport(stmt, ctx)
       if (cva) {
         cvaExports.push(cva)
@@ -131,14 +160,30 @@ export function parseSource(
         subComponents.push(arrowComponent)
         continue
       }
+      const contextExport = tryParseContextExport(stmt, ctx)
+      if (contextExport) {
+        contextExports.push(contextExport)
+        continue
+      }
       throw parserError(
         stmt,
         ctx,
-        "Top-level variable statement is neither a cva() export nor an arrow-function component.",
+        "Top-level variable statement is neither a cva() export, arrow-function component, nor React.createContext.",
       )
     }
 
     if (ts.isFunctionDeclaration(stmt)) {
+      // Hook exports: function names starting with `use` followed by an
+      // uppercase letter are captured as `hookExports[]` rather than
+      // treated as React components. Carousel's `useCarousel` is the
+      // canonical example.
+      if (stmt.name && /^use[A-Z]/.test(stmt.name.text)) {
+        hookExports.push({
+          name: stmt.name.text,
+          bodySource: stmt.getText(ctx.sourceFile),
+        })
+        continue
+      }
       subComponents.push(parseFunctionComponent(stmt, ctx, subComponents.length))
       continue
     }
@@ -178,8 +223,8 @@ export function parseSource(
     filePassthrough,
     imports,
     cvaExports,
-    contextExports: [],
-    hookExports: [],
+    contextExports,
+    hookExports,
     subComponents,
     thirdParty: ctx.thirdParty,
   }
@@ -360,6 +405,22 @@ interface ParserContext {
    * is seen. Surfaced on the output tree's `thirdParty` field.
    */
   thirdParty: ThirdPartyIntegration | undefined
+  /**
+   * Set of top-level function/arrow-component/cva names defined in this
+   * file. Populated by a first pass over the statements before statement
+   * walking begins. When the JSX walker sees `<NavigationMenuViewport />`
+   * inside `NavigationMenu`, it finds the name in this set and resolves it
+   * as `{ kind: 'component-ref', name: '...' }` rather than falling through
+   * to the `dynamic-ref` path.
+   */
+  localComponentNames: Set<string>
+  /**
+   * Set of top-level identifiers that were created via `React.createContext`.
+   * When the JSX walker sees `<CarouselContext.Provider>` it checks this set
+   * to disambiguate "qualified JSX tag that is a local React context" from
+   * "qualified JSX tag that is a radix/third-party namespace".
+   */
+  localContextNames: Set<string>
 }
 
 function parserError(
@@ -500,12 +561,22 @@ function tryParseCvaExport(
   }
   const baseClasses = baseArg.text
 
-  // Second argument: config object with `variants` and optional `defaultVariants`.
-  if (!configArg || !ts.isObjectLiteralExpression(configArg)) {
+  // Second argument is optional: when cva is called with just a base class
+  // string and no config, the component has no variants.
+  // `navigationMenuTriggerStyle` in NavigationMenu is the canonical example.
+  if (!configArg) {
+    return {
+      name,
+      baseClasses,
+      variants: {},
+      exported: true,
+    }
+  }
+  if (!ts.isObjectLiteralExpression(configArg)) {
     throw parserError(
       call,
       ctx,
-      "cva() second argument must be an object literal (Pillar 2a scope).",
+      "cva() second argument must be an object literal when present.",
     )
   }
 
@@ -617,6 +688,65 @@ function getPropertyName(
   if (ts.isIdentifier(name)) return name.text
   if (ts.isStringLiteral(name)) return name.text
   throw parserError(prop, ctx, "Property name must be an identifier or string literal.")
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * React.createContext extraction
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Matches a `React.createContext<T>(defaultValue)` call expression.
+ * Carousel and ToggleGroup use this shape; the parser picks it up in the
+ * top-level pre-scan (to populate `ctx.localContextNames`) and the main
+ * walker converts each into a `ContextExport` entry.
+ */
+function isReactCreateContextCall(expr: ts.CallExpression): boolean {
+  // React.createContext(...) — property access on an identifier.
+  if (ts.isPropertyAccessExpression(expr.expression)) {
+    const access = expr.expression
+    if (
+      ts.isIdentifier(access.expression) &&
+      access.expression.text === "React" &&
+      ts.isIdentifier(access.name) &&
+      access.name.text === "createContext"
+    ) {
+      return true
+    }
+  }
+  // Bare `createContext(...)` — named import.
+  if (
+    ts.isIdentifier(expr.expression) &&
+    expr.expression.text === "createContext"
+  ) {
+    return true
+  }
+  return false
+}
+
+/**
+ * Try to parse a `const FooContext = React.createContext<T>(default)`
+ * top-level variable statement. Returns null if the shape doesn't match.
+ */
+function tryParseContextExport(
+  stmt: ts.VariableStatement,
+  ctx: ParserContext,
+): ComponentTreeV2["contextExports"][number] | null {
+  if (stmt.declarationList.declarations.length !== 1) return null
+  const decl = stmt.declarationList.declarations[0]
+  if (!ts.isIdentifier(decl.name)) return null
+  if (!decl.initializer || !ts.isCallExpression(decl.initializer)) return null
+  const call = decl.initializer
+  if (!isReactCreateContextCall(call)) return null
+
+  const name = decl.name.text
+  const typeArg = call.typeArguments?.[0]
+  const defaultArg = call.arguments[0]
+
+  return {
+    name,
+    typeArgSource: typeArg ? typeArg.getText(ctx.sourceFile) : "",
+    defaultValueSource: defaultArg ? defaultArg.getText(ctx.sourceFile) : "",
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -1091,16 +1221,28 @@ function resolveBase(
     if (libId !== undefined) {
       return { kind: "third-party", library: libId, component: part }
     }
+    // Local React context provider/consumer: `<CarouselContext.Provider>`
+    // where `CarouselContext = React.createContext(...)` is defined in this
+    // file. We emit as `dynamic-ref` with the qualified name as localName so
+    // the generator round-trips it verbatim without needing a new Base kind.
+    if (ctx.localContextNames.has(namespace)) {
+      return { kind: "dynamic-ref", localName: tagName }
+    }
     throw parserError(
       node,
       ctx,
-      `Qualified JSX tag "${tagName}" does not resolve to a known radix-ui primitive or third-party library namespace.`,
+      `Qualified JSX tag "${tagName}" does not resolve to a known radix-ui primitive, third-party library namespace, or local React context.`,
     )
   }
 
   // Single identifier.
   if (/^[A-Z][A-Za-z0-9_]*$/.test(tagName)) {
     if (ctx.componentRefs.has(tagName)) {
+      return { kind: "component-ref", name: tagName }
+    }
+    // Local components defined in this same file (e.g. NavigationMenu's
+    // `<NavigationMenuViewport />` appearing inside `NavigationMenu`).
+    if (ctx.localComponentNames.has(tagName)) {
       return { kind: "component-ref", name: tagName }
     }
     // Fall through to dynamic-ref: a local variable defined in the function

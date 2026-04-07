@@ -33,10 +33,8 @@ function load(relPath: string): string {
 /* ── 1. Coverage sweep ────────────────────────────────────────────────── */
 
 /**
- * Components the parser is expected to handle after Pillar 2b. This list
- * deliberately includes components from the medium and hard buckets that
- * happened to fit the same code paths — over-delivery is fine, under-
- * delivery is the risk we're guarding against.
+ * Every .tsx file in `components/ui/`. After Pillar 2c the parser handles
+ * all 43 components; this list is the authoritative coverage target.
  */
 const HANDLEABLE_COMPONENTS = [
   "accordion",
@@ -49,6 +47,7 @@ const HANDLEABLE_COMPONENTS = [
   "button",
   "calendar",
   "card",
+  "carousel",
   "checkbox",
   "collapsible",
   "command",
@@ -61,6 +60,7 @@ const HANDLEABLE_COMPONENTS = [
   "item",
   "label",
   "menubar",
+  "navigation-menu",
   "pagination",
   "popover",
   "progress",
@@ -78,6 +78,7 @@ const HANDLEABLE_COMPONENTS = [
   "tabs",
   "textarea",
   "toggle",
+  "toggle-group",
   "tooltip",
 ]
 
@@ -285,32 +286,137 @@ describe("parseSource — Resizable", () => {
   })
 })
 
-/* ── 7. Error handling — the three components still out of scope ─────── */
+/* ── 7. Deep spot-checks — Carousel (createContext + hook + local ref) ── */
 
-describe("parseSource — error handling", () => {
-  const OUT_OF_SCOPE = ["carousel", "navigation-menu", "toggle-group"]
-
-  it.each(OUT_OF_SCOPE)(
-    "throws a ParserError for %s (hard-bucket — scheduled for Pillar 2c/2d)",
-    (slug) => {
-      const source = load(`components/ui/${slug}.tsx`)
-      expect(() => parseSource(source, `components/ui/${slug}.tsx`)).toThrow(
-        ParserError,
-      )
-    },
+describe("parseSource — Carousel", () => {
+  const tree = parseSource(
+    load("components/ui/carousel.tsx"),
+    "components/ui/carousel.tsx",
   )
 
+  it("captures CarouselContext as a ContextExport", () => {
+    expect(tree.contextExports).toHaveLength(1)
+    expect(tree.contextExports[0].name).toBe("CarouselContext")
+    expect(tree.contextExports[0].typeArgSource).toContain("CarouselContextProps")
+  })
+
+  it("captures useCarousel as a HookExport", () => {
+    expect(tree.hookExports).toHaveLength(1)
+    expect(tree.hookExports[0].name).toBe("useCarousel")
+    expect(tree.hookExports[0].bodySource).toContain("React.useContext")
+  })
+
+  it("captures multiple type alias declarations as file passthrough", () => {
+    const typeAliases = tree.filePassthrough.filter((p) => p.kind === "type-alias")
+    expect(typeAliases.length).toBeGreaterThanOrEqual(4)
+  })
+
+  it("marks thirdParty as embla-carousel-react", () => {
+    expect(tree.thirdParty).toEqual({ library: "embla-carousel-react" })
+  })
+
+  it("resolves <CarouselContext.Provider> as a qualified dynamic-ref", () => {
+    const carousel = tree.subComponents.find((s) => s.name === "Carousel")!
+    expect(carousel.parts.root.base).toEqual({
+      kind: "dynamic-ref",
+      localName: "CarouselContext.Provider",
+    })
+  })
+})
+
+/* ── 8. Deep spot-checks — ToggleGroup (createContext + useContext) ────── */
+
+describe("parseSource — ToggleGroup", () => {
+  const tree = parseSource(
+    load("components/ui/toggle-group.tsx"),
+    "components/ui/toggle-group.tsx",
+  )
+
+  it("captures ToggleGroupContext as a ContextExport", () => {
+    expect(tree.contextExports).toHaveLength(1)
+    expect(tree.contextExports[0].name).toBe("ToggleGroupContext")
+  })
+
+  it("has two sub-components: ToggleGroup and ToggleGroupItem", () => {
+    expect(tree.subComponents.map((s) => s.name)).toEqual([
+      "ToggleGroup",
+      "ToggleGroupItem",
+    ])
+  })
+
+  it("ToggleGroupItem's body passthrough contains the React.useContext call", () => {
+    const item = tree.subComponents.find((s) => s.name === "ToggleGroupItem")!
+    const ptSources = item.passthrough.map((p) => p.source)
+    expect(ptSources.some((s) => s.includes("useContext"))).toBe(true)
+  })
+})
+
+/* ── 9. Deep spot-checks — NavigationMenu (cva no config + local ref) ── */
+
+describe("parseSource — NavigationMenu", () => {
+  const tree = parseSource(
+    load("components/ui/navigation-menu.tsx"),
+    "components/ui/navigation-menu.tsx",
+  )
+
+  it("captures navigationMenuTriggerStyle as a cva export with empty variants", () => {
+    const style = tree.cvaExports.find((c) => c.name === "navigationMenuTriggerStyle")
+    expect(style).toBeDefined()
+    expect(style!.variants).toEqual({})
+    expect(style!.defaultVariants).toBeUndefined()
+    expect(style!.baseClasses).toContain("group inline-flex")
+  })
+
+  it("captures the conditional {viewport && <NavigationMenuViewport />} child as an expression", () => {
+    // NavigationMenu's body is:
+    //   <NavigationMenuPrimitive.Root ...>
+    //     {children}
+    //     {viewport && <NavigationMenuViewport />}
+    //   </NavigationMenuPrimitive.Root>
+    // The second child is a JS expression, not a direct JSX child, so the
+    // parser stores it as `{ kind: 'expression', source: '...' }` with the
+    // raw source intact. The generator in Pillar 3 will re-emit it verbatim.
+    const nav = tree.subComponents.find((s) => s.name === "NavigationMenu")!
+    const children = nav.parts.root.children
+    const exprChildren = children.filter((c) => c.kind === "expression")
+    expect(exprChildren.length).toBeGreaterThanOrEqual(1)
+    const hasViewportRef = exprChildren.some(
+      (c) => c.kind === "expression" && c.source.includes("NavigationMenuViewport"),
+    )
+    expect(hasViewportRef).toBe(true)
+  })
+
+  it("has NavigationMenuViewport as a top-level sub-component in the same file", () => {
+    // Regression guard: ensure the local function declaration is still
+    // picked up as its own sub-component even though it's also referenced
+    // inline from NavigationMenu's JSX.
+    const viewport = tree.subComponents.find(
+      (s) => s.name === "NavigationMenuViewport",
+    )
+    expect(viewport).toBeDefined()
+  })
+})
+
+/* ── 10. Error handling — synthetic broken sources ─────────────────── */
+
+describe("parseSource — error handling", () => {
+  it("throws a ParserError for an unhandled top-level statement", () => {
+    const source = `import * as React from "react"\n\nclass Thing {}\n`
+    expect(() => parseSource(source, "synthetic.tsx")).toThrow(ParserError)
+  })
+
   it("ParserError carries file path and source position", () => {
-    const source = load("components/ui/carousel.tsx")
+    const source = `import * as React from "react"\n\nclass Thing {}\n`
     try {
-      parseSource(source, "components/ui/carousel.tsx")
+      parseSource(source, "synthetic.tsx")
       throw new Error("should have thrown")
     } catch (err) {
       expect(err).toBeInstanceOf(ParserError)
       if (!(err instanceof ParserError)) return
-      expect(err.filePath).toBe("components/ui/carousel.tsx")
+      expect(err.filePath).toBe("synthetic.tsx")
       expect(err.line).toBeGreaterThan(0)
       expect(err.column).toBeGreaterThan(0)
+      expect(err.reason.length).toBeGreaterThan(0)
     }
   })
 })
