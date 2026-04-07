@@ -21,6 +21,7 @@ import { StatusBar } from "@/components/playground/status-bar"
 import { RightPanel } from "@/components/playground/right-panel"
 import { DragHandle } from "@/components/playground/drag-handle"
 import { CanvasToolbar } from "@/components/playground/canvas-toolbar"
+import { ParserV2Status } from "@/components/playground/parser-v2-status"
 
 export default function ComponentPage() {
   const params = useParams<{ slug: string }>()
@@ -140,11 +141,16 @@ export default function ComponentPage() {
           className="flex shrink-0 flex-col border-r"
           style={{ width: `${structurePanelWidth}px` }}
         >
-          <div className="flex items-center gap-1.5 border-b px-3 py-2">
+          <div className="flex items-center justify-between gap-1.5 border-b px-3 py-2">
             <span className="text-xs font-medium text-muted-foreground">Outline</span>
           </div>
           <div className="flex-1 overflow-auto">
             <StructurePanel slug={slug} onNodeClick={handleOutlineNodeClick} />
+          </div>
+          {/* Pillar 5a (GEO-290) — proof-of-life surface for the M4 parser.
+              Replaced in Pillar 5b by full visual editor integration. */}
+          <div className="border-t px-3 py-2">
+            <ParserV2Status slug={slug} />
           </div>
         </div>
 
