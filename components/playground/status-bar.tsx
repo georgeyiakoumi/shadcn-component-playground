@@ -125,6 +125,7 @@ export function StatusBar({
                       <Button
                         variant="ghost"
                         size="icon"
+                        aria-label={bp.label}
                         className={cn(
                           "h-7 w-7",
                           breakpoint === bp.key
@@ -211,6 +212,7 @@ export function StatusBar({
                 <Button
                   variant="ghost"
                   size="icon"
+                  aria-label="Light theme"
                   className={cn(
                     "h-7 w-7",
                     theme === "light"
@@ -231,6 +233,7 @@ export function StatusBar({
                 <Button
                   variant="ghost"
                   size="icon"
+                  aria-label="Dark theme"
                   className={cn(
                     "h-7 w-7",
                     theme === "dark"
