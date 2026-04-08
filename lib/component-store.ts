@@ -1,41 +1,78 @@
 // Component Store — client-side persistence for user-created components
-// Uses localStorage until Supabase auth arrives in M4.
+// Uses localStorage until Supabase auth arrives in M5.
 
-import type { ComponentTree } from "@/lib/component-tree"
 import type { ComponentTreeV2 } from "@/lib/component-tree-v2"
+import {
+  liftV1TreeToV2,
+  type LegacyComponentTreeV1,
+} from "@/lib/component-tree-v2-factories"
 
 /* ── Types ──────────────────────────────────────────────────────── */
 
 export interface UserComponent {
   id: string
-  name: string        // PascalCase, e.g. "MyCard"
-  slug: string        // kebab-case, e.g. "my-card"
-  source: string      // the .tsx source code
-  /** Legacy v1 tree, only for from-scratch components created before Step 3
-   *  of the GEO-305 migration. New components write `treeV2` instead. The
-   *  custom page reads `treeV2` first and falls back to this for legacy
-   *  entries until Step 5 deletes the v1 path entirely. */
-  tree?: ComponentTree
-  /** v2 tree (GEO-305 Step 3+). Coexists with `tree` during the migration;
-   *  Step 5 will delete the legacy `tree` field once nothing reads it. */
+  name: string         // PascalCase, e.g. "MyCard"
+  slug: string         // kebab-case, e.g. "my-card"
+  source: string       // the .tsx source code
+  /** v2 tree, the canonical from-scratch shape. Always present for
+   *  components created via the from-scratch builder. Undefined for
+   *  legacy fork-from-stock entries that have a `source` but no tree. */
   treeV2?: ComponentTreeV2
-  basedOn?: string    // slug of the component it was forked from
-  createdAt: string   // ISO date
-  updatedAt: string   // ISO date
+  basedOn?: string     // slug of the component it was forked from
+  createdAt: string    // ISO date
+  updatedAt: string    // ISO date
+}
+
+/**
+ * Legacy localStorage entry shape — `UserComponent` from before GEO-305
+ * Step 5. Reads from disk may return entries with this shape. They are
+ * upgraded to the modern shape on read via `liftV1TreeToV2`.
+ *
+ * Not exported — only the public `UserComponent` type leaks out of this
+ * module. Inside, we read raw JSON, detect the legacy shape, and lift.
+ */
+interface LegacyUserComponent
+  extends Omit<UserComponent, "treeV2"> {
+  /** Legacy v1 tree from before Step 5. */
+  tree?: LegacyComponentTreeV1
+  /** May or may not be present in legacy entries created during Step 3. */
+  treeV2?: ComponentTreeV2
 }
 
 /* ── Constants ──────────────────────────────────────────────────── */
 
 const STORAGE_KEY = "playground-components"
 
-/* ── Helpers ────────────────────────────────────────────────────── */
+/* ── Internals ──────────────────────────────────────────────────── */
+
+/**
+ * Lift a legacy entry to the modern shape. If the entry has only `tree`
+ * (v1) and no `treeV2`, the v1 tree is upgraded via `liftV1TreeToV2`.
+ * If the entry already has `treeV2`, the legacy `tree` is dropped. If
+ * the entry has neither (a fork-from-stock legacy entry), nothing
+ * changes.
+ */
+function liftEntry(entry: LegacyUserComponent): UserComponent {
+  const { tree, treeV2, ...rest } = entry
+  if (treeV2) {
+    // Already on v2 — strip the legacy field if present
+    return { ...rest, treeV2 }
+  }
+  if (tree) {
+    // Lift v1 → v2
+    return { ...rest, treeV2: liftV1TreeToV2(tree) }
+  }
+  // Fork-from-stock entry with no tree at all
+  return rest
+}
 
 function readStore(): UserComponent[] {
   if (typeof window === "undefined") return []
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return []
-    return JSON.parse(raw) as UserComponent[]
+    const parsed = JSON.parse(raw) as LegacyUserComponent[]
+    return parsed.map(liftEntry)
   } catch {
     return []
   }

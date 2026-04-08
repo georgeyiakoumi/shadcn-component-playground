@@ -30,8 +30,7 @@ import type {
   PropsPart,
   SubComponentV2,
 } from "@/lib/component-tree-v2"
-import type { ComponentProp } from "@/lib/component-tree"
-import type { CustomVariantDef } from "@/lib/component-state"
+import type { ComponentProp, CustomVariantDef } from "@/lib/component-state"
 
 /* ── Read: derive flat lists from v2 ────────────────────────────── */
 

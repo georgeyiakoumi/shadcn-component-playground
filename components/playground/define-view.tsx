@@ -66,8 +66,7 @@ import {
 } from "@/components/ui/alert-dialog"
 
 import type { ComponentTreeV2, SubComponentV2 } from "@/lib/component-tree-v2"
-import type { ComponentProp } from "@/lib/component-tree"
-import type { CustomVariantDef } from "@/lib/component-state"
+import type { ComponentProp, CustomVariantDef } from "@/lib/component-state"
 import { toPascalCase } from "@/lib/code-generator"
 import {
   addSubComponent,
