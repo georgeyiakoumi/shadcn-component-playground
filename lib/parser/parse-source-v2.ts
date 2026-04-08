@@ -43,6 +43,7 @@ import type {
   ThirdPartyIntegration,
 } from "@/lib/component-tree-v2"
 import { ParserError } from "@/lib/parser/parser-error"
+import { recogniseDataAttrVariants } from "@/lib/parser/data-attr-variant-recogniser"
 
 /**
  * Parse a shadcn source file into a `ComponentTreeV2`.
@@ -933,14 +934,27 @@ function buildSubComponent(args: BuildSubComponentArgs): SubComponentV2 {
 
   const rootPart = parseJsxElement(returnExpr, ctx)
 
-  // Detect the cva variant strategy by looking at the className expression.
-  // For Button, the className is `cn(buttonVariants({ variant, size, className }))`
-  // so the ClassNameExpr will be kind=cn-call with a cva-call inside. We want
-  // to surface the strategy as `cva` regardless. Scan the part's className
-  // tree for a `cva-call` kind.
+  // Detect the variant strategy by looking at the className expression
+  // plus the inline prop + data-attribute mirrors on the root.
+  //
+  // Priority:
+  // 1. cva — if the className has a cva-call, the styling lives in the cva
+  //    export and takes precedence. Any `data-<prop>={prop}` bindings on
+  //    the root are decoration, not the source of styling (see Button).
+  // 2. data-attr — if the className is a cn-call with a literal base
+  //    string, AND the inline props include a union-of-string-literals
+  //    with a default, AND the root has a matching `data-<prop>={prop}`
+  //    attribute, AND the base string contains at least one matching
+  //    `data-[<prop>=<value>]:` prefix, the strategy is data-attr.
+  // 3. none — everything else.
+  const mergedPropsDecl = mergeInlineDefaults(propsDecl, inlineDefaults)
   const variantStrategy: SubComponentV2["variantStrategy"] = (() => {
     const ref = findCvaRefInClassName(rootPart.className)
     if (ref) return { kind: "cva", cvaRef: ref }
+    const dataAttrVariants = recogniseDataAttrVariants(mergedPropsDecl, rootPart)
+    if (dataAttrVariants.length > 0) {
+      return { kind: "data-attr", variants: dataAttrVariants }
+    }
     return { kind: "none" }
   })()
 
@@ -955,7 +969,7 @@ function buildSubComponent(args: BuildSubComponentArgs): SubComponentV2 {
     exportOrder,
     isDefaultExport: false, // Pillar 2a: shadcn uses named exports
     jsdoc: null,
-    propsDecl: mergeInlineDefaults(propsDecl, inlineDefaults),
+    propsDecl: mergedPropsDecl,
     variantStrategy,
     passthrough,
     parts: {

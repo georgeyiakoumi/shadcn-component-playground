@@ -356,16 +356,60 @@ export type ClassNameExpr =
  * How a sub-component expresses variants. D3 — per-sub-component.
  *
  * - `cva`: uses a cva export. `cvaRef` points at a `CvaExport` by name.
- * - `data-attribute`: uses CSS data-attribute selectors keyed off `data-*`
- *   attributes set by Radix (e.g. `data-state=open`) or the component itself
- *   (e.g. `data-size=sm`). `attrs` lists the attribute names the component
- *   reads from to drive variants.
+ *   Good for variants with many value-specific style sets (Button, Badge,
+ *   Alert).
+ * - `data-attr`: uses a plain TypeScript union prop with a default value,
+ *   mirrored to the DOM via `data-<propName>={propName}` and styled via
+ *   `data-[<propName>=<value>]:<class>` prefixes inline in the cn() base
+ *   string. Children can react via `group-data-[<propName>=<value>]/<parent-kebab>:`
+ *   when the parent has `group/<parent-kebab>` set.
+ *
+ *   This mirrors the newer shadcn authoring pattern (Card, Accordion,
+ *   several Radix wrappers). Good for compact/default toggles and any
+ *   variant whose styling fits comfortably inline. Parent variants
+ *   propagate down the composition graph automatically via Tailwind's
+ *   group mechanism.
+ *
+ *   The raw classes still live in the sub-component's `parts.root.className`
+ *   cn() base — the strategy is a *semantic view* onto them, not a separate
+ *   storage. Helpers in `lib/parser/data-attr-slot.ts` read and write the
+ *   slot classes by scanning the cn() base for the right prefixes.
+ *
  * - `none`: no variant system.
  */
 export type VariantStrategy =
   | { kind: "cva"; cvaRef: string }
-  | { kind: "data-attribute"; attrs: string[] }
+  | {
+      kind: "data-attr"
+      /**
+       * One or more data-attribute variants driven by plain TS union props.
+       * A sub-component can declare multiple independent data-attr variants
+       * (e.g. a hypothetical Card with both `size` and `density` props).
+       * The common single-variant case is just a one-element array.
+       */
+      variants: DataAttrVariant[]
+    }
   | { kind: "none" }
+
+/**
+ * One data-attribute-driven variant on a sub-component. Describes the
+ * relationship between a TypeScript union prop, the DOM attribute it
+ * mirrors, and the values that attribute can take.
+ */
+export interface DataAttrVariant {
+  /** The prop name, e.g. "size". */
+  propName: string
+  /** Ordered list of possible values, e.g. ["default", "sm"]. */
+  values: string[]
+  /** Which value is the default (from the destructuring default, e.g. `size = "default"`). */
+  defaultValue: string
+  /**
+   * The DOM attribute name, e.g. "data-size". Defaults to `data-${propName}`
+   * for new from-scratch components; captured verbatim from parsed source
+   * to handle any deviation.
+   */
+  attrName: string
+}
 
 /* ══════════════════════════════════════════════════════════════════════════
  * cva exports
