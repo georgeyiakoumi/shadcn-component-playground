@@ -604,7 +604,7 @@ function BodyPartNode({
             "min-w-0 flex-1 truncate text-left font-mono text-xs",
             isSelected
               ? "text-foreground"
-              : "text-muted-foreground hover:text-foreground/70",
+              : "text-amber-600/90 hover:text-amber-600 dark:text-amber-400/90 dark:hover:text-amber-400",
           )}
           onClick={() => {
             if (onSelectPath) {
@@ -613,7 +613,7 @@ function BodyPartNode({
           }}
         >
           {showAsTextRow && firstTextChild ? (
-            <span className="font-sans text-foreground/50 italic">
+            <span className="font-sans italic">
               &quot;
               {firstTextChild.value.length > 20
                 ? firstTextChild.value.slice(0, 20) + "…"
