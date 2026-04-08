@@ -5,9 +5,14 @@ import {
   createCvaExport,
   createPartNode,
   createSubComponentV2,
+  createV2TreeFromScratch,
   toDataSlot,
   toSlug,
+  translatePropsToV2Inline,
+  translateVariantsToV2Cva,
 } from "@/lib/component-tree-v2-factories"
+import type { ComponentProp } from "@/lib/component-tree"
+import type { CustomVariantDef } from "@/lib/component-state"
 
 /* ── toDataSlot / toSlug ────────────────────────────────────────── */
 
@@ -193,5 +198,183 @@ describe("createCvaExport", () => {
     expect(cva.variants).toEqual({})
     expect(cva.defaultVariants).toBeUndefined()
     expect(cva.exported).toBe(true)
+  })
+})
+
+/* ── translatePropsToV2Inline ───────────────────────────────────── */
+
+describe("translatePropsToV2Inline", () => {
+  test("translates string props with default values", () => {
+    const props: ComponentProp[] = [
+      { name: "label", type: "string", required: true, defaultValue: "Click me" },
+    ]
+    const result = translatePropsToV2Inline(props)
+
+    expect(result).toHaveLength(1)
+    expect(result[0]).toEqual({
+      name: "label",
+      type: "string",
+      optional: false,
+      defaultValue: '"Click me"',
+    })
+  })
+
+  test("translates boolean props", () => {
+    const props: ComponentProp[] = [
+      { name: "disabled", type: "boolean", required: false, defaultValue: "false" },
+    ]
+    const result = translatePropsToV2Inline(props)
+    expect(result[0].type).toBe("boolean")
+    expect(result[0].optional).toBe(true)
+    expect(result[0].defaultValue).toBe("false")
+  })
+
+  test("translates ReactNode props to React.ReactNode", () => {
+    const props: ComponentProp[] = [
+      { name: "icon", type: "ReactNode", required: false },
+    ]
+    const result = translatePropsToV2Inline(props)
+    expect(result[0].type).toBe("React.ReactNode")
+    expect(result[0].defaultValue).toBeUndefined()
+  })
+
+  test("optional flag inverts the v1 required flag", () => {
+    const props: ComponentProp[] = [
+      { name: "a", type: "string", required: true },
+      { name: "b", type: "string", required: false },
+    ]
+    const result = translatePropsToV2Inline(props)
+    expect(result[0].optional).toBe(false)
+    expect(result[1].optional).toBe(true)
+  })
+})
+
+/* ── translateVariantsToV2Cva ───────────────────────────────────── */
+
+describe("translateVariantsToV2Cva", () => {
+  test("returns null when there are no variants", () => {
+    expect(translateVariantsToV2Cva([], "MyCard")).toBeNull()
+  })
+
+  test("translates a variant group with options", () => {
+    const variants: CustomVariantDef[] = [
+      {
+        name: "size",
+        type: "variant",
+        options: ["sm", "md", "lg"],
+        defaultValue: "md",
+      },
+    ]
+    const result = translateVariantsToV2Cva(variants, "MyCard")
+    expect(result).not.toBeNull()
+    if (!result) return
+
+    expect(result.cvaRef).toBe("myCardVariants")
+    expect(result.cva.name).toBe("myCardVariants")
+    expect(result.cva.variants).toEqual({
+      size: { sm: "", md: "", lg: "" },
+    })
+    expect(result.cva.defaultVariants).toEqual({ size: "md" })
+    expect(result.cva.exported).toBe(true)
+  })
+
+  test("translates a boolean variant as a true/false group", () => {
+    const variants: CustomVariantDef[] = [
+      {
+        name: "disabled",
+        type: "boolean",
+        options: [],
+        defaultValue: "false",
+      },
+    ]
+    const result = translateVariantsToV2Cva(variants, "MyButton")
+    expect(result).not.toBeNull()
+    if (!result) return
+
+    expect(result.cva.variants).toEqual({
+      disabled: { true: "", false: "" },
+    })
+    expect(result.cva.defaultVariants).toEqual({ disabled: "false" })
+  })
+
+  test("merges multiple variant groups", () => {
+    const variants: CustomVariantDef[] = [
+      { name: "size", type: "variant", options: ["sm", "lg"], defaultValue: "sm" },
+      { name: "tone", type: "variant", options: ["light", "dark"], defaultValue: "light" },
+    ]
+    const result = translateVariantsToV2Cva(variants, "MyCard")
+    expect(result).not.toBeNull()
+    if (!result) return
+
+    expect(Object.keys(result.cva.variants)).toEqual(["size", "tone"])
+    expect(result.cva.defaultVariants).toEqual({ size: "sm", tone: "light" })
+  })
+})
+
+/* ── createV2TreeFromScratch ────────────────────────────────────── */
+
+describe("createV2TreeFromScratch", () => {
+  test("with no props or variants, matches createComponentTreeV2", () => {
+    const tree = createV2TreeFromScratch("MyCard", "div", [], [])
+
+    expect(tree.name).toBe("MyCard")
+    expect(tree.subComponents).toHaveLength(1)
+    expect(tree.cvaExports).toEqual([])
+    expect(tree.subComponents[0].propsDecl.kind).toBe("single")
+    expect(tree.subComponents[0].variantStrategy).toEqual({ kind: "none" })
+  })
+
+  test("with props, promotes propsDecl to intersection", () => {
+    const props: ComponentProp[] = [
+      { name: "label", type: "string", required: true },
+    ]
+    const tree = createV2TreeFromScratch("MyCard", "div", props, [])
+
+    const decl = tree.subComponents[0].propsDecl
+    expect(decl.kind).toBe("intersection")
+    if (decl.kind !== "intersection") return
+    expect(decl.parts).toHaveLength(2)
+    expect(decl.parts[0].kind).toBe("component-props")
+    expect(decl.parts[1].kind).toBe("inline")
+  })
+
+  test("with variants, adds a cva export and points the strategy at it", () => {
+    const variants: CustomVariantDef[] = [
+      { name: "size", type: "variant", options: ["sm", "lg"], defaultValue: "sm" },
+    ]
+    const tree = createV2TreeFromScratch("MyCard", "div", [], variants)
+
+    expect(tree.cvaExports).toHaveLength(1)
+    expect(tree.cvaExports[0].name).toBe("myCardVariants")
+    expect(tree.subComponents[0].variantStrategy).toEqual({
+      kind: "cva",
+      cvaRef: "myCardVariants",
+    })
+
+    // PropsDecl should also intersect the VariantProps type
+    const decl = tree.subComponents[0].propsDecl
+    expect(decl.kind).toBe("intersection")
+    if (decl.kind !== "intersection") return
+    expect(decl.parts.some((p) => p.kind === "variant-props")).toBe(true)
+  })
+
+  test("with both props AND variants, intersection contains all three parts", () => {
+    const props: ComponentProp[] = [
+      { name: "label", type: "string", required: true },
+    ]
+    const variants: CustomVariantDef[] = [
+      { name: "size", type: "variant", options: ["sm", "lg"], defaultValue: "sm" },
+    ]
+    const tree = createV2TreeFromScratch("MyCard", "div", props, variants)
+
+    const decl = tree.subComponents[0].propsDecl
+    expect(decl.kind).toBe("intersection")
+    if (decl.kind !== "intersection") return
+    expect(decl.parts).toHaveLength(3)
+    expect(decl.parts.map((p) => p.kind).sort()).toEqual([
+      "component-props",
+      "inline",
+      "variant-props",
+    ])
   })
 })

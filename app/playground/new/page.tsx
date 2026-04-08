@@ -24,7 +24,9 @@ import {
   type ComponentMeta,
 } from "@/lib/registry"
 import { componentSources } from "@/lib/component-source"
-import { toPascalCase, generateFromTree } from "@/lib/code-generator"
+import { toPascalCase } from "@/lib/code-generator"
+import { generateFromTreeV2 } from "@/lib/parser/generate-from-tree-v2"
+import { createV2TreeFromScratch } from "@/lib/component-tree-v2-factories"
 import {
   generateId,
   saveUserComponent,
@@ -150,16 +152,24 @@ function NewComponentPageInner() {
 
     let source: string
     let tree = undefined
+    let treeV2 = undefined
 
     if (mode === "copy") {
+      // GEO-305 Step 3: copy mode still uses v1 string surgery — the
+      // structured fork via /api/parse/[slug] will land in a follow-up
+      // step alongside the custom-page migration.
       const originalSource = componentSources[selectedComponent] ?? ""
       source = renameComponentInSource(originalSource, selectedComponent, componentName)
     } else {
-      // Generate a from-scratch component with a tree structure
+      // GEO-305 Step 3: scratch mode now produces BOTH a v1 tree (for the
+      // current custom page to consume) AND a v2 tree (for Step 4 to
+      // consume after the custom-page migration). Source is generated
+      // from the v2 tree via the template-emission path landed in Step 2.
       tree = createComponentTree(componentName, baseElement)
       tree.props = props
       tree.variants = variants
-      source = generateFromTree(tree)
+      treeV2 = createV2TreeFromScratch(componentName, baseElement, props, variants)
+      source = generateFromTreeV2(treeV2)
     }
 
     const component: UserComponent = {
@@ -168,6 +178,7 @@ function NewComponentPageInner() {
       slug,
       source,
       tree,
+      treeV2,
       basedOn: mode === "copy" ? selectedComponent : undefined,
       createdAt: now,
       updatedAt: now,

@@ -2,6 +2,7 @@
 // Uses localStorage until Supabase auth arrives in M4.
 
 import type { ComponentTree } from "@/lib/component-tree"
+import type { ComponentTreeV2 } from "@/lib/component-tree-v2"
 
 /* ── Types ──────────────────────────────────────────────────────── */
 
@@ -10,7 +11,14 @@ export interface UserComponent {
   name: string        // PascalCase, e.g. "MyCard"
   slug: string        // kebab-case, e.g. "my-card"
   source: string      // the .tsx source code
-  tree?: ComponentTree // only for from-scratch components
+  /** Legacy v1 tree, only for from-scratch components created before Step 3
+   *  of the GEO-305 migration. New components write `treeV2` instead. The
+   *  custom page reads `treeV2` first and falls back to this for legacy
+   *  entries until Step 5 deletes the v1 path entirely. */
+  tree?: ComponentTree
+  /** v2 tree (GEO-305 Step 3+). Coexists with `tree` during the migration;
+   *  Step 5 will delete the legacy `tree` field once nothing reads it. */
+  treeV2?: ComponentTreeV2
   basedOn?: string    // slug of the component it was forked from
   createdAt: string   // ISO date
   updatedAt: string   // ISO date
