@@ -11,11 +11,50 @@ import {
   toSlug,
   translatePropsToV2Inline,
   translateVariantsToV2Cva,
+  type LegacyComponentTreeV1,
 } from "@/lib/component-tree-v2-factories"
-import type { ComponentProp } from "@/lib/component-tree"
-import { createComponentTree, createElementNode } from "@/lib/component-tree"
-import type { CustomVariantDef } from "@/lib/component-state"
-import type { PartChild, PartNode } from "@/lib/component-tree-v2"
+import type {
+  ComponentProp,
+  CustomVariantDef,
+} from "@/lib/component-state"
+
+/* ── Test helpers — minimal v1 tree construction ─────────────────
+ *
+ * GEO-305 Step 6 deleted `lib/component-tree.ts`. The lift tests below
+ * still need v1-shaped input, so we synthesize legacy trees inline
+ * using the `LegacyComponentTreeV1` shape exported from the factories.
+ */
+
+let legacyIdCounter = 0
+function legacyId(): string {
+  legacyIdCounter++
+  return `el_${Date.now().toString(36)}_${legacyIdCounter.toString(36)}`
+}
+
+function legacyElementNode(
+  tag: string,
+): LegacyComponentTreeV1["assemblyTree"] {
+  return { id: legacyId(), tag, children: [], classes: [] }
+}
+
+function legacyComponentTree(
+  name: string,
+  baseElement: string,
+): LegacyComponentTreeV1 {
+  return {
+    name,
+    baseElement,
+    dataSlot: name
+      .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+      .replace(/([A-Z])([A-Z][a-z])/g, "$1-$2")
+      .toLowerCase(),
+    classes: [],
+    assemblyTree: legacyElementNode(baseElement),
+    props: [],
+    variants: [],
+    subComponents: [],
+  }
+}
 
 /* ── toDataSlot / toSlug ────────────────────────────────────────── */
 
@@ -386,7 +425,7 @@ describe("createV2TreeFromScratch", () => {
 
 describe("liftV1TreeToV2", () => {
   test("lifts a minimal v1 tree", () => {
-    const v1 = createComponentTree("MyCard", "div")
+    const v1 = legacyComponentTree("MyCard", "div")
     const v2 = liftV1TreeToV2(v1)
 
     expect(v2.name).toBe("MyCard")
@@ -400,7 +439,7 @@ describe("liftV1TreeToV2", () => {
   })
 
   test("lifts root classes onto the root part's cn-call", () => {
-    const v1 = createComponentTree("MyCard", "div")
+    const v1 = legacyComponentTree("MyCard", "div")
     v1.classes = ["p-4", "bg-blue-500"]
     const v2 = liftV1TreeToV2(v1)
 
@@ -412,10 +451,10 @@ describe("liftV1TreeToV2", () => {
   })
 
   test("lifts assemblyTree children to part children", () => {
-    const v1 = createComponentTree("MyCard", "div")
-    const child1 = createElementNode("section")
+    const v1 = legacyComponentTree("MyCard", "div")
+    const child1 = legacyElementNode("section")
     child1.classes = ["mt-4"]
-    const child2 = createElementNode("p")
+    const child2 = legacyElementNode("p")
     child2.text = "Hello"
     v1.assemblyTree.children = [child1, child2]
 
@@ -439,7 +478,7 @@ describe("liftV1TreeToV2", () => {
   })
 
   test("lifts v1 sub-components as additional v2 sub-components", () => {
-    const v1 = createComponentTree("MyCard", "div")
+    const v1 = legacyComponentTree("MyCard", "div")
     v1.subComponents = [
       {
         id: "sc-1",
@@ -465,7 +504,7 @@ describe("liftV1TreeToV2", () => {
   })
 
   test("lifts v1 props into the propsDecl as an intersection", () => {
-    const v1 = createComponentTree("MyCard", "div")
+    const v1 = legacyComponentTree("MyCard", "div")
     v1.props = [{ name: "label", type: "string", required: true }]
     const v2 = liftV1TreeToV2(v1)
 
@@ -477,7 +516,7 @@ describe("liftV1TreeToV2", () => {
   })
 
   test("lifts v1 variants into a cva export + variant-props intersection", () => {
-    const v1 = createComponentTree("MyCard", "div")
+    const v1 = legacyComponentTree("MyCard", "div")
     v1.variants = [
       { name: "size", type: "variant", options: ["sm", "lg"], defaultValue: "sm" },
     ]

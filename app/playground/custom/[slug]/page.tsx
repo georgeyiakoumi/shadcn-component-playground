@@ -5,7 +5,6 @@ import { useParams, useRouter } from "next/navigation"
 
 import { cn } from "@/lib/utils"
 import { generateFromTreeV2 } from "@/lib/parser/generate-from-tree-v2"
-import { ComponentEditProvider } from "@/lib/component-state"
 import {
   getUserComponent,
   saveUserComponent,
@@ -16,7 +15,6 @@ import type {
   PartNode,
   SubComponentV2,
 } from "@/lib/component-tree-v2"
-import { liftV1TreeToV2 } from "@/lib/component-tree-v2-factories"
 import {
   findPartByPath,
   findSubByPath,
@@ -93,25 +91,15 @@ export default function CustomComponentPage() {
     const uc = getUserComponent(slugToLoad)
     setUserComponent(uc)
     setSource(uc?.source ?? "")
-    if (uc?.treeV2) {
-      // New entries (Step 3+) carry treeV2 directly
-      setTree(uc.treeV2)
-    } else if (uc?.tree) {
-      // Legacy entries from before Step 3 — lift the v1 tree to v2 once
-      // on read. The lifted v2 will be persisted on the next autosave.
-      setTree(liftV1TreeToV2(uc.tree))
-    } else {
-      // No tree at all — legacy fork-from-stock entry. The page will
-      // render the non-tree branch (just the code panel) since hasTree
-      // remains false.
-      setTree(null)
-    }
+    // The store lifts legacy v1 entries to v2 on read (Step 5),
+    // so we always read uc.treeV2 here.
+    setTree(uc?.treeV2 ?? null)
   }
 
   React.useEffect(() => {
     loadFromStore(slug)
     const uc = getUserComponent(slug)
-    setMode(uc?.tree || uc?.treeV2 ? "define" : "inspect")
+    setMode(uc?.treeV2 ? "define" : "inspect")
     setMounted(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug])
@@ -188,8 +176,6 @@ export default function CustomComponentPage() {
         name: tree?.name ?? userComponent.name,
         source,
         treeV2: tree ?? undefined,
-        // Strip the legacy v1 tree on save — we're fully on v2 now
-        tree: undefined,
         updatedAt: new Date().toISOString(),
       }
       saveUserComponent(updated)
@@ -391,7 +377,7 @@ export default function CustomComponentPage() {
   }
 
   return (
-    <ComponentEditProvider slug={slug}>
+    <>
       {/* ── Toolbar ──────────────────────────────────────────── */}
       <PlaygroundToolbar
         componentName={tree?.name ?? userComponent.name}
@@ -708,6 +694,6 @@ export default function CustomComponentPage() {
           </>
         )}
       </div>
-    </ComponentEditProvider>
+    </>
   )
 }

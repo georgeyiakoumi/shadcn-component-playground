@@ -27,8 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import type { ComponentProp } from "@/lib/component-tree"
-import type { CustomVariantDef } from "@/lib/component-state"
+import type { ComponentProp, CustomVariantDef } from "@/lib/component-state"
 
 /* ── Constants ──────────────────────────────────────────────────── */
 

@@ -23,8 +23,48 @@ import type {
   PropsPart,
   SubComponentV2,
 } from "@/lib/component-tree-v2"
-import type { CustomVariantDef } from "@/lib/component-state"
-import type { ComponentProp } from "@/lib/component-tree"
+import type { ComponentProp, CustomVariantDef } from "@/lib/component-state"
+
+/* ── Legacy v1 ComponentTree shape (for liftV1TreeToV2) ──────────
+ *
+ * GEO-305 Step 6 deleted `lib/component-tree.ts`. The lift helper
+ * still needs to accept legacy v1 trees coming from localStorage, so
+ * we inline a minimal shape here. The store reads JSON and casts to
+ * `LegacyComponentTreeV1` before calling `liftV1TreeToV2`.
+ */
+
+interface LegacyElementNode {
+  id: string
+  tag: string
+  children: LegacyElementNode[]
+  classes: string[]
+  text?: string
+  props?: Record<string, string>
+}
+
+interface LegacySubComponentDef {
+  id: string
+  name: string
+  baseElement: string
+  dataSlot: string
+  classes: string[]
+  props: ComponentProp[]
+  variants: CustomVariantDef[]
+  nestInside?: string
+  namedGroup?: boolean
+  headingFont?: boolean
+}
+
+export interface LegacyComponentTreeV1 {
+  name: string
+  baseElement: string
+  dataSlot: string
+  classes: string[]
+  assemblyTree: LegacyElementNode
+  props: ComponentProp[]
+  variants: CustomVariantDef[]
+  subComponents: LegacySubComponentDef[]
+}
 
 /* ── Slug helpers ───────────────────────────────────────────────── */
 
@@ -298,7 +338,7 @@ export function translateVariantsToV2Cva(
  * @internal
  */
 export function liftV1TreeToV2(
-  v1: import("@/lib/component-tree").ComponentTree,
+  v1: LegacyComponentTreeV1,
 ): ComponentTreeV2 {
   const tree = createComponentTreeV2(v1.name, v1.baseElement)
   const root = tree.subComponents[0]
@@ -381,7 +421,7 @@ export function liftV1TreeToV2(
 }
 
 function liftElementNodeChildrenToPartChildren(
-  children: import("@/lib/component-tree").ElementNode[],
+  children: LegacyElementNode[],
 ): import("@/lib/component-tree-v2").PartChild[] {
   return children.map((node) => {
     const part: PartNode = {

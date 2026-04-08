@@ -15,6 +15,21 @@ export interface CustomVariantDef {
   defaultValue: string
 }
 
+/**
+ * UI shape for prop declarations in the from-scratch builder. Originally
+ * lived in `lib/component-tree.ts` (v1 from-scratch tree). Moved here
+ * during GEO-305 Step 6 when v1 was deleted, because the from-scratch
+ * UI components (Define view, prop popovers) still consume this flat
+ * shape and the v2 helpers (`v2-tree-define.ts`) translate to/from it
+ * at the v2 boundary.
+ */
+export interface ComponentProp {
+  name: string
+  type: "string" | "number" | "boolean" | "ReactNode"
+  required: boolean
+  defaultValue?: string
+}
+
 export interface ComponentEdit {
   slug: string
   /** Sub-components that are currently active (for compound components) */
