@@ -279,6 +279,132 @@ export function translateVariantsToV2Cva(
   }
 }
 
+/* ── v1 → v2 lift (one-time, on legacy localStorage read) ───────── */
+
+/**
+ * Lift a legacy v1 `ComponentTree` (built by the from-scratch builder
+ * before GEO-305 Step 3) to a `ComponentTreeV2`. Used at the localStorage
+ * read boundary to upgrade entries that pre-date the migration.
+ *
+ * From-scratch v1 trees use a strict subset of v2's expressiveness:
+ * - HTML bases only (no Radix, no third-party)
+ * - cn-call className with one base literal + className override
+ * - Assembly tree (v1) becomes the root sub-component's parts.root tree
+ * - Sub-components (v1) become additional v2 sub-components
+ *
+ * The lift is **lossless** for from-scratch trees: every v1 field has a
+ * v2 home.
+ *
+ * @internal
+ */
+export function liftV1TreeToV2(
+  v1: import("@/lib/component-tree").ComponentTree,
+): ComponentTreeV2 {
+  const tree = createComponentTreeV2(v1.name, v1.baseElement)
+  const root = tree.subComponents[0]
+
+  // Convert v1.props and v1.variants via the existing translators
+  const inlineProps = translatePropsToV2Inline(v1.props)
+  if (inlineProps.length > 0) {
+    root.propsDecl = {
+      kind: "intersection",
+      parts: [
+        { kind: "component-props", target: v1.baseElement } satisfies PropsPart,
+        { kind: "inline", properties: inlineProps } satisfies PropsPart,
+      ],
+    } satisfies PropsDecl
+  }
+
+  const cvaResult = translateVariantsToV2Cva(v1.variants, v1.name)
+  if (cvaResult) {
+    tree.cvaExports.push(cvaResult.cva)
+    root.variantStrategy = { kind: "cva", cvaRef: cvaResult.cvaRef }
+    const variantPropsPart: PropsPart = {
+      kind: "variant-props",
+      cvaRef: cvaResult.cvaRef,
+    }
+    if (root.propsDecl.kind === "single") {
+      root.propsDecl = {
+        kind: "intersection",
+        parts: [root.propsDecl.part, variantPropsPart],
+      }
+    } else if (root.propsDecl.kind === "intersection") {
+      root.propsDecl.parts.push(variantPropsPart)
+    }
+  }
+
+  // Set the root's classes from the v1 root.classes array
+  if (v1.classes.length > 0) {
+    root.parts.root.className = {
+      kind: "cn-call",
+      args: [`"${v1.classes.join(" ")}"`, "className"],
+    } satisfies ClassNameExpr
+  }
+
+  // Convert v1.assemblyTree's children to v2 PartChild[] under the root part
+  root.parts.root.children = liftElementNodeChildrenToPartChildren(
+    v1.assemblyTree.children,
+  )
+
+  // Convert v1.subComponents to v2.subComponents (in addition to the root)
+  v1.subComponents.forEach((sc, i) => {
+    const subRoot: PartNode = {
+      base: { kind: "html", tag: sc.baseElement } satisfies Base,
+      dataSlot: sc.dataSlot,
+      className: {
+        kind: "cn-call",
+        args: [`"${sc.classes.join(" ")}"`, "className"],
+      } satisfies ClassNameExpr,
+      propsSpread: true,
+      attributes: {},
+      asChild: false,
+      children: [],
+    }
+    const v2Sub: SubComponentV2 = {
+      name: sc.name,
+      dataSlot: sc.dataSlot,
+      exportOrder: i + 1,
+      isDefaultExport: false,
+      jsdoc: null,
+      propsDecl: {
+        kind: "single",
+        part: { kind: "component-props", target: sc.baseElement },
+      } satisfies PropsDecl,
+      variantStrategy: { kind: "none" },
+      passthrough: [],
+      parts: { root: subRoot },
+    }
+    tree.subComponents.push(v2Sub)
+  })
+
+  return tree
+}
+
+function liftElementNodeChildrenToPartChildren(
+  children: import("@/lib/component-tree").ElementNode[],
+): import("@/lib/component-tree-v2").PartChild[] {
+  return children.map((node) => {
+    const part: PartNode = {
+      base: { kind: "html", tag: node.tag } satisfies Base,
+      className:
+        node.classes.length > 0
+          ? ({
+              kind: "cn-call",
+              args: [`"${node.classes.join(" ")}"`, "className"],
+            } satisfies ClassNameExpr)
+          : ({ kind: "literal", value: "" } satisfies ClassNameExpr),
+      propsSpread: false,
+      attributes: {},
+      asChild: false,
+      children: liftElementNodeChildrenToPartChildren(node.children),
+    }
+    if (node.text) {
+      part.children.unshift({ kind: "text", value: node.text })
+    }
+    return { kind: "part" as const, part }
+  })
+}
+
 /**
  * Build a complete v2 tree for a from-scratch component, optionally with
  * pre-declared props and variants from the create-page UI. This is the

@@ -6,13 +6,16 @@ import {
   createPartNode,
   createSubComponentV2,
   createV2TreeFromScratch,
+  liftV1TreeToV2,
   toDataSlot,
   toSlug,
   translatePropsToV2Inline,
   translateVariantsToV2Cva,
 } from "@/lib/component-tree-v2-factories"
 import type { ComponentProp } from "@/lib/component-tree"
+import { createComponentTree, createElementNode } from "@/lib/component-tree"
 import type { CustomVariantDef } from "@/lib/component-state"
+import type { PartChild, PartNode } from "@/lib/component-tree-v2"
 
 /* ── toDataSlot / toSlug ────────────────────────────────────────── */
 
@@ -376,5 +379,115 @@ describe("createV2TreeFromScratch", () => {
       "inline",
       "variant-props",
     ])
+  })
+})
+
+/* ── liftV1TreeToV2 ─────────────────────────────────────────────── */
+
+describe("liftV1TreeToV2", () => {
+  test("lifts a minimal v1 tree", () => {
+    const v1 = createComponentTree("MyCard", "div")
+    const v2 = liftV1TreeToV2(v1)
+
+    expect(v2.name).toBe("MyCard")
+    expect(v2.slug).toBe("my-card")
+    expect(v2.subComponents).toHaveLength(1)
+    expect(v2.subComponents[0].name).toBe("MyCard")
+    expect(v2.subComponents[0].parts.root.base).toEqual({
+      kind: "html",
+      tag: "div",
+    })
+  })
+
+  test("lifts root classes onto the root part's cn-call", () => {
+    const v1 = createComponentTree("MyCard", "div")
+    v1.classes = ["p-4", "bg-blue-500"]
+    const v2 = liftV1TreeToV2(v1)
+
+    const root = v2.subComponents[0].parts.root
+    expect(root.className.kind).toBe("cn-call")
+    if (root.className.kind === "cn-call") {
+      expect(root.className.args[0]).toBe('"p-4 bg-blue-500"')
+    }
+  })
+
+  test("lifts assemblyTree children to part children", () => {
+    const v1 = createComponentTree("MyCard", "div")
+    const child1 = createElementNode("section")
+    child1.classes = ["mt-4"]
+    const child2 = createElementNode("p")
+    child2.text = "Hello"
+    v1.assemblyTree.children = [child1, child2]
+
+    const v2 = liftV1TreeToV2(v1)
+    const root = v2.subComponents[0].parts.root
+    expect(root.children).toHaveLength(2)
+
+    const c1 = root.children[0]
+    expect(c1.kind).toBe("part")
+    if (c1.kind !== "part") return
+    expect(c1.part.base).toEqual({ kind: "html", tag: "section" })
+    if (c1.part.className.kind === "cn-call") {
+      expect(c1.part.className.args[0]).toBe('"mt-4"')
+    }
+
+    const c2 = root.children[1]
+    if (c2.kind !== "part") return
+    expect(c2.part.base).toEqual({ kind: "html", tag: "p" })
+    // Text gets prepended as a text child
+    expect(c2.part.children[0]).toEqual({ kind: "text", value: "Hello" })
+  })
+
+  test("lifts v1 sub-components as additional v2 sub-components", () => {
+    const v1 = createComponentTree("MyCard", "div")
+    v1.subComponents = [
+      {
+        id: "sc-1",
+        name: "MyCardHeader",
+        baseElement: "div",
+        dataSlot: "my-card-header",
+        classes: ["p-2", "bg-muted"],
+        props: [],
+        variants: [],
+      },
+    ]
+
+    const v2 = liftV1TreeToV2(v1)
+    expect(v2.subComponents).toHaveLength(2)
+    expect(v2.subComponents[0].name).toBe("MyCard")
+    expect(v2.subComponents[1].name).toBe("MyCardHeader")
+    expect(v2.subComponents[1].dataSlot).toBe("my-card-header")
+    if (v2.subComponents[1].parts.root.className.kind === "cn-call") {
+      expect(v2.subComponents[1].parts.root.className.args[0]).toBe(
+        '"p-2 bg-muted"',
+      )
+    }
+  })
+
+  test("lifts v1 props into the propsDecl as an intersection", () => {
+    const v1 = createComponentTree("MyCard", "div")
+    v1.props = [{ name: "label", type: "string", required: true }]
+    const v2 = liftV1TreeToV2(v1)
+
+    const decl = v2.subComponents[0].propsDecl
+    expect(decl.kind).toBe("intersection")
+    if (decl.kind !== "intersection") return
+    const inlinePart = decl.parts.find((p) => p.kind === "inline")
+    expect(inlinePart).toBeDefined()
+  })
+
+  test("lifts v1 variants into a cva export + variant-props intersection", () => {
+    const v1 = createComponentTree("MyCard", "div")
+    v1.variants = [
+      { name: "size", type: "variant", options: ["sm", "lg"], defaultValue: "sm" },
+    ]
+    const v2 = liftV1TreeToV2(v1)
+
+    expect(v2.cvaExports).toHaveLength(1)
+    expect(v2.cvaExports[0].name).toBe("myCardVariants")
+    expect(v2.subComponents[0].variantStrategy).toEqual({
+      kind: "cva",
+      cvaRef: "myCardVariants",
+    })
   })
 })
