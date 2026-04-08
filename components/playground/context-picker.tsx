@@ -150,21 +150,22 @@ function ContextPicker({
                     const isBreakpoint = BREAKPOINTS.has(opt.value) || opt.value === "bp-none"
                     const isDataAttrWithValue = !!opt.value.match(/^data-\[\w+=\w+\]$/)
                     const isRadio = isVariant || isBreakpoint || isDataAttrWithValue
-                    let isActive = opt.value === "bp-none"
+                    // A row is active iff its exact value is in the
+                    // currently-selected contexts. The "bp-none" pseudo-row
+                    // is the one exception — it's active when no breakpoint
+                    // is selected (it represents "no responsive prefix").
+                    //
+                    // We deliberately do NOT light up a variant's first/
+                    // default value as active when no variant context is
+                    // selected. The top-level "Default" entry already
+                    // signals "no context active"; showing the first
+                    // variant value as active alongside it would suggest
+                    // edits route into that variant's slot when in fact
+                    // they route into the base. (Reported by George after
+                    // the data-attr strategy PR landed.)
+                    const isActive = opt.value === "bp-none"
                       ? !contexts.some((c) => BREAKPOINTS.has(c))
                       : contexts.includes(opt.value)
-
-                    if (isVariant && !isActive) {
-                      const parts = opt.value.split(":")
-                      const groupPrefix = `variant:${parts[1]}:`
-                      const anyInGroupSelected = contexts.some((c) => c.startsWith(groupPrefix))
-                      if (!anyInGroupSelected) {
-                        const variantDef = variants?.find((v) => v.name === parts[1])
-                        if (variantDef && parts[2] === variantDef.options[0]) {
-                          isActive = true
-                        }
-                      }
-                    }
                     return (
                       <CommandItem
                         key={opt.value}
