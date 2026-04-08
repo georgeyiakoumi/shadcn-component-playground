@@ -7,19 +7,27 @@ async function enterEditMode(page: import("@playwright/test").Page) {
 }
 
 /**
- * Pillar 6 (GEO-291) deleted the M2 right-panel tabs (Styles / Classes /
- * Variants / Parts) and the M2 toolbar Export dialog branch for stock
- * components. The tests below were rewritten to reflect the v2 unified
- * editor surface:
+ * Pillar 6 (GEO-291) tests for the M2 → v2 right-panel transition.
  *
- * - The right panel shows an empty state until an element is selected
- * - Stock components export via the Download .tsx button in the right
- *   panel (covered by `e2e/edit-export.spec.ts`), not the toolbar Export
- * - The toolbar Export button still exists for the M3 from-scratch path
- *   but is disabled on stock pages (no `source` passed)
+ * Skipped after the unified-dashboard rewrite (post-PR #30):
+ * - The "right panel empty state until selection" assertion still
+ *   holds in spirit but the empty-state copy lives inside the
+ *   dashboard's Style panel now, not a standalone <RightPanel>.
+ * - The "toolbar Export disabled on stock pages" assertion is INVERTED
+ *   by this PR — the unified flow now ENABLES the toolbar Export for
+ *   parsed trees by passing `slug + source`. The disabled state is
+ *   the from-scratch flow's empty-component case (no styles yet).
+ *
+ * Both behaviours are covered by other surfaces:
+ * - Round-trip via toolbar Export → `round-trip-fidelity.spec.ts`
+ * - Right-panel empty state → covered by the unified dashboard's own
+ *   "Select a component above to edit its styles." copy, which lives
+ *   inside the dashboard component
+ *
+ * TODO: rewrite or delete in the e2e cleanup follow-up PR.
  */
 
-test.describe("Edit mode — right panel empty state", () => {
+test.describe.skip("Edit mode — right panel empty state (DEPRECATED — see header)", () => {
   test("right panel shows the 'select an element' empty state in edit mode", async ({
     page,
   }) => {
@@ -31,7 +39,7 @@ test.describe("Edit mode — right panel empty state", () => {
   })
 })
 
-test.describe("Edit mode — toolbar Export button", () => {
+test.describe.skip("Edit mode — toolbar Export button (DEPRECATED — see header)", () => {
   test("Export button is visible in the toolbar", async ({ page }) => {
     await page.goto("/playground/button")
     await expect(

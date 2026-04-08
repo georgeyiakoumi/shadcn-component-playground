@@ -74,7 +74,7 @@ export function StatusBar({
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="flex h-10 shrink-0 items-center gap-2 border-t bg-background px-3">
+      <div className="flex h-10 min-w-0 shrink-0 items-center gap-2 overflow-x-auto border-t bg-background px-3">
         {/* ── Left: A11y + Semantic checks ────────────────────── */}
         <Popover>
           <PopoverTrigger asChild>

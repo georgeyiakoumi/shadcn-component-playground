@@ -1,24 +1,33 @@
 /**
  * Pillar 5b — end-to-end smoke test for the edit-export UI surface.
  *
- * The deep edit pipeline (parse → mutate → splice → export) is proven by
- * 13 unit tests in `lib/parser/__tests__/edit-flow.test.ts`. This test
- * focuses on the *UI wiring* — the bits Vitest can't touch:
+ * Originally asserted on the old StructurePanel-footer Download .tsx
+ * button + Reset button + inspect/edit mode toggle on the stock page.
+ * Those affordances were deleted in the unified-dashboard rewrite:
  *
- * 1. The Download .tsx button exists when in edit mode
- * 2. It starts disabled (no edits → fast path → nothing to download)
- * 3. The Reset button exists and starts disabled too
- * 4. Edit mode entry shows the controls; inspect mode hides them
+ * - Download is now the toolbar's ExportDialog (the same one the
+ *   from-scratch flow uses). Covered by `round-trip-fidelity.spec.ts`.
+ * - Reset is now in the toolbar's `extraActions` slot, only visible
+ *   when the tree is dirty.
+ * - Inspect/edit mode toggle is gone for stock pages (no Define mode
+ *   for parsed trees in v1 — `hideModeToggle` on the toolbar).
  *
- * Pillar 5c will add a test that exercises the cva-only banner once the
- * cva-call selection path is wired.
+ * This entire spec is skipped because every test in it relied on the
+ * old surface. The new flow is covered by:
+ * - `round-trip-fidelity.spec.ts` (browser-level Download → bytes)
+ * - `lib/parser/__tests__/dashboard-parsed-tree.test.ts` (unit-level
+ *   edit path on parsed trees)
+ *
+ * TODO: rewrite or delete this spec in the e2e cleanup follow-up PR
+ * once the new flow has been visualised in a few sessions and the
+ * right shape settles.
  *
  * Linear: GEO-302
  */
 
 import { test, expect } from "@playwright/test"
 
-test.describe("Pillar 5b — edit-export UI controls", () => {
+test.describe.skip("Pillar 5b — edit-export UI controls (DEPRECATED — see header)", () => {
   test("Download .tsx and Reset buttons are absent in inspect mode", async ({
     page,
   }) => {

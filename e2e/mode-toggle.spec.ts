@@ -2,12 +2,22 @@ import { test, expect } from "@playwright/test"
 
 /**
  * Pillar 6.1 — the toolbar's mode toggle was renamed Inspect/Edit →
- * Structure/Style across both stock and custom pages. The underlying
- * state values (`inspect`/`edit` for stock, `define`/`preview` for
- * custom) are unchanged; only the button labels are.
+ * Structure/Style across both stock and custom pages.
+ *
+ * The unified-dashboard rewrite (post-PR #30) hid the mode toggle for
+ * stock pages entirely (`hideModeToggle` on the toolbar) — there's no
+ * Define mode for parsed shadcn trees in v1, so a one-button toggle
+ * would be confusing. The from-scratch page still has the toggle.
+ *
+ * This entire spec is skipped because every test in it asserted on the
+ * stock page's mode toggle, which no longer exists. The from-scratch
+ * page's toggle is covered indirectly by `creation.spec.ts` (Define
+ * mode is the entry point for new components).
+ *
+ * TODO: rewrite or delete in the e2e cleanup follow-up PR.
  */
 
-test.describe("Structure/Style mode toggle", () => {
+test.describe.skip("Structure/Style mode toggle (DEPRECATED — see header)", () => {
   test("starts in Structure mode by default on stock pages", async ({
     page,
   }) => {
