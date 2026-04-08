@@ -17,7 +17,6 @@ import {
   List,
   Minus,
   Code2,
-  Component,
   TextCursorInput,
 } from "lucide-react"
 
@@ -73,6 +72,28 @@ type DropPosition = "before" | "after" | "inside"
 
 /* ── Component ──────────────────────────────────────────────────── */
 
+/**
+ * AssemblyPanel — displays the from-scratch builder's composition graph
+ * AND the JSX body of each sub-component.
+ *
+ * The composition graph is implicit from each sub-component's `nestInside`
+ * field. The compound root is `subComponents[0]`. Sub-components with no
+ * explicit `nestInside` (or `nestInside === root.name`) nest inside the
+ * root. Other sub-components nest inside their named parent.
+ *
+ * Inside each sub-component's row, we ALSO render the html/text/expression
+ * children of `parts.root.children` — these are the JSX body the user
+ * builds via the picker (raw HTML elements + shadcn previews).
+ *
+ * Picking from the picker:
+ * - HTML element / #text → adds to the clicked sub-component's
+ *   parts.root.children
+ * - shadcn preview component → adds as a component-ref part inside the
+ *   clicked sub-component's parts.root.children
+ *
+ * Sub-components are NOT added via this panel — that's done via the Define
+ * view's "Add sub-component" dialog (which sets `nestInside` directly).
+ */
 export function AssemblyPanel({
   tree,
   onTreeChange,
@@ -104,23 +125,35 @@ export function AssemblyPanel({
   }
 
   function handleAddChild(parentPath: PartPath, tag: string) {
-    // #text becomes a literal text child instead of a new part
+    // #text becomes a literal text PartChild on the parent
     if (tag === "#text") {
-      // We need to mutate the parent to add a text PartChild. The simplest
-      // way is to compute it manually rather than going through
-      // appendChildAtPath (which only takes PartNodes, not PartChildren).
       onTreeChange(appendTextChildAtPath(tree, parentPath, "Sample text"))
       return
     }
+
+    // PascalCase tag → shadcn preview component. Build a component-ref
+    // part so the renderer routes through the shadcn preview map.
+    if (/^[A-Z]/.test(tag)) {
+      const refPart: PartNode = {
+        base: { kind: "component-ref", name: tag },
+        className: { kind: "literal", value: "" },
+        propsSpread: false,
+        attributes: {},
+        asChild: false,
+        children: [],
+      }
+      onTreeChange(appendChildAtPath(tree, parentPath, refPart))
+      return
+    }
+
+    // Plain HTML element
     const newChild = createPartNode(tag)
     onTreeChange(appendChildAtPath(tree, parentPath, newChild))
   }
 
-  // The first sub-component is the canvas root. Any additional sub-components
-  // appear as siblings further down the tree.
+  // Compound root sub-component
   const root = tree.subComponents[0]
   if (!root) return null
-  const rootPath = makePartPath(root.name, [])
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -132,13 +165,11 @@ export function AssemblyPanel({
         </div>
         <div className="flex-1 overflow-auto">
           <div className="min-w-max p-1.5">
-            <AssemblyNode
-              part={root.parts.root}
-              path={rootPath}
-              depth={0}
+            <SubComponentNode
+              tree={tree}
+              sub={root}
               isRoot
-              rootName={root.name}
-              subComponents={tree.subComponents}
+              depth={0}
               hiddenPaths={hiddenPaths}
               selectedPath={selectedPath}
               onSelectPath={onSelectPath}
@@ -156,19 +187,27 @@ export function AssemblyPanel({
 
 /* ── Helpers ────────────────────────────────────────────────────── */
 
-/**
- * Append a text child to the part at `path`. Used by the AssemblyPanel's
- * "#text" picker option, which v1 handled by setting `node.text` on a
- * fresh ElementNode. v2 represents text as a PartChild of kind "text".
- */
+/** Find sub-components nested inside a given parent (per `nestInside`). */
+function findNestedChildren(
+  tree: ComponentTreeV2,
+  parentName: string,
+): SubComponentV2[] {
+  const root = tree.subComponents[0]
+  const isRoot = root && root.name === parentName
+  return tree.subComponents.filter((sc, i) => {
+    if (i === 0) return false
+    if (isRoot) {
+      return !sc.nestInside || sc.nestInside === parentName
+    }
+    return sc.nestInside === parentName
+  })
+}
+
 function appendTextChildAtPath(
   tree: ComponentTreeV2,
   path: PartPath,
   text: string,
 ): ComponentTreeV2 {
-  // Round-trip through the path layer would require a separate
-  // appendPartChildAtPath helper, but a one-off for text is simple enough
-  // to do inline. We rebuild the tree by walking and replacing at the path.
   return mutatePartAtPath(tree, path, (part) => ({
     ...part,
     children: [
@@ -183,8 +222,6 @@ function mutatePartAtPath(
   path: PartPath,
   mutate: (part: PartNode) => PartNode,
 ): ComponentTreeV2 {
-  // Parse the path manually since we don't import parsePartPath here.
-  // sub:NAME/IDX/IDX/...
   if (!path.startsWith("sub:")) return tree
   const slashIdx = path.indexOf("/")
   if (slashIdx === -1) return tree
@@ -234,15 +271,20 @@ function mutateInChildren(
   }
 }
 
-/* ── AssemblyNode — recursive tree node ────────────────────────── */
+function appendIndexToPath(path: PartPath, index: number): PartPath {
+  if (path.endsWith("/")) {
+    return `${path}${index}`
+  }
+  return `${path}/${index}`
+}
 
-interface AssemblyNodeProps {
-  part: PartNode
-  path: PartPath
-  depth: number
+/* ── SubComponentNode — renders one sub-component row ─────────── */
+
+interface SubComponentNodeProps {
+  tree: ComponentTreeV2
+  sub: SubComponentV2
   isRoot: boolean
-  rootName?: string
-  subComponents: SubComponentV2[]
+  depth: number
   hiddenPaths: Set<PartPath>
   selectedPath?: PartPath | null
   onSelectPath?: (path: PartPath | null) => void
@@ -252,13 +294,11 @@ interface AssemblyNodeProps {
   onAddChild: (parentPath: PartPath, tag: string) => void
 }
 
-function AssemblyNode({
-  part,
-  path,
-  depth,
+function SubComponentNode({
+  tree,
+  sub,
   isRoot,
-  rootName,
-  subComponents,
+  depth,
   hiddenPaths,
   selectedPath,
   onSelectPath,
@@ -266,113 +306,40 @@ function AssemblyNode({
   onRemove,
   onMove,
   onAddChild,
-}: AssemblyNodeProps) {
+}: SubComponentNodeProps) {
   const [expanded, setExpanded] = React.useState(true)
-  const [dropPosition, setDropPosition] = React.useState<DropPosition | null>(
-    null,
-  )
-  const rowRef = React.useRef<HTMLDivElement>(null)
-
+  const path = makePartPath(sub.name, [])
   const isHidden = hiddenPaths.has(path)
-  const hasChildren = part.children.length > 0
   const isSelected = selectedPath === path
-  const isComponentRef = part.base.kind === "component-ref"
 
-  // Display name — root shows the sub-component name, refs show the
-  // referenced sub-component name, html bases show the tag.
-  const displayName = isRoot
-    ? rootName ?? "?"
-    : part.base.kind === "html"
-      ? part.base.tag
-      : part.base.kind === "component-ref"
-        ? part.base.name
-        : part.base.kind === "radix"
-          ? `${part.base.primitive}.${part.base.part}`
-          : part.base.kind === "third-party"
-            ? part.base.component
-            : part.base.localName
+  // Composition graph children: sub-components nested inside this one
+  const nestedSubs = findNestedChildren(tree, sub.name)
 
-  // Drag handlers
-  const handleDragStart = (e: React.DragEvent) => {
-    if (isRoot) {
-      e.preventDefault()
-      return
-    }
-    e.dataTransfer.setData("text/plain", path)
-    e.dataTransfer.effectAllowed = "move"
-    e.stopPropagation()
-  }
+  // Body part children of this sub-component (raw HTML / shadcn / text /
+  // expressions added via the picker)
+  const bodyChildren = sub.parts.root.children
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    const rect = rowRef.current?.getBoundingClientRect()
-    if (!rect) return
-    const y = e.clientY - rect.top
-    const third = rect.height / 3
-    if (y < third) setDropPosition("before")
-    else if (y > third * 2) setDropPosition("after")
-    else setDropPosition("inside")
-  }
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.stopPropagation()
-    setDropPosition(null)
-  }
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    const dragPath = e.dataTransfer.getData("text/plain") as PartPath
-    if (dragPath && dragPath !== path && dropPosition) {
-      onMove(dragPath, path, dropPosition)
-    }
-    setDropPosition(null)
-  }
-
-  // The "first text child" — for displaying inline text in the row label
-  const firstTextChild = part.children.find(
-    (c) => c.kind === "text",
-  ) as Extract<PartChild, { kind: "text" }> | undefined
-  const showAsTextRow = !!firstTextChild && !hasChildrenOfKindPart(part)
+  const hasAnyChildren = nestedSubs.length > 0 || bodyChildren.length > 0
 
   return (
     <div>
-      {/* Drop indicator: before */}
-      {dropPosition === "before" && !isRoot && (
-        <div
-          className="h-0.5 rounded-full bg-blue-500"
-          style={{ marginLeft: `${depth * 14 + 20}px` }}
-        />
-      )}
-
-      {/* Node row */}
+      {/* Sub-component row */}
       <div
-        ref={rowRef}
-        draggable={!isRoot}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
         className={cn(
           "group flex items-center gap-1 rounded-md py-0.5 pl-1",
           isSelected && "bg-blue-500/10",
           isHidden && "opacity-40",
-          dropPosition === "inside" && "ring-1 ring-blue-500 bg-blue-500/5",
-          !isRoot && "cursor-grab active:cursor-grabbing",
         )}
       >
-        {/* Indentation spacer */}
         {depth > 0 && (
           <div className="shrink-0" style={{ width: `${depth * 14}px` }} />
         )}
 
-        {/* Expand/collapse */}
         <button
           type="button"
           className={cn(
             "flex size-4 shrink-0 items-center justify-center rounded-sm",
-            hasChildren
+            hasAnyChildren
               ? "text-muted-foreground hover:text-foreground"
               : "invisible",
           )}
@@ -385,52 +352,32 @@ function AssemblyNode({
           )}
         </button>
 
-        {/* Tag name — clickable for all nodes */}
         <button
           type="button"
           className={cn(
             "min-w-0 flex-1 truncate text-left font-mono text-xs",
-            isComponentRef
-              ? "text-blue-500/80 hover:text-blue-500"
-              : isSelected
-                ? "text-foreground"
-                : "text-muted-foreground hover:text-foreground/70",
+            isSelected
+              ? "text-foreground"
+              : "text-blue-500/80 hover:text-blue-500",
           )}
           onClick={() => {
             if (onSelectPath) {
-              // Toggle: click again to deselect
               onSelectPath(selectedPath === path ? null : path)
             }
           }}
         >
-          {showAsTextRow && firstTextChild ? (
-            <span className="font-sans text-foreground/50 italic">
-              &quot;
-              {firstTextChild.value.length > 20
-                ? firstTextChild.value.slice(0, 20) + "…"
-                : firstTextChild.value}
-              &quot;
-            </span>
-          ) : (
-            <>
-              &lt;{displayName}
-              {!hasChildren ? " /" : ""}&gt;
-            </>
-          )}
+          &lt;{sub.name}
+          {!hasAnyChildren ? " /" : ""}&gt;
         </button>
 
-        {/* Hover actions — sticky to panel right edge */}
+        {/* Hover actions */}
         <div className="sticky right-0 ml-auto flex shrink-0 items-center gap-0.5 bg-gradient-to-l from-background from-70% to-transparent pl-4 pr-1 opacity-0 transition-opacity group-hover:opacity-100">
-          {/* Add inside — Popover with Command picker */}
           <AddElementPicker
-            subComponents={subComponents}
             onSelect={(tag) => {
               onAddChild(path, tag)
               setExpanded(true)
             }}
           />
-
-          {/* Toggle visibility — not on root */}
           {!isRoot && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -455,45 +402,275 @@ function AssemblyNode({
               </TooltipContent>
             </Tooltip>
           )}
-
-          {/* Remove from demo — not on root */}
-          {!isRoot && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-5"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onRemove(path)
-                  }}
-                >
-                  <Trash2 className="size-3" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="text-xs">
-                Remove
-              </TooltipContent>
-            </Tooltip>
-          )}
         </div>
       </div>
 
-      {/* Children — only render PartChild of kind "part"; text/expression
-          children are inlined into the parent's row label above */}
+      {/* Children — composition-graph nested sub-components first, then
+          html/text body parts */}
+      {expanded && (
+        <>
+          {nestedSubs.map((nested) => (
+            <SubComponentNode
+              key={`sub:${nested.name}`}
+              tree={tree}
+              sub={nested}
+              isRoot={false}
+              depth={depth + 1}
+              hiddenPaths={hiddenPaths}
+              selectedPath={selectedPath}
+              onSelectPath={onSelectPath}
+              onToggleHidden={onToggleHidden}
+              onRemove={onRemove}
+              onMove={onMove}
+              onAddChild={onAddChild}
+            />
+          ))}
+          {bodyChildren.map((child, i) => {
+            if (child.kind !== "part") return null
+            const childPath = appendIndexToPath(path, i)
+            return (
+              <BodyPartNode
+                key={childPath}
+                part={child.part}
+                path={childPath}
+                depth={depth + 1}
+                hiddenPaths={hiddenPaths}
+                selectedPath={selectedPath}
+                onSelectPath={onSelectPath}
+                onToggleHidden={onToggleHidden}
+                onRemove={onRemove}
+                onMove={onMove}
+                onAddChild={onAddChild}
+              />
+            )
+          })}
+        </>
+      )}
+    </div>
+  )
+}
+
+/* ── BodyPartNode — renders a raw HTML/shadcn body element ────── */
+
+interface BodyPartNodeProps {
+  part: PartNode
+  path: PartPath
+  depth: number
+  hiddenPaths: Set<PartPath>
+  selectedPath?: PartPath | null
+  onSelectPath?: (path: PartPath | null) => void
+  onToggleHidden: (path: PartPath) => void
+  onRemove: (path: PartPath) => void
+  onMove: (dragPath: PartPath, targetPath: PartPath, position: DropPosition) => void
+  onAddChild: (parentPath: PartPath, tag: string) => void
+}
+
+function BodyPartNode({
+  part,
+  path,
+  depth,
+  hiddenPaths,
+  selectedPath,
+  onSelectPath,
+  onToggleHidden,
+  onRemove,
+  onMove,
+  onAddChild,
+}: BodyPartNodeProps) {
+  const [expanded, setExpanded] = React.useState(true)
+  const [dropPosition, setDropPosition] = React.useState<DropPosition | null>(
+    null,
+  )
+  const rowRef = React.useRef<HTMLDivElement>(null)
+
+  const isHidden = hiddenPaths.has(path)
+  const hasChildren = part.children.length > 0
+  const isSelected = selectedPath === path
+
+  const displayName =
+    part.base.kind === "html"
+      ? part.base.tag
+      : part.base.kind === "component-ref"
+        ? part.base.name
+        : part.base.kind === "radix"
+          ? `${part.base.primitive}.${part.base.part}`
+          : part.base.kind === "third-party"
+            ? part.base.component
+            : part.base.localName
+
+  // Drag handlers (body parts can be reordered, sub-components can't via
+  // this panel — those are reordered via the Define view's reorder dialog)
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData("text/plain", path)
+    e.dataTransfer.effectAllowed = "move"
+    e.stopPropagation()
+  }
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const rect = rowRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const y = e.clientY - rect.top
+    const third = rect.height / 3
+    if (y < third) setDropPosition("before")
+    else if (y > third * 2) setDropPosition("after")
+    else setDropPosition("inside")
+  }
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.stopPropagation()
+    setDropPosition(null)
+  }
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const dragPath = e.dataTransfer.getData("text/plain") as PartPath
+    if (dragPath && dragPath !== path && dropPosition) {
+      onMove(dragPath, path, dropPosition)
+    }
+    setDropPosition(null)
+  }
+
+  // First text child for the inline label
+  const firstTextChild = part.children.find(
+    (c) => c.kind === "text",
+  ) as Extract<PartChild, { kind: "text" }> | undefined
+  const showAsTextRow = !!firstTextChild && !hasChildrenOfKindPart(part)
+
+  return (
+    <div>
+      {dropPosition === "before" && (
+        <div
+          className="h-0.5 rounded-full bg-blue-500"
+          style={{ marginLeft: `${depth * 14 + 20}px` }}
+        />
+      )}
+
+      <div
+        ref={rowRef}
+        draggable
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={cn(
+          "group flex items-center gap-1 rounded-md py-0.5 pl-1",
+          isSelected && "bg-blue-500/10",
+          isHidden && "opacity-40",
+          dropPosition === "inside" && "ring-1 ring-blue-500 bg-blue-500/5",
+          "cursor-grab active:cursor-grabbing",
+        )}
+      >
+        {depth > 0 && (
+          <div className="shrink-0" style={{ width: `${depth * 14}px` }} />
+        )}
+
+        <button
+          type="button"
+          className={cn(
+            "flex size-4 shrink-0 items-center justify-center rounded-sm",
+            hasChildren
+              ? "text-muted-foreground hover:text-foreground"
+              : "invisible",
+          )}
+          onClick={() => setExpanded(!expanded)}
+        >
+          {expanded ? (
+            <ChevronDown className="size-3" />
+          ) : (
+            <ChevronRight className="size-3" />
+          )}
+        </button>
+
+        <button
+          type="button"
+          className={cn(
+            "min-w-0 flex-1 truncate text-left font-mono text-xs",
+            isSelected
+              ? "text-foreground"
+              : "text-muted-foreground hover:text-foreground/70",
+          )}
+          onClick={() => {
+            if (onSelectPath) {
+              onSelectPath(selectedPath === path ? null : path)
+            }
+          }}
+        >
+          {showAsTextRow && firstTextChild ? (
+            <span className="font-sans text-foreground/50 italic">
+              &quot;
+              {firstTextChild.value.length > 20
+                ? firstTextChild.value.slice(0, 20) + "…"
+                : firstTextChild.value}
+              &quot;
+            </span>
+          ) : (
+            <>
+              &lt;{displayName}
+              {!hasChildren ? " /" : ""}&gt;
+            </>
+          )}
+        </button>
+
+        <div className="sticky right-0 ml-auto flex shrink-0 items-center gap-0.5 bg-gradient-to-l from-background from-70% to-transparent pl-4 pr-1 opacity-0 transition-opacity group-hover:opacity-100">
+          <AddElementPicker
+            onSelect={(tag) => {
+              onAddChild(path, tag)
+              setExpanded(true)
+            }}
+          />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-5"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onToggleHidden(path)
+                }}
+              >
+                {isHidden ? (
+                  <EyeOff className="size-3" />
+                ) : (
+                  <Eye className="size-3" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-xs">
+              {isHidden ? "Show" : "Hide"}
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-5"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onRemove(path)
+                }}
+              >
+                <Trash2 className="size-3" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-xs">
+              Remove
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </div>
+
       {expanded && hasChildren &&
         part.children.map((child, i) => {
           if (child.kind !== "part") return null
           const childPath = appendIndexToPath(path, i)
           return (
-            <AssemblyNode
+            <BodyPartNode
               key={childPath}
               part={child.part}
               path={childPath}
               depth={depth + 1}
-              isRoot={false}
-              subComponents={subComponents}
               hiddenPaths={hiddenPaths}
               selectedPath={selectedPath}
               onSelectPath={onSelectPath}
@@ -505,8 +682,7 @@ function AssemblyNode({
           )
         })}
 
-      {/* Drop indicator: after */}
-      {dropPosition === "after" && !isRoot && (
+      {dropPosition === "after" && (
         <div
           className="h-0.5 rounded-full bg-blue-500"
           style={{ marginLeft: `${depth * 14 + 20}px` }}
@@ -520,14 +696,7 @@ function hasChildrenOfKindPart(part: PartNode): boolean {
   return part.children.some((c) => c.kind === "part")
 }
 
-function appendIndexToPath(path: PartPath, index: number): PartPath {
-  if (path.endsWith("/")) {
-    return `${path}${index}`
-  }
-  return `${path}/${index}`
-}
-
-/* ── AddElementPicker — Command-based popover for adding elements ── */
+/* ── AddElementPicker — popover for adding HTML/shadcn elements ── */
 
 const DOM_ELEMENTS = [
   { tag: "#text", label: "Plain text", description: "Raw text content", icon: TextCursorInput },
@@ -569,10 +738,8 @@ const SHADCN_ELEMENTS = [
 ] as const
 
 function AddElementPicker({
-  subComponents,
   onSelect,
 }: {
-  subComponents: SubComponentV2[]
   onSelect: (tag: string) => void
 }) {
   const [open, setOpen] = React.useState(false)
@@ -602,24 +769,6 @@ function AddElementPicker({
             <CommandEmpty className="py-3 text-center text-xs">
               No matches.
             </CommandEmpty>
-
-            {/* Sub-components — skip the root sub-component (index 0) since
-                it's the canvas root and can't be inserted as a child of itself */}
-            {subComponents.length > 1 && (
-              <CommandGroup heading="Your sub-components">
-                {subComponents.slice(1).map((sc) => (
-                  <CommandItem
-                    key={sc.name}
-                    value={sc.name}
-                    onSelect={() => handleSelect(sc.name)}
-                    className="gap-2 text-xs"
-                  >
-                    <Component className="size-3.5 text-blue-500" />
-                    <span className="font-medium">{sc.name}</span>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            )}
 
             {/* DOM elements */}
             <CommandGroup heading="HTML elements">

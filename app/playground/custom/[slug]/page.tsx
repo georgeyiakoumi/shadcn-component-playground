@@ -571,7 +571,10 @@ export default function CustomComponentPage() {
               </div>
 
               {/* Visual editor for selected part */}
-              <ScrollArea className="flex-1">
+              {/* `min-h-0` is the load-bearing line — without it the
+                  flex-1 doesn't constrain the ScrollArea's height and
+                  the panel grows past the viewport. */}
+              <ScrollArea className="min-h-0 flex-1">
                 {selectedPath ? (() => {
                   const selectedPart = findPartByPath(tree, selectedPath)
                   const selectedSub = findSubByPath(tree, selectedPath)

@@ -73,9 +73,14 @@ export function RightPanel({
         style={{ width: `${width}px` }}
       >
         {showVisualEditor ? (
-          <div className="flex h-full w-full flex-col">
+          // `min-h-0` here is the load-bearing line — it lets this flex
+          // child constrain its own height to the parent (which has its
+          // own min-h-0 + flex-1 + overflow-hidden chain). Without it,
+          // h-full / flex-1 inside the editor falls back to intrinsic
+          // content height and the panel grows past the viewport.
+          <div className="flex min-h-0 w-full flex-1 flex-col">
             {editorHeader}
-            <div className="min-h-0 flex-1">
+            <div className="min-h-0 flex-1 overflow-hidden">
               <VisualEditor
                 selectedElement={selectedElement}
                 onClassChange={onClassChange ?? (() => {})}
@@ -84,11 +89,8 @@ export function RightPanel({
             </div>
           </div>
         ) : (
-          // Empty state — Pillar 6 removed the M2 right-panel tabs that
-          // used to live here. The visual editor is the only edit
-          // affordance now; the user picks an element by clicking it
-          // on the canvas.
-          <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center">
+          // Empty state
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-4 text-center">
             <MousePointer2 className="size-5 text-muted-foreground" />
             <p className="text-xs text-muted-foreground">
               Select an element on the canvas to edit its styles

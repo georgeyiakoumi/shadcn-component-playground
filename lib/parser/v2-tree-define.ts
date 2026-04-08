@@ -263,12 +263,21 @@ export function renameSubComponent(
 
 /**
  * Add a new sub-component to the tree. Returns a new tree with an empty
- * sub-component appended at the end.
+ * sub-component appended at the end. Optional convention flags
+ * (`nestInside`, `namedGroup`, `headingFont`) mirror the v1 builder's
+ * compose-time settings.
  */
+export interface AddSubComponentOptions {
+  nestInside?: string
+  namedGroup?: boolean
+  headingFont?: boolean
+}
+
 export function addSubComponent(
   tree: ComponentTreeV2,
   name: string,
   baseTag: string,
+  options: AddSubComponentOptions = {},
 ): ComponentTreeV2 {
   const newSub: SubComponentV2 = {
     name,
@@ -293,8 +302,31 @@ export function addSubComponent(
         children: [],
       },
     },
+    nestInside: options.nestInside,
+    namedGroup: options.namedGroup,
+    headingFont: options.headingFont,
   }
   return { ...tree, subComponents: [...tree.subComponents, newSub] }
+}
+
+/**
+ * Update the convention flags on an existing sub-component.
+ */
+export function updateSubComponentFlags(
+  tree: ComponentTreeV2,
+  subIndex: number,
+  flags: AddSubComponentOptions,
+): ComponentTreeV2 {
+  const sub = tree.subComponents[subIndex]
+  if (!sub) return tree
+  const newSubs = [...tree.subComponents]
+  newSubs[subIndex] = {
+    ...sub,
+    nestInside: flags.nestInside,
+    namedGroup: flags.namedGroup,
+    headingFont: flags.headingFont,
+  }
+  return { ...tree, subComponents: newSubs }
 }
 
 /**

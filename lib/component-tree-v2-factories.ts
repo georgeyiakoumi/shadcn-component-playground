@@ -107,10 +107,20 @@ export function createPartNode(tag: string): PartNode {
  * - `exportOrder` is the supplied index — caller's responsibility to keep
  *   this consistent across the parent tree's `subComponents` array
  */
+export interface CreateSubComponentOptions {
+  /** Parent sub-component name to nest inside, for compound rendering. */
+  nestInside?: string
+  /** Emit `group/{kebab-name}` on the root for group-data-[…]/name: support. */
+  namedGroup?: boolean
+  /** Emit `cn-font-heading` on the root for heading typography. */
+  headingFont?: boolean
+}
+
 export function createSubComponentV2(
   name: string,
   baseTag: string,
   exportOrder: number,
+  options: CreateSubComponentOptions = {},
 ): SubComponentV2 {
   const dataSlot = toDataSlot(name)
   // The root PartNode carries the dataSlot attribute and spreads props.
@@ -138,6 +148,9 @@ export function createSubComponentV2(
     variantStrategy: { kind: "none" },
     passthrough: [],
     parts: { root },
+    nestInside: options.nestInside,
+    namedGroup: options.namedGroup,
+    headingFont: options.headingFont,
   }
 }
 
@@ -413,6 +426,10 @@ export function liftV1TreeToV2(
       variantStrategy: { kind: "none" },
       passthrough: [],
       parts: { root: subRoot },
+      // Carry the from-scratch builder convention flags through
+      nestInside: sc.nestInside,
+      namedGroup: sc.namedGroup,
+      headingFont: sc.headingFont,
     }
     tree.subComponents.push(v2Sub)
   })

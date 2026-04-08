@@ -2,32 +2,43 @@
  * Canvas renderer for ComponentTreeV2 — produces live React JSX for the
  * from-scratch builder's preview canvas.
  *
- * This is the v2 equivalent of `renderTreePreview` and `renderSubComponentPreview`
- * which lived inline in `app/playground/custom/[slug]/page.tsx` and walked
- * v1's `assemblyTree` (an `ElementNode` recursive shape with `id`/`tag`/
- * `children`/`classes`/`text`).
+ * v2 equivalent of v1's `renderTreePreview` + `renderSubComponentPreview`.
  *
- * v2's PartNode is structurally different: it has a discriminated `base`
- * (HTML / radix / third-party / component-ref / dynamic-ref), explicit
- * className shapes, and no `id` field. Identifiers are computed via the
- * path-based addressing layer in `lib/parser/v2-tree-path.ts`.
+ * ## How the composition graph works (post-Bug 4 fix)
  *
- * The renderer takes a `RenderContext` with all the page-level state it
- * needs (selection, hidden parts, variant prop values, helpers). It does
- * not import from React state directly — it's a pure function with
- * dependency injection so it can be unit-tested.
+ * v1 had two parallel structures: `subComponents[]` (the declared exports)
+ * and `assemblyTree: ElementNode` (the runtime canvas composition, NOT
+ * exported). When the user added a sub-component to the assembly, v1 added
+ * a node to the assembly tree referencing the sub-component by name.
  *
- * GEO-305 Step 4b.
+ * v2 doesn't have a separate assembly tree. Instead, the composition is
+ * **implicit from `nestInside`** on each sub-component:
+ *
+ * - Sub-components with `nestInside === undefined` (or matching the
+ *   compound root's name) are direct children of the compound root
+ * - Sub-components with `nestInside === "X"` render inside sub-component X
+ * - The renderer walks this implicit graph at render time
+ *
+ * Inside each sub-component's preview shell, the renderer also renders any
+ * **HTML/text/expression children** the user added via the AssemblyPanel
+ * (these are `parts.root.children` of kind `part` / `text` / `expression`).
+ *
+ * The exported source has each sub-component as its own function declaration
+ * with NO JSX nesting between sub-components. The user composes them in
+ * their own consuming code. This matches v1's behaviour and how shadcn's
+ * actual compound components (Card, Dialog, etc.) work.
+ *
+ * GEO-305 follow-up after George caught the silent regression in M4.
  */
 
 import * as React from "react"
 
 import type {
-  Base,
   ClassNameExpr,
   ComponentTreeV2,
   PartChild,
   PartNode,
+  SubComponentV2,
 } from "@/lib/component-tree-v2"
 import {
   buildSubComponentMap,
@@ -36,7 +47,7 @@ import {
   type PartPath,
 } from "@/lib/parser/v2-tree-path"
 import { resolveColorStyles } from "@/lib/resolve-color-styles"
-import { shadcnPreviewMap, shadcnComponentMap } from "@/lib/shadcn-preview-map"
+import { shadcnPreviewMap } from "@/lib/shadcn-preview-map"
 
 /* ── Render context ─────────────────────────────────────────────── */
 
@@ -48,7 +59,7 @@ export interface RenderContextV2 {
   /** The full tree being rendered. */
   tree: ComponentTreeV2
 
-  /** Currently selected part path, or "main" for the root, or null. */
+  /** Currently selected part path, or null. */
   selectedPath: PartPath | null
 
   /** Set of paths the user has hidden via the AssemblyPanel. */
@@ -69,8 +80,8 @@ export interface RenderContextV2 {
 
 /**
  * Render the canvas preview for a `ComponentTreeV2`. The first sub-component
- * is the visible root; nested sub-components are pulled in via component-ref
- * bases.
+ * is the compound root; nested sub-components are pulled in by walking the
+ * implicit composition graph from `nestInside`.
  *
  * Returns null if the tree has no sub-components.
  */
@@ -79,57 +90,78 @@ export function renderTreePreviewV2(ctx: RenderContextV2): React.ReactNode {
   if (tree.subComponents.length === 0) return null
 
   const root = tree.subComponents[0]
-  const rootPath = makePartPath(root.name, [])
-  return renderPart(root.parts.root, rootPath, ctx, ctx.variantDataAttrs)
+  return renderSubComponent(root, ctx, ctx.variantDataAttrs)
 }
 
-/* ── Recursive part renderer ────────────────────────────────────── */
+/* ── Sub-component renderer ─────────────────────────────────────── */
 
-function renderPart(
-  part: PartNode,
-  path: PartPath,
+/**
+ * Render a sub-component's preview shell, plus its nested sub-components
+ * (composition graph children) and HTML body children (parts.root.children).
+ */
+function renderSubComponent(
+  sub: SubComponentV2,
   ctx: RenderContextV2,
   extraProps?: Record<string, string>,
 ): React.ReactNode {
-  if (ctx.hiddenPaths.has(path)) return null
+  const subPath = makePartPath(sub.name, [])
+  if (ctx.hiddenPaths.has(subPath)) return null
 
-  // component-ref → recurse into the referenced sub-component
-  if (part.base.kind === "component-ref") {
-    const subMap = buildSubComponentMap(ctx.tree)
-    const sub = subMap.get(part.base.name)
-    if (sub) {
-      const subRootPath = makePartPath(sub.name, [])
-      return renderPart(sub.parts.root, subRootPath, ctx, undefined)
+  // Find any sub-components nested inside this one (composition graph children)
+  const nestedChildren = findNestedChildren(ctx.tree, sub.name)
+
+  return renderShell(sub, sub.parts.root, subPath, ctx, nestedChildren, extraProps)
+}
+
+/**
+ * Find sub-components whose `nestInside` matches the parent name.
+ *
+ * The compound root (`subComponents[0]`) is special: sub-components with
+ * `nestInside === undefined` AND `nestInside === root.name` both nest
+ * inside the root. Any other sub-component name only matches its explicit
+ * children.
+ */
+function findNestedChildren(
+  tree: ComponentTreeV2,
+  parentName: string,
+): SubComponentV2[] {
+  const root = tree.subComponents[0]
+  const isRoot = root && root.name === parentName
+
+  return tree.subComponents.filter((sc, i) => {
+    if (i === 0) return false // never include the root as a child of itself
+    if (isRoot) {
+      // Root: include subs with no explicit nestInside OR explicitly nested in root
+      return !sc.nestInside || sc.nestInside === parentName
     }
-    // Unknown component-ref — render a placeholder so the user can see it
-    return renderPlaceholder(part.base.name, path)
-  }
-
-  // Bases the from-scratch builder doesn't produce yet — render placeholders
-  if (part.base.kind === "radix" || part.base.kind === "dynamic-ref") {
-    const label =
-      part.base.kind === "radix"
-        ? `${part.base.primitive}.${part.base.part}`
-        : part.base.localName
-    return renderPlaceholder(label, path)
-  }
-
-  // third-party — render as a styled label too
-  if (part.base.kind === "third-party") {
-    return renderPlaceholder(part.base.component, path)
-  }
-
-  // html base — render as the actual HTML tag with classes/styles
-  return renderHtmlPart(part, path, ctx, extraProps)
+    return sc.nestInside === parentName
+  })
 }
 
-function renderHtmlPart(
+/**
+ * Render a sub-component's "shell" — its parts.root rendered as JSX, with
+ * the body containing both:
+ *  1. Any nested sub-components (from the composition graph)
+ *  2. Any html/text/expression children of parts.root
+ *
+ * The two are concatenated: nested sub-components first, then the body
+ * children. (Order can be revisited later; this matches the natural
+ * "shadcn compound component with children" pattern.)
+ */
+function renderShell(
+  sub: SubComponentV2,
   part: PartNode,
   path: PartPath,
   ctx: RenderContextV2,
+  nestedSubs: SubComponentV2[],
   extraProps?: Record<string, string>,
 ): React.ReactNode {
-  if (part.base.kind !== "html") return null
+  if (part.base.kind !== "html") {
+    // The from-scratch builder only produces html bases for sub-components.
+    // If we hit a non-html base for a sub-component (e.g. an imported parsed
+    // tree), render a placeholder.
+    return renderPlaceholder(sub.name, path)
+  }
 
   const isSelected = ctx.selectedPath === path
   const rawClasses = getPartClasses(part)
@@ -143,11 +175,6 @@ function renderHtmlPart(
   const inlineStyle =
     Object.keys(colorStyle).length > 0 ? colorStyle : undefined
 
-  // PascalCase HTML tag check — the v1 renderer used `/^[A-Z]/.test(tag)`
-  // to detect shadcn previews. v2 doesn't put PascalCase names in `html`
-  // bases (those would be `component-ref` or `radix`), but if a stray
-  // PascalCase HTML tag shows up we render it via the shadcnPreviewMap
-  // for backwards compatibility with the from-scratch UI's element picker.
   const tag = part.base.tag
   const isPascalCase = /^[A-Z]/.test(tag)
   if (isPascalCase && shadcnPreviewMap[tag]) {
@@ -164,16 +191,166 @@ function renderHtmlPart(
     )
   }
 
+  // Render nested sub-components first
   const children: React.ReactNode[] = []
+  for (const nested of nestedSubs) {
+    const rendered = renderSubComponent(nested, ctx, undefined)
+    if (rendered !== null) children.push(rendered)
+  }
+
+  // Then render html/text/expression children of this sub-component's body
   for (let i = 0; i < part.children.length; i++) {
     const child = part.children[i]
-    const childRendered = renderChild(child, path, i, ctx)
-    if (childRendered !== null) {
-      children.push(childRendered)
-    }
+    const childRendered = renderBodyChild(child, path, i, ctx)
+    if (childRendered !== null) children.push(childRendered)
   }
 
   // Empty placeholder if no children rendered
+  if (children.length === 0) {
+    children.push(
+      React.createElement(
+        "span",
+        {
+          key: "__empty__",
+          className: "text-xs text-muted-foreground/40 select-none",
+        },
+        `<${sub.name}>`,
+      ),
+    )
+  }
+
+  // Defensive: bail out if `tag` is PascalCase but not in the preview map
+  // (would crash React with "incorrect casing"). Render as a placeholder.
+  if (isPascalCase) {
+    return renderPlaceholder(`<${tag}>`, path)
+  }
+
+  return React.createElement(
+    tag as keyof React.JSX.IntrinsicElements,
+    {
+      key: path,
+      className,
+      style: inlineStyle,
+      "data-node-id": path,
+      ...extraProps,
+    },
+    ...children,
+  )
+}
+
+/* ── Body children renderer (html/text/expression children of a sub-component) ── */
+
+/**
+ * Render a single PartChild (the things inside a sub-component's body):
+ * raw HTML parts, text, expressions. NOT used for nested sub-components
+ * (those go through `renderSubComponent` directly via the composition graph).
+ */
+function renderBodyChild(
+  child: PartChild,
+  parentPath: PartPath,
+  childIndex: number,
+  ctx: RenderContextV2,
+): React.ReactNode {
+  if (child.kind === "part") {
+    const childPath = appendIndexToPath(parentPath, childIndex)
+    return renderBodyPart(child.part, childPath, ctx)
+  }
+  if (child.kind === "text") {
+    return child.value
+  }
+  if (child.kind === "expression") {
+    return React.createElement(
+      "span",
+      {
+        key: `expr-${childIndex}`,
+        className: "text-xs text-muted-foreground/60 select-none italic",
+      },
+      child.source,
+    )
+  }
+  // jsx-comment and passthrough don't render in the preview
+  return null
+}
+
+/**
+ * Render a non-sub-component PartNode — the things the user adds via the
+ * AssemblyPanel's HTML/shadcn picker into a sub-component's body.
+ *
+ * Distinct from `renderShell` because:
+ * - These don't have nested sub-components from the composition graph
+ * - They're not the "root" of a sub-component, just JSX children inside one
+ */
+function renderBodyPart(
+  part: PartNode,
+  path: PartPath,
+  ctx: RenderContextV2,
+): React.ReactNode {
+  if (ctx.hiddenPaths.has(path)) return null
+
+  // component-ref → render as a shadcn preview if known, else placeholder.
+  // We deliberately do NOT recurse into other sub-components from here
+  // (composition graph nesting is handled by renderShell + nestInside).
+  if (part.base.kind === "component-ref") {
+    if (shadcnPreviewMap[part.base.name]) {
+      return renderShadcnPreview(part.base.name, path, ctx)
+    }
+    return renderPlaceholder(part.base.name, path)
+  }
+
+  if (part.base.kind === "radix" || part.base.kind === "dynamic-ref") {
+    const label =
+      part.base.kind === "radix"
+        ? `${part.base.primitive}.${part.base.part}`
+        : part.base.localName
+    return renderPlaceholder(label, path)
+  }
+
+  if (part.base.kind === "third-party") {
+    return renderPlaceholder(part.base.component, path)
+  }
+
+  // html base
+  return renderHtmlPart(part, path, ctx)
+}
+
+function renderHtmlPart(
+  part: PartNode,
+  path: PartPath,
+  ctx: RenderContextV2,
+): React.ReactNode {
+  if (part.base.kind !== "html") return null
+
+  const isSelected = ctx.selectedPath === path
+  const rawClasses = getPartClasses(part)
+  const resolved = ctx.resolveVariantClasses(rawClasses)
+  const { remainingClasses, style: colorStyle } = resolveColorStyles(resolved)
+  const allClasses = [
+    ...remainingClasses,
+    isSelected ? "ring-2 ring-blue-500 ring-offset-1" : "",
+  ].filter(Boolean)
+  const className = allClasses.length > 0 ? allClasses.join(" ") : undefined
+  const inlineStyle =
+    Object.keys(colorStyle).length > 0 ? colorStyle : undefined
+
+  const tag = part.base.tag
+  const isPascalCase = /^[A-Z]/.test(tag)
+
+  // PascalCase HTML tag — route through shadcn preview map or fall back
+  // to a placeholder. Don't let React.createElement crash.
+  if (isPascalCase) {
+    if (shadcnPreviewMap[tag]) {
+      return renderShadcnPreview(tag, path, ctx)
+    }
+    return renderPlaceholder(`<${tag}>`, path)
+  }
+
+  const children: React.ReactNode[] = []
+  for (let i = 0; i < part.children.length; i++) {
+    const child = part.children[i]
+    const childRendered = renderBodyChild(child, path, i, ctx)
+    if (childRendered !== null) children.push(childRendered)
+  }
+
   if (children.length === 0) {
     children.push(
       React.createElement(
@@ -194,41 +371,28 @@ function renderHtmlPart(
       className,
       style: inlineStyle,
       "data-node-id": path,
-      ...extraProps,
     },
     ...children,
   )
 }
 
-function renderChild(
-  child: PartChild,
-  parentPath: PartPath,
-  childIndex: number,
+function renderShadcnPreview(
+  name: string,
+  path: PartPath,
   ctx: RenderContextV2,
 ): React.ReactNode {
-  if (child.kind === "part") {
-    // Compute the child's path by appending the index. We need to parse the
-    // parent path and re-encode it with the new trailing index.
-    const childPath = appendIndexToPath(parentPath, childIndex)
-    return renderPart(child.part, childPath, ctx, undefined)
-  }
-  if (child.kind === "text") {
-    return child.value
-  }
-  if (child.kind === "expression") {
-    // Expressions like `{children}` get a styled placeholder so the user
-    // sees something tangible in the canvas
-    return React.createElement(
-      "span",
-      {
-        key: `expr-${childIndex}`,
-        className: "text-xs text-muted-foreground/60 select-none italic",
-      },
-      child.source,
-    )
-  }
-  // jsx-comment and passthrough don't render in the preview
-  return null
+  const isSelected = ctx.selectedPath === path
+  return React.createElement(
+    "div",
+    {
+      key: path,
+      "data-node-id": path,
+      className: isSelected
+        ? "ring-2 ring-blue-500 ring-offset-1 rounded"
+        : undefined,
+    },
+    shadcnPreviewMap[name](),
+  )
 }
 
 /* ── Helpers ────────────────────────────────────────────────────── */
@@ -246,11 +410,6 @@ function renderPlaceholder(label: string, path: PartPath): React.ReactNode {
   )
 }
 
-/**
- * Append a child index to an existing path. The path's trailing slash is
- * preserved correctly: `sub:MyCard/` + 0 → `sub:MyCard/0`,
- * `sub:MyCard/0` + 2 → `sub:MyCard/0/2`.
- */
 function appendIndexToPath(path: PartPath, index: number): PartPath {
   if (path.endsWith("/")) {
     return `${path}${index}`

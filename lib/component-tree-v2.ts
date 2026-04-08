@@ -189,6 +189,28 @@ export interface SubComponentV2 {
   parts: {
     root: PartNode
   }
+
+  /**
+   * From-scratch builder convention flags. These mirror the v1 builder's
+   * compose-time settings on each sub-component. They are NOT produced by
+   * the parser (parsed shadcn components don't carry these flags); they
+   * exist to support the from-scratch creation flow's UI options. The
+   * generator emits the corresponding classes/wrappings when set.
+   *
+   * - `nestInside`: name of the parent sub-component this nests inside,
+   *   for compound rendering. Undefined for root-level sub-components.
+   * - `namedGroup`: when true, emit `group/{kebab-name}` on the root
+   *   element so children can target this sub-component with
+   *   `group-data-[…]/name:` modifiers.
+   * - `headingFont`: when true, emit `cn-font-heading` on the root for
+   *   heading typography (uses the `--font-heading` CSS variable).
+   *
+   * Re-added in the post-M4 follow-up after they were dropped during
+   * Step 4e of GEO-305.
+   */
+  nestInside?: string
+  namedGroup?: boolean
+  headingFont?: boolean
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
