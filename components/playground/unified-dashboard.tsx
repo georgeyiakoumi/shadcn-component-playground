@@ -552,8 +552,11 @@ export function UnifiedDashboard({
         side="left"
       />
 
-      {/* Canvas section (centre) — self-contained */}
-      <div className="flex min-w-[200px] flex-1 flex-col">
+      {/* Canvas section (centre) — self-contained. `min-w-0` lets the
+          column shrink below its content's intrinsic width so the
+          StatusBar doesn't bleed into the right Style panel's hit-test
+          area at narrow viewports. */}
+      <div className="flex min-w-0 flex-1 flex-col">
         {/* Canvas + floating assembly panel */}
         <div
           className="relative flex flex-1 flex-col"
