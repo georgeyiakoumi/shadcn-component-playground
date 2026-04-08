@@ -604,11 +604,44 @@ export default function CustomComponentPage() {
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         onClick={() => {
                           if (!tree) return
-                          // Clear classes on every sub-component's root part
+                          // Wipe classes from EVERY surface that the user
+                          // can write to:
+                          //   1. Each sub-component's root part cn() base
+                          //      (handles namedGroup/headingFont base + any
+                          //      data-attr `data-[X=Y]:` classes since they
+                          //      live in this same literal)
+                          //   2. Each cva export's baseClasses + every
+                          //      variants[group][value] string (cva
+                          //      strategy slot classes — these live
+                          //      separately in tree.cvaExports and were
+                          //      previously untouched by Clear all,
+                          //      reported by George after PR #30)
                           let cleared = tree
                           for (const sub of tree.subComponents) {
                             const path = makePartPath(sub.name, [])
                             cleared = setPartClasses(cleared, path, [])
+                          }
+                          // Strip every cva export's class strings to ""
+                          if (cleared.cvaExports.length > 0) {
+                            cleared = {
+                              ...cleared,
+                              cvaExports: cleared.cvaExports.map((cva) => ({
+                                ...cva,
+                                baseClasses: "",
+                                variants: Object.fromEntries(
+                                  Object.entries(cva.variants).map(
+                                    ([groupName, valueMap]) => [
+                                      groupName,
+                                      Object.fromEntries(
+                                        Object.entries(valueMap).map(
+                                          ([valueName]) => [valueName, ""],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              })),
+                            }
                           }
                           handleTreeChange(cleared)
                           setSelectedPath(null)
