@@ -4,8 +4,6 @@ import * as React from "react"
 import { useParams } from "next/navigation"
 
 import { registry } from "@/lib/registry"
-import { componentSources } from "@/lib/component-source"
-import { parseCvaVariants } from "@/lib/cva-parser"
 import type { ElementInfo } from "@/components/playground/element-selector"
 import {
   PlaygroundToolbar,
@@ -19,7 +17,6 @@ import { StructurePanel } from "@/components/playground/structure-panel"
 import { StatusBar } from "@/components/playground/status-bar"
 import { RightPanel } from "@/components/playground/right-panel"
 import { DragHandle } from "@/components/playground/drag-handle"
-import { CanvasToolbar } from "@/components/playground/canvas-toolbar"
 import { ParserV2Status } from "@/components/playground/parser-v2-status"
 import { Button } from "@/components/ui/button"
 import { Download, RotateCcw } from "lucide-react"
@@ -65,10 +62,30 @@ export default function ComponentPage() {
   // Hydrate the editable tree once the API call resolves. Deep-clone via
   // structuredClone so we own a separate copy from the hook's cached
   // state — mutations should not bleed back through the cache.
+  // Pillar 6.1 — also restore any in-progress edits from localStorage so
+  // refresh / navigate-away doesn't lose work. The autosave key is scoped
+  // by slug so each component has its own draft.
   React.useEffect(() => {
     if (parsedState.status === "ready") {
-      setEditTree(structuredClone(parsedState.tree))
-      setEditVersion(0)
+      const storageKey = `m4-stock-edits-${slug}`
+      let restored: ComponentTreeV2 | null = null
+      if (typeof window !== "undefined") {
+        try {
+          const raw = window.localStorage.getItem(storageKey)
+          if (raw) {
+            const parsed = JSON.parse(raw) as ComponentTreeV2
+            // Sanity check: must be the same component the API just gave
+            // us, and must still parse cleanly.
+            if (parsed.slug === slug && parsed.name === parsedState.tree.name) {
+              restored = parsed
+            }
+          }
+        } catch {
+          // Corrupt or stale entry — drop it.
+        }
+      }
+      setEditTree(restored ?? structuredClone(parsedState.tree))
+      setEditVersion(restored ? 1 : 0)
     } else {
       setEditTree(null)
     }
@@ -76,11 +93,30 @@ export default function ComponentPage() {
 
   const component = registry.find((c) => c.slug === slug)
 
-  // Parse cva variants from the actual component source code
-  const source = componentSources[slug] ?? ""
-  const variantDefs = React.useMemo(() => parseCvaVariants(source), [source])
+  // Pillar 6.1 — single source of truth. The Code panel and the toolbar
+  // variant dropdowns now read from the v2 parsed tree's `originalSource`
+  // (the live file on disk) instead of the embedded `componentSources`
+  // strings (frozen back in March). Lesson #16 in spirit.
+  const source = editTree?.originalSource ?? ""
 
-  // Reset prop values when slug changes, using defaults from parser
+  // Build VariantDef[] for the toolbar from the parsed tree's cvaExports.
+  const variantDefs: Array<{
+    name: string
+    options: string[]
+    defaultValue: string
+  }> = React.useMemo(() => {
+    if (!editTree || editTree.cvaExports.length === 0) return []
+    const cva = editTree.cvaExports[0]
+    return Object.entries(cva.variants).map(([name, valuesMap]) => ({
+      name,
+      options: Object.keys(valuesMap),
+      defaultValue:
+        cva.defaultVariants?.[name] ?? Object.keys(valuesMap)[0] ?? "",
+    }))
+  }, [editTree])
+
+  // Reset prop values when slug changes or when the parsed tree's variant
+  // definitions resolve (initially empty until the API responds).
   React.useEffect(() => {
     const defaults: Record<string, string> = {}
     variantDefs.forEach((v) => {
@@ -88,6 +124,40 @@ export default function ComponentPage() {
     })
     setPropValues(defaults)
   }, [slug, variantDefs])
+
+  // Pillar 6.1 — silent autosave of the edit tree to localStorage on every
+  // mutation. Debounced to avoid hammering storage during active editing.
+  // No UI affordance, no toast — the in-progress draft is restored next
+  // time the user opens this slug. When Phase 2 (Supabase auth) lands,
+  // the same flow gains a cloud destination.
+  React.useEffect(() => {
+    if (!editTree || typeof window === "undefined") return
+    // Touch editVersion so this effect re-runs after each in-place edit.
+    void editVersion
+    const storageKey = `m4-stock-edits-${slug}`
+    // Don't persist a clean tree (matches the original on disk) — this
+    // keeps localStorage clean and means the fast-path stays untouched.
+    if (
+      editTree.originalSource &&
+      generateFromTreeV2(editTree) === editTree.originalSource
+    ) {
+      try {
+        window.localStorage.removeItem(storageKey)
+      } catch {
+        // ignore
+      }
+      return
+    }
+    const handle = window.setTimeout(() => {
+      try {
+        window.localStorage.setItem(storageKey, JSON.stringify(editTree))
+      } catch {
+        // Quota exceeded or unavailable — silent fallback, the next save
+        // attempt will retry.
+      }
+    }, 500)
+    return () => window.clearTimeout(handle)
+  }, [editTree, editVersion, slug])
 
   // Clear selection when leaving edit mode
   React.useEffect(() => {
@@ -336,11 +406,11 @@ export default function ComponentPage() {
           side="left"
         />
 
-        {/* ── Centre: Canvas with toolbar ──────────────────────── */}
+        {/* ── Centre: Canvas ──────────────────────────────────── */}
+        {/* Pillar 6.1 — CanvasToolbar with VARIANT/SIZE dropdowns
+            removed. The variants UI now lives in the bottom-bar
+            VariantsPopover (StatusBar), matching the from-scratch page. */}
         <div className="flex min-w-[100px] flex-1 flex-col">
-          <CanvasToolbar
-            propSelectors={propSelectors}
-          />
           <ComponentCanvas
             slug={slug}
             componentName={component.name}
@@ -373,13 +443,18 @@ export default function ComponentPage() {
         />
       </div>
 
-      {/* ── Bottom: A11y + Semantic status bar ────────────────── */}
+      {/* ── Bottom: A11y + Semantic + Variants popover status bar ── */}
+      {/* Pillar 6.1 — pass `propSelectors` so the variants popover that
+          already lives in StatusBar lights up on stock pages too. Same
+          widget the from-scratch page uses, fed by the v2 parsed tree's
+          cvaExports via `variantDefs`. */}
       <StatusBar
         source={source}
         theme={theme}
         onThemeChange={setTheme}
         breakpoint={breakpoint}
         onBreakpointChange={setBreakpoint}
+        propSelectors={propSelectors}
       />
     </>
   )

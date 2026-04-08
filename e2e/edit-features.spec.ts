@@ -1,7 +1,8 @@
 import { test, expect } from "@playwright/test"
 
 async function enterEditMode(page: import("@playwright/test").Page) {
-  await page.getByRole("button", { name: /edit/i }).click()
+  // Pillar 6.1 — toolbar mode toggle renamed Inspect/Edit → Structure/Style.
+  await page.getByRole("button", { name: /^style$/i }).click()
   await page.waitForTimeout(500)
 }
 

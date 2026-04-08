@@ -1,7 +1,8 @@
 import { test, expect } from "@playwright/test"
 
 async function enterEditMode(page: import("@playwright/test").Page) {
-  await page.getByRole("button", { name: /edit/i }).click()
+  // Pillar 6.1 — toolbar mode toggle renamed Inspect/Edit → Structure/Style.
+  await page.getByRole("button", { name: /^style$/i }).click()
   await page.waitForTimeout(500)
 }
 
@@ -15,7 +16,13 @@ test.describe("Inspect Panels", () => {
     await expect(codeHeading).toBeVisible()
     const codeBlock = page.locator("pre")
     await expect(codeBlock).toBeVisible()
-    await expect(page.getByText("forwardRef")).toBeVisible()
+    // Pillar 6.1 — Code panel now reads from the v2 parser's
+    // `originalSource` (the live file on disk). The new-york-v4 Button
+    // is a plain function, not a forwardRef, so check for `function
+    // Button` instead.
+    await expect(page.getByText("function Button").first()).toBeVisible({
+      timeout: 10_000,
+    })
   })
 
   test("Code panel has copy button", async ({ page }) => {
@@ -57,11 +64,12 @@ test.describe("Inspect Panels", () => {
     await expect(page.getByRole("tab", { name: /parts/i })).toHaveCount(0)
   })
 
-  test("compound component (Dialog) still loads in edit mode without crashing", async ({
+  test("compound component (Dialog) still loads in Style mode without crashing", async ({
     page,
   }) => {
     await page.goto("/playground/dialog")
-    await page.getByRole("button", { name: "Edit", exact: true }).click()
+    // Pillar 6.1 — toolbar mode toggle renamed.
+    await page.getByRole("button", { name: /^style$/i }).click()
     await page.waitForTimeout(500)
     await expect(
       page.getByText(/select an element on the canvas/i),

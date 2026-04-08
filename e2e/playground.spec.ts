@@ -95,25 +95,27 @@ test.describe("Playground - Breakpoints", () => {
 })
 
 test.describe("Playground - Variant Selectors", () => {
-  test("button shows variant and size selectors", async ({ page }) => {
+  test("button shows variant and size groups in popover", async ({ page }) => {
     await page.goto("/playground/button")
-    // Should have variant and size prop selectors auto-discovered from cva
-    // Toolbar renders them as Select (combobox) elements showing the current value
-    const selectors = page.getByRole("combobox")
-    await expect(selectors).toHaveCount(2)
+    // Variants live in the bottom-bar Variants popover, fed by editTree.cvaExports
+    await page.getByRole("button", { name: /^variants$/i }).click()
+    // Button has both `variant` and `size` cva groups
+    await expect(page.getByText("variant", { exact: true })).toBeVisible()
+    await expect(page.getByText("size", { exact: true })).toBeVisible()
   })
 
-  test("badge shows variant selector only", async ({ page }) => {
+  test("badge shows variant group only in popover", async ({ page }) => {
     await page.goto("/playground/badge")
-    // Badge has a single cva variant (variant), so one combobox in toolbar
-    const selectors = page.getByRole("combobox")
-    await expect(selectors).toHaveCount(1)
+    await page.getByRole("button", { name: /^variants$/i }).click()
+    // Badge has a single cva group: `variant`
+    await expect(page.getByText("variant", { exact: true })).toBeVisible()
+    await expect(page.getByText("size", { exact: true })).not.toBeVisible()
   })
 
-  test("card shows no variant selectors", async ({ page }) => {
+  test("card shows no variants popover trigger", async ({ page }) => {
     await page.goto("/playground/card")
-    // Card has no cva variants, so no combobox selectors in toolbar
-    const selectors = page.getByRole("combobox")
-    await expect(selectors).toHaveCount(0)
+    // Card has no cva exports, so the Variants popover trigger isn't rendered
+    const trigger = page.getByRole("button", { name: /^variants$/i })
+    await expect(trigger).toHaveCount(0)
   })
 })

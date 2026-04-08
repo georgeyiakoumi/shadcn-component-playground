@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import { useParams, useRouter } from "next/navigation"
-import { toast } from "sonner"
 
 import { cn } from "@/lib/utils"
 import { parseCvaVariants } from "@/lib/cva-parser"
@@ -69,7 +68,6 @@ export default function CustomComponentPage() {
   const [highlightLine, setHighlightLine] = React.useState<number | null>(null)
   const [focusRange, setFocusRange] = React.useState<{ start: number; end: number } | null>(null)
   const [hiddenIds, setHiddenIds] = React.useState<Set<string>>(new Set())
-  const [saveState, setSaveState] = React.useState<"idle" | "saving" | "saved">("idle")
   const [isDirty, setIsDirty] = React.useState(false)
   const contentRef = React.useRef<HTMLDivElement>(null)
 
@@ -125,10 +123,12 @@ export default function CustomComponentPage() {
     if (mounted && userComponent) setIsDirty(true)
   }, [source, componentTree])
 
-  // Auto-save source changes back to the store (debounced)
+  // Pillar 6.1 — silent autosave to localStorage. The visible save
+  // affordance is gone; this effect persists changes silently in the
+  // background. Phase 2 (Supabase auth) will replace this with cloud
+  // persistence.
   React.useEffect(() => {
     if (!userComponent || !isDirty) return
-    setSaveState("saving")
     const timer = setTimeout(() => {
       const updated = {
         ...userComponent,
@@ -140,31 +140,10 @@ export default function CustomComponentPage() {
       saveUserComponent(updated)
       setUserComponent(updated)
       setIsDirty(false)
-      setSaveState("saved")
-      setTimeout(() => setSaveState("idle"), 1500)
     }, 1000)
     return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source, componentTree])
-
-  // Manual save (triggered by Save button)
-  const handleManualSave = React.useCallback(() => {
-    if (!userComponent) return
-    setSaveState("saving")
-    const updated = {
-      ...userComponent,
-      name: componentTree?.name ?? userComponent.name,
-      source,
-      tree: componentTree,
-      updatedAt: new Date().toISOString(),
-    }
-    saveUserComponent(updated)
-    setUserComponent(updated)
-    setIsDirty(false)
-    setSaveState("saved")
-    toast.success("Session saved")
-    setTimeout(() => setSaveState("idle"), 1500)
-  }, [userComponent, componentTree, source])
 
   // When the tree changes, regenerate source code
   const handleTreeChange = React.useCallback(
@@ -573,6 +552,10 @@ export default function CustomComponentPage() {
   return (
     <ComponentEditProvider slug={slug}>
       {/* ── Toolbar ──────────────────────────────────────────── */}
+      {/* Pillar 6.1 — manual Save button removed; the autosave effect
+          earlier in this component still runs silently. The Save label
+          will return in Phase 2 (Supabase auth) when it can mean cloud
+          persistence. */}
       <PlaygroundToolbar
         componentName={componentTree?.name ?? userComponent.name}
         slug={hasAnyStyles ? slug : undefined}
@@ -580,8 +563,6 @@ export default function CustomComponentPage() {
         mode={mode}
         onModeChange={setMode}
         isCustom={hasTree}
-        saveState={saveState}
-        onSave={handleManualSave}
       />
 
       {/* ── Main content area ────────────────────────────────── */}

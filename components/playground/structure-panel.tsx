@@ -78,24 +78,13 @@ export function StructurePanel({ slug, customTree, onNodeClick, className }: Str
           )}
         </div>
 
-        {/* ── Metadata ──────────────────────────────────────── */}
-        {component.variants.length > 0 && (
-          <div className="mt-6 space-y-2">
-            <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Variants
-            </h4>
-            <div className="flex flex-wrap gap-1.5">
-              {component.variants.map((variant) => (
-                <span
-                  key={variant}
-                  className="inline-flex items-center rounded-md border px-2 py-0.5 text-xs text-muted-foreground"
-                >
-                  {variant}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Pillar 6.1 — variants used to render here as static chips
+            keyed by `component.variants` from the registry. The registry
+            list was hand-maintained and incomplete (e.g. Button has both
+            `variant` and `size` cva groups but the registry only tracked
+            `variant`). The variants UI now lives in the bottom-bar
+            VariantsPopover widget on the slug page, which reads from the
+            v2 parsed tree's structured `cvaExports`. */}
       </div>
     </ScrollArea>
   )

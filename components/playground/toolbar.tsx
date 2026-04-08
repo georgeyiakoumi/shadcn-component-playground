@@ -9,12 +9,8 @@ import {
   Moon,
   Sun,
   Eye,
-  Pencil,
   Layers,
   Download,
-  Save,
-  Loader2,
-  Check,
 } from "lucide-react"
 import { ExportDialog } from "@/components/playground/export-dialog"
 
@@ -74,12 +70,9 @@ interface ToolbarProps {
   propSelectors?: PropSelector[]
   mode?: PlaygroundMode
   onModeChange?: (mode: PlaygroundMode) => void
-  /** When true, shows Define/Preview toggle instead of Inspect/Edit */
+  /** When true, shows the custom-component (define/preview) state values
+   *  under the unified Structure/Style toggle. */
   isCustom?: boolean
-  /** Save state for custom components */
-  saveState?: "idle" | "saving" | "saved"
-  /** Manual save handler */
-  onSave?: () => void
   className?: string
 }
 
@@ -97,8 +90,6 @@ export function PlaygroundToolbar({
   mode = "inspect",
   onModeChange,
   isCustom,
-  saveState,
-  onSave,
   className,
 }: ToolbarProps) {
   const hasSelectors = propSelectors && propSelectors.length > 0
@@ -129,6 +120,10 @@ export function PlaygroundToolbar({
           <>
             <Separator orientation="vertical" className="mx-1.5 h-6" />
             <div className="flex items-center gap-0.5 rounded-md border p-0.5">
+              {/* Pillar 6.1 — unified labels: Structure / Style across
+                  both stock and custom pages. Underlying state values
+                  stay the same (inspect/edit on stock, define/preview on
+                  custom) so consumers don't need to refactor. */}
               {isCustom ? (
                 <>
                   <Button
@@ -138,7 +133,7 @@ export function PlaygroundToolbar({
                     onClick={() => onModeChange?.("define")}
                   >
                     <Layers className="size-3" />
-                    Define
+                    Structure
                   </Button>
                   <Button
                     variant={mode === "preview" ? "default" : "ghost"}
@@ -147,7 +142,7 @@ export function PlaygroundToolbar({
                     onClick={() => onModeChange?.("preview")}
                   >
                     <Eye className="size-3" />
-                    Preview
+                    Style
                   </Button>
                 </>
               ) : (
@@ -158,8 +153,8 @@ export function PlaygroundToolbar({
                     className="h-6 gap-1 px-2 text-xs"
                     onClick={() => onModeChange?.("inspect")}
                   >
-                    <Eye className="size-3" />
-                    Inspect
+                    <Layers className="size-3" />
+                    Structure
                   </Button>
                   <Button
                     variant={mode === "edit" ? "default" : "ghost"}
@@ -167,8 +162,8 @@ export function PlaygroundToolbar({
                     className="h-6 gap-1 px-2 text-xs"
                     onClick={() => onModeChange?.("edit")}
                   >
-                    <Pencil className="size-3" />
-                    Edit
+                    <Eye className="size-3" />
+                    Style
                   </Button>
                 </>
               )}
@@ -179,33 +174,10 @@ export function PlaygroundToolbar({
         {/* ── Spacer ─────────────────────────────────────────── */}
         <div className="flex-1" />
 
-        {/* ── Save (custom components only) ──────────────────── */}
-        {onSave && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onSave}
-            disabled={saveState === "saving"}
-            className="gap-1.5"
-          >
-            {saveState === "saving" ? (
-              <>
-                <Loader2 className="size-3.5 animate-spin" />
-                Saving...
-              </>
-            ) : saveState === "saved" ? (
-              <>
-                <Check className="size-3.5" />
-                Saved
-              </>
-            ) : (
-              <>
-                <Save className="size-3.5" />
-                Save
-              </>
-            )}
-          </Button>
-        )}
+        {/* Pillar 6.1 — manual Save button removed. Both stock and
+            custom pages now silent-autosave to localStorage. The Save
+            label will return in Phase 2 (Supabase auth) when it can
+            mean real cloud persistence. */}
 
         {/* ── Export ─────────────────────────────────────────── */}
         {componentName && (

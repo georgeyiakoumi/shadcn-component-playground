@@ -49,7 +49,7 @@ for (const slug of COMPONENTS) {
     )
 
     // Enter edit mode so the Download button mounts.
-    await page.getByRole("button", { name: /^edit$/i }).click()
+    await page.getByRole("button", { name: /^style$/i }).click()
 
     const download = page.getByTestId("download-tsx-button")
     await expect(download).toBeVisible()

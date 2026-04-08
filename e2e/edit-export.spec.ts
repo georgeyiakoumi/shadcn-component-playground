@@ -41,7 +41,7 @@ test.describe("Pillar 5b — edit-export UI controls", () => {
       { timeout: 10_000 },
     )
     // Switch to edit mode.
-    await page.getByRole("button", { name: /^edit$/i }).click()
+    await page.getByRole("button", { name: /^style$/i }).click()
     // The Download button is visible AND clickable even with no edits — the
     // user can always grab a clean copy of the source. The data-dirty flag
     // tells the test (and curious users via DevTools) whether edits exist.
@@ -64,9 +64,9 @@ test.describe("Pillar 5b — edit-export UI controls", () => {
       "ready",
       { timeout: 10_000 },
     )
-    await page.getByRole("button", { name: /^edit$/i }).click()
+    await page.getByRole("button", { name: /^style$/i }).click()
     await expect(page.getByTestId("download-tsx-button")).toBeVisible()
-    await page.getByRole("button", { name: /^inspect$/i }).click()
+    await page.getByRole("button", { name: /^structure$/i }).click()
     await expect(page.getByTestId("download-tsx-button")).toHaveCount(0)
   })
 })

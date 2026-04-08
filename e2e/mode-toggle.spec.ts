@@ -1,33 +1,43 @@
 import { test, expect } from "@playwright/test"
 
-test.describe("Inspect/Edit Mode Toggle", () => {
-  test("starts in inspect mode by default", async ({ page }) => {
-    await page.goto("/playground/button")
-    const inspectButton = page.getByRole("button", { name: /inspect/i })
-    await expect(inspectButton).toBeVisible()
-  })
+/**
+ * Pillar 6.1 — the toolbar's mode toggle was renamed Inspect/Edit →
+ * Structure/Style across both stock and custom pages. The underlying
+ * state values (`inspect`/`edit` for stock, `define`/`preview` for
+ * custom) are unchanged; only the button labels are.
+ */
 
-  test("switching to edit mode shows the right-panel empty state", async ({
+test.describe("Structure/Style mode toggle", () => {
+  test("starts in Structure mode by default on stock pages", async ({
     page,
   }) => {
-    // Pillar 6 (GEO-291) deleted the M2 right-panel tabs (Styles /
-    // Classes / Variants / Parts). The right panel now shows an
-    // empty-state prompt until the user selects an element on the canvas.
     await page.goto("/playground/button")
-    await page.getByRole("button", { name: /edit/i }).click()
+    const structureButton = page.getByRole("button", { name: /structure/i })
+    await expect(structureButton).toBeVisible()
+  })
+
+  test("switching to Style mode shows the right-panel empty state", async ({
+    page,
+  }) => {
+    // Pillar 6 deleted the M2 right-panel tabs. The right panel now
+    // shows an empty-state prompt until the user selects an element on
+    // the canvas.
+    await page.goto("/playground/button")
+    await page.getByRole("button", { name: /^style$/i }).click()
     await page.waitForTimeout(500)
     await expect(
       page.getByText(/select an element on the canvas/i),
     ).toBeVisible()
   })
 
-  test("switching back to inspect mode", async ({ page }) => {
+  test("switching back to Structure mode", async ({ page }) => {
     await page.goto("/playground/button")
-    await page.getByRole("button", { name: /edit/i }).click()
+    await page.getByRole("button", { name: /^style$/i }).click()
     await page.waitForTimeout(500)
-    await page.getByRole("button", { name: /inspect/i }).click()
+    await page.getByRole("button", { name: /^structure$/i }).click()
     await page.waitForTimeout(500)
-    // Should be back in inspect mode
-    await expect(page.getByRole("button", { name: /inspect/i })).toBeVisible()
+    await expect(
+      page.getByRole("button", { name: /^structure$/i }),
+    ).toBeVisible()
   })
 })
