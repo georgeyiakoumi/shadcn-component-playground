@@ -164,24 +164,48 @@ export function UnifiedDashboard({
 
   /* ── Variant defs derived from the v2 tree ─────────────────── */
 
-  // Derive a flat variant list from the root sub-component's cva export
-  // for the bottom-bar Variants popover.
+  // Derive a flat variant list from the root sub-component for the
+  // bottom-bar Variants popover. Surfaces BOTH strategies:
+  //
+  // - cva: read groups from `tree.cvaExports[i].variants`
+  // - data-attr: read variants from `root.variantStrategy.variants`
+  //
+  // Pre-PR #30 this only handled cva, which was the regression George
+  // caught: from-scratch components default to the data-attr strategy
+  // (per PR #30) and so the Variants popover disappeared from the
+  // bottom bar. Now we surface both.
   const variantDefs = React.useMemo(() => {
     if (tree.subComponents.length === 0) return []
     const root = tree.subComponents[0]
-    if (root.variantStrategy.kind !== "cva") return []
-    const cvaRef = root.variantStrategy.cvaRef
-    const cva = tree.cvaExports.find((c) => c.name === cvaRef)
-    if (!cva) return []
-    return Object.entries(cva.variants).map(([groupName, valueMap]) => {
-      const valueNames = Object.keys(valueMap)
-      return {
-        name: groupName,
-        options: valueNames,
-        defaultValue:
-          cva.defaultVariants?.[groupName] ?? valueNames[0] ?? "",
+    const out: Array<{ name: string; options: string[]; defaultValue: string }> = []
+
+    if (root.variantStrategy.kind === "cva") {
+      const cvaRef = root.variantStrategy.cvaRef
+      const cva = tree.cvaExports.find((c) => c.name === cvaRef)
+      if (cva) {
+        for (const [groupName, valueMap] of Object.entries(cva.variants)) {
+          const valueNames = Object.keys(valueMap)
+          out.push({
+            name: groupName,
+            options: valueNames,
+            defaultValue:
+              cva.defaultVariants?.[groupName] ?? valueNames[0] ?? "",
+          })
+        }
       }
-    })
+    }
+
+    if (root.variantStrategy.kind === "data-attr") {
+      for (const dav of root.variantStrategy.variants) {
+        out.push({
+          name: dav.propName,
+          options: dav.values.slice(),
+          defaultValue: dav.defaultValue,
+        })
+      }
+    }
+
+    return out
   }, [tree])
 
   // Reset prop values when the variant defs change.
@@ -193,7 +217,41 @@ export function UnifiedDashboard({
     setPropValues(defaults)
   }, [variantDefs])
 
-  /* ── Variant prop value resolution (canvas preview) ────────── */
+  /* ── Variant prop value resolution (canvas preview) ──────────
+   *
+   * Two strategies, two resolution paths:
+   *
+   * 1. cva — `getPartClasses` returns [] for cva-call className
+   *    shapes (it can't read the cva-call structure). We synthesise
+   *    the active class list by combining `cva.baseClasses` with each
+   *    variant group's active value's class string. The active value
+   *    comes from `propValues` (bottom-bar Variants popover), with
+   *    `cva.defaultVariants` as the fallback.
+   *
+   * 2. data-attr — `getPartClasses` DOES return the full cn-call
+   *    base for data-attr sub-components, INCLUDING the user's
+   *    `data-[X=Y]:cls` prefixed classes. Tailwind v4 can't safelist
+   *    arbitrary user-typed `data-[…]:` prefixes (the variant names
+   *    are user-defined and the safelist needs concrete strings at
+   *    build time).
+   *
+   *    Solution: STRIP the prefix at render time. For each class with
+   *    a `data-[X=Y]:` prefix:
+   *      - If `Y` matches the active value for variant `X`, the class
+   *        becomes the bare form (`bg-destructive` instead of
+   *        `data-[size=sm]:bg-destructive`). Tailwind already knows
+   *        the bare form.
+   *      - If `Y` matches a non-active value, the class is dropped
+   *        (it would never apply at the rendered DOM since we only
+   *        render the active state).
+   *      - Bare classes (no prefix) are kept as-is.
+   *
+   *    Originally solved in v1 commit `deeefb8`, lost during the
+   *    v1→v2 migration, rediscovered when George caught the canvas
+   *    not updating on `size=sm` toggles. See
+   *    `feedback_runtime_class_resolution_for_data_attr.md` for the
+   *    full lesson.
+   */
 
   const resolveActiveClasses = React.useCallback(
     (
@@ -201,25 +259,108 @@ export function UnifiedDashboard({
       sub: SubComponentV2 | null,
       cvaExports: CvaExport[],
     ): string[] => {
-      if (!sub || sub.variantStrategy.kind !== "cva") return rawClasses
-      const cvaRef = sub.variantStrategy.cvaRef
-      const cva = cvaExports.find((c) => c.name === cvaRef)
-      if (!cva) return rawClasses
+      if (!sub) return rawClasses
 
-      const extra: string[] = []
-      for (const [groupName, valueMap] of Object.entries(cva.variants)) {
-        const activeValue =
-          propValues[groupName] ?? cva.defaultVariants?.[groupName]
-        if (!activeValue) continue
-        const classString = valueMap[activeValue]
-        if (classString) {
-          extra.push(...classString.split(/\s+/).filter(Boolean))
+      // ── cva strategy ───────────────────────────────────────
+      if (sub.variantStrategy.kind === "cva") {
+        const cvaRef = sub.variantStrategy.cvaRef
+        const cva = cvaExports.find((c) => c.name === cvaRef)
+        if (!cva) return rawClasses
+
+        const result: string[] = []
+        if (cva.baseClasses) {
+          result.push(...cva.baseClasses.split(/\s+/).filter(Boolean))
         }
+        for (const [groupName, valueMap] of Object.entries(cva.variants)) {
+          const activeValue =
+            propValues[groupName] ?? cva.defaultVariants?.[groupName]
+          if (!activeValue) continue
+          const classString = valueMap[activeValue]
+          if (classString) {
+            result.push(...classString.split(/\s+/).filter(Boolean))
+          }
+        }
+        return [...result, ...rawClasses]
       }
-      return [...rawClasses, ...extra]
+
+      // ── data-attr strategy: strip prefixes at render time ──
+      if (sub.variantStrategy.kind === "data-attr") {
+        // Build the set of active and inactive prefixes from the
+        // variant declarations + active values.
+        const activePrefixes = new Set<string>()
+        const inactivePrefixes = new Set<string>()
+        for (const v of sub.variantStrategy.variants) {
+          const activeValue = propValues[v.propName] ?? v.defaultValue
+          const attrBody = v.attrName.startsWith("data-")
+            ? v.attrName.slice("data-".length)
+            : v.attrName
+          for (const opt of v.values) {
+            const prefix = `data-[${attrBody}=${opt}]:`
+            if (opt === activeValue) {
+              activePrefixes.add(prefix)
+            } else {
+              inactivePrefixes.add(prefix)
+            }
+          }
+        }
+
+        const result: string[] = []
+        for (const cls of rawClasses) {
+          // Active prefix → strip and keep
+          let stripped: string | null = null
+          for (const prefix of activePrefixes) {
+            if (cls.startsWith(prefix)) {
+              stripped = cls.slice(prefix.length)
+              break
+            }
+          }
+          if (stripped !== null) {
+            result.push(stripped)
+            continue
+          }
+          // Inactive prefix → drop
+          let isInactive = false
+          for (const prefix of inactivePrefixes) {
+            if (cls.startsWith(prefix)) {
+              isInactive = true
+              break
+            }
+          }
+          if (isInactive) continue
+          // Bare class → keep
+          result.push(cls)
+        }
+        return result
+      }
+
+      // ── none / unknown → pass-through ───────────────────────
+      return rawClasses
     },
     [propValues],
   )
+
+  // Build the data-* attribute map the renderer applies to the root
+  // element. For data-attr sub-components (the newer shadcn pattern,
+  // e.g. Card with `size: "default" | "sm"`), Tailwind selectors like
+  // `data-[size=sm]:bg-destructive` only activate when the rendered DOM
+  // actually has `data-size="sm"`. We synthesise that attribute here
+  // from the active values in `propValues` so the canvas previews
+  // variant changes live as the user toggles them in the bottom-bar
+  // Variants popover.
+  //
+  // Pre-fix this object was always empty and the data-attr prefixed
+  // classes never activated — toggling size in the popover did
+  // nothing visible on the canvas.
+  const variantDataAttrs = React.useMemo(() => {
+    const root = tree.subComponents[0]
+    if (!root || root.variantStrategy.kind !== "data-attr") return {}
+    const attrs: Record<string, string> = {}
+    for (const v of root.variantStrategy.variants) {
+      const activeValue = propValues[v.propName] ?? v.defaultValue
+      attrs[v.attrName] = activeValue
+    }
+    return attrs
+  }, [tree, propValues])
 
   const renderContext: RenderContextV2 = React.useMemo(
     () => ({
@@ -235,9 +376,9 @@ export function UnifiedDashboard({
           tree.subComponents[0] ?? null,
           tree.cvaExports,
         ),
-      variantDataAttrs: {},
+      variantDataAttrs,
     }),
-    [tree, selectedPath, hiddenPaths, resolveActiveClasses],
+    [tree, selectedPath, hiddenPaths, resolveActiveClasses, variantDataAttrs],
   )
 
   const customPreview = React.useMemo(

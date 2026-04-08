@@ -223,18 +223,34 @@ function renderShell(
     if (childRendered !== null) children.push(childRendered)
   }
 
-  // Empty placeholder if no children rendered
+  // Empty placeholder if no children rendered. Two flavours:
+  //
+  // - From-scratch sub-components (html base, no cva): render the
+  //   `<SubName>` placeholder span at very-low-opacity so the user
+  //   sees there's a sub-component slot here even when it's empty.
+  //   Matches the from-scratch builder's authoring affordance.
+  //
+  // - Parsed cva sub-components: the rendered element already has its
+  //   resolved cva classes (via resolveVariantClasses). We render just
+  //   the bare sub-component name as a TEXT node so a parsed Button
+  //   shows up as a styled button labelled "Button" — like a real
+  //   button you'd encounter in the wild — instead of an empty button
+  //   that collapses to zero size.
   if (children.length === 0) {
-    children.push(
-      React.createElement(
-        "span",
-        {
-          key: "__empty__",
-          className: "text-xs text-muted-foreground/40 select-none",
-        },
-        `<${sub.name}>`,
-      ),
-    )
+    if (sub.variantStrategy.kind === "cva") {
+      children.push(sub.name)
+    } else {
+      children.push(
+        React.createElement(
+          "span",
+          {
+            key: "__empty__",
+            className: "text-xs text-muted-foreground/40 select-none",
+          },
+          `<${sub.name}>`,
+        ),
+      )
+    }
   }
 
   // Defensive: bail out if `tag` is PascalCase but not in the preview map
