@@ -49,6 +49,472 @@ import {
 import { resolveColorStyles } from "@/lib/resolve-color-styles"
 import { shadcnPreviewMap } from "@/lib/shadcn-preview-map"
 
+/* ── HTML void elements ─────────────────────────────────────────── */
+
+/**
+ * HTML void elements cannot receive children — React's `createElement`
+ * will throw "X is a void element tag and must neither have `children`
+ * nor use `dangerouslySetInnerHTML`" if you pass any. The renderer
+ * checks this set before emitting an element: void tags render as
+ * `createElement(tag, props)` with NO children argument, and they skip
+ * the empty-state placeholder (which would inject a `<span>` child).
+ *
+ * Originally surfaced by the Input component: its parsed root is an
+ * `<input>`, the renderer tried to inject a `<SubName>` placeholder
+ * span as a child, and React crashed.
+ */
+const VOID_HTML_ELEMENTS = new Set([
+  "area",
+  "base",
+  "br",
+  "col",
+  "embed",
+  "hr",
+  "img",
+  "input",
+  "link",
+  "meta",
+  "param",
+  "source",
+  "track",
+  "wbr",
+])
+
+/* ── Radix primitive → runtime HTML tag map ─────────────────────── */
+
+/**
+ * Maps `<Primitive>.<Part>` to the HTML element it actually renders in
+ * the browser, plus any extra DOM attributes (roles, etc.) that the
+ * primitive sets on its rendered element.
+ *
+ * Used by `renderShell` to turn a `radix` base kind into a real DOM
+ * element on the canvas, so parsed Checkbox / Label / RadioGroup /
+ * Switch / etc. show up as actual styled interactive elements rather
+ * than as empty purple placeholder pills.
+ *
+ * The mappings are based on Radix UI's actual runtime output (verified
+ * against radix-ui source as of 2026-04-08). If a primitive/part isn't
+ * in this map, the renderer falls through to the placeholder, which is
+ * the correct conservative behaviour — better to show a labelled
+ * placeholder than to render the wrong element.
+ *
+ * NOTE: Some Radix primitives (Dialog.Root, Dialog.Portal, Popover.Root,
+ * etc.) don't render any DOM of their own — they're pure React context
+ * providers. For those, `tag: null` tells the renderer to render the
+ * children as a fragment. The placeholder fallback would be misleading
+ * there — nothing crashes if you treat them as transparent wrappers.
+ */
+type RadixMapping = {
+  /** HTML tag to render, or null for a transparent fragment */
+  tag: string | null
+  /** Extra attributes to set on the rendered element (e.g. `role`) */
+  attrs?: Record<string, string>
+}
+
+const RADIX_PRIMITIVE_MAP: Record<string, RadixMapping> = {
+  // Accordion
+  "Accordion.Root": { tag: "div" },
+  "AccordionPrimitive.Root": { tag: "div" },
+  "Accordion.Item": { tag: "div" },
+  "AccordionPrimitive.Item": { tag: "div" },
+  "Accordion.Header": { tag: "h3" },
+  "AccordionPrimitive.Header": { tag: "h3" },
+  "Accordion.Trigger": { tag: "button" },
+  "AccordionPrimitive.Trigger": { tag: "button" },
+  "Accordion.Content": { tag: "div" },
+  "AccordionPrimitive.Content": { tag: "div" },
+
+  // AlertDialog (same DOM shape as Dialog)
+  "AlertDialog.Root": { tag: null },
+  "AlertDialogPrimitive.Root": { tag: null },
+  "AlertDialog.Trigger": { tag: "button" },
+  "AlertDialogPrimitive.Trigger": { tag: "button" },
+  "AlertDialog.Portal": { tag: null },
+  "AlertDialogPrimitive.Portal": { tag: null },
+  "AlertDialog.Overlay": { tag: "div" },
+  "AlertDialogPrimitive.Overlay": { tag: "div" },
+  "AlertDialog.Content": {
+    tag: "div",
+    attrs: { role: "alertdialog" },
+  },
+  "AlertDialogPrimitive.Content": {
+    tag: "div",
+    attrs: { role: "alertdialog" },
+  },
+  "AlertDialog.Cancel": { tag: "button" },
+  "AlertDialogPrimitive.Cancel": { tag: "button" },
+  "AlertDialog.Action": { tag: "button" },
+  "AlertDialogPrimitive.Action": { tag: "button" },
+  "AlertDialog.Title": { tag: "h2" },
+  "AlertDialogPrimitive.Title": { tag: "h2" },
+  "AlertDialog.Description": { tag: "p" },
+  "AlertDialogPrimitive.Description": { tag: "p" },
+
+  // AspectRatio
+  "AspectRatio.Root": { tag: "div" },
+  "AspectRatioPrimitive.Root": { tag: "div" },
+
+  // Avatar
+  "Avatar.Root": { tag: "span" },
+  "AvatarPrimitive.Root": { tag: "span" },
+  "Avatar.Image": { tag: "img" },
+  "AvatarPrimitive.Image": { tag: "img" },
+  "Avatar.Fallback": { tag: "span" },
+  "AvatarPrimitive.Fallback": { tag: "span" },
+
+  // Checkbox
+  "Checkbox.Root": { tag: "button", attrs: { role: "checkbox", type: "button" } },
+  "CheckboxPrimitive.Root": { tag: "button", attrs: { role: "checkbox", type: "button" } },
+  "Checkbox.Indicator": { tag: "span" },
+  "CheckboxPrimitive.Indicator": { tag: "span" },
+
+  // Collapsible
+  "Collapsible.Root": { tag: "div" },
+  "CollapsiblePrimitive.Root": { tag: "div" },
+  "Collapsible.Trigger": { tag: "button" },
+  "CollapsiblePrimitive.Trigger": { tag: "button" },
+  "Collapsible.Content": { tag: "div" },
+  "CollapsiblePrimitive.Content": { tag: "div" },
+
+  // ContextMenu (same DOM shape as DropdownMenu)
+  "ContextMenu.Root": { tag: null },
+  "ContextMenuPrimitive.Root": { tag: null },
+  "ContextMenu.Trigger": { tag: "span" },
+  "ContextMenuPrimitive.Trigger": { tag: "span" },
+  "ContextMenu.Portal": { tag: null },
+  "ContextMenuPrimitive.Portal": { tag: null },
+  "ContextMenu.Content": { tag: "div", attrs: { role: "menu" } },
+  "ContextMenuPrimitive.Content": { tag: "div", attrs: { role: "menu" } },
+  "ContextMenu.Item": { tag: "div", attrs: { role: "menuitem" } },
+  "ContextMenuPrimitive.Item": { tag: "div", attrs: { role: "menuitem" } },
+  "ContextMenu.CheckboxItem": { tag: "div", attrs: { role: "menuitemcheckbox" } },
+  "ContextMenuPrimitive.CheckboxItem": { tag: "div", attrs: { role: "menuitemcheckbox" } },
+  "ContextMenu.RadioItem": { tag: "div", attrs: { role: "menuitemradio" } },
+  "ContextMenuPrimitive.RadioItem": { tag: "div", attrs: { role: "menuitemradio" } },
+  "ContextMenu.Label": { tag: "div" },
+  "ContextMenuPrimitive.Label": { tag: "div" },
+  "ContextMenu.Separator": { tag: "div", attrs: { role: "separator" } },
+  "ContextMenuPrimitive.Separator": { tag: "div", attrs: { role: "separator" } },
+  "ContextMenu.Group": { tag: "div", attrs: { role: "group" } },
+  "ContextMenuPrimitive.Group": { tag: "div", attrs: { role: "group" } },
+  "ContextMenu.SubTrigger": { tag: "div", attrs: { role: "menuitem" } },
+  "ContextMenuPrimitive.SubTrigger": { tag: "div", attrs: { role: "menuitem" } },
+  "ContextMenu.SubContent": { tag: "div", attrs: { role: "menu" } },
+  "ContextMenuPrimitive.SubContent": { tag: "div", attrs: { role: "menu" } },
+
+  // Dialog
+  "Dialog.Root": { tag: null },
+  "DialogPrimitive.Root": { tag: null },
+  "Dialog.Trigger": { tag: "button" },
+  "DialogPrimitive.Trigger": { tag: "button" },
+  "Dialog.Portal": { tag: null },
+  "DialogPrimitive.Portal": { tag: null },
+  "Dialog.Overlay": { tag: "div" },
+  "DialogPrimitive.Overlay": { tag: "div" },
+  "Dialog.Content": { tag: "div", attrs: { role: "dialog" } },
+  "DialogPrimitive.Content": { tag: "div", attrs: { role: "dialog" } },
+  "Dialog.Close": { tag: "button" },
+  "DialogPrimitive.Close": { tag: "button" },
+  "Dialog.Title": { tag: "h2" },
+  "DialogPrimitive.Title": { tag: "h2" },
+  "Dialog.Description": { tag: "p" },
+  "DialogPrimitive.Description": { tag: "p" },
+
+  // Drawer (third-party vaul, but often shows up as a Primitive import)
+  "Drawer.Root": { tag: null },
+  "DrawerPrimitive.Root": { tag: null },
+  "Drawer.Trigger": { tag: "button" },
+  "DrawerPrimitive.Trigger": { tag: "button" },
+  "Drawer.Portal": { tag: null },
+  "DrawerPrimitive.Portal": { tag: null },
+  "Drawer.Overlay": { tag: "div" },
+  "DrawerPrimitive.Overlay": { tag: "div" },
+  "Drawer.Content": { tag: "div", attrs: { role: "dialog" } },
+  "DrawerPrimitive.Content": { tag: "div", attrs: { role: "dialog" } },
+  "Drawer.Close": { tag: "button" },
+  "DrawerPrimitive.Close": { tag: "button" },
+  "Drawer.Title": { tag: "h2" },
+  "DrawerPrimitive.Title": { tag: "h2" },
+  "Drawer.Description": { tag: "p" },
+  "DrawerPrimitive.Description": { tag: "p" },
+
+  // DropdownMenu
+  "DropdownMenu.Root": { tag: null },
+  "DropdownMenuPrimitive.Root": { tag: null },
+  "DropdownMenu.Trigger": { tag: "button" },
+  "DropdownMenuPrimitive.Trigger": { tag: "button" },
+  "DropdownMenu.Portal": { tag: null },
+  "DropdownMenuPrimitive.Portal": { tag: null },
+  "DropdownMenu.Content": { tag: "div", attrs: { role: "menu" } },
+  "DropdownMenuPrimitive.Content": { tag: "div", attrs: { role: "menu" } },
+  "DropdownMenu.Item": { tag: "div", attrs: { role: "menuitem" } },
+  "DropdownMenuPrimitive.Item": { tag: "div", attrs: { role: "menuitem" } },
+  "DropdownMenu.CheckboxItem": {
+    tag: "div",
+    attrs: { role: "menuitemcheckbox" },
+  },
+  "DropdownMenuPrimitive.CheckboxItem": {
+    tag: "div",
+    attrs: { role: "menuitemcheckbox" },
+  },
+  "DropdownMenu.RadioItem": { tag: "div", attrs: { role: "menuitemradio" } },
+  "DropdownMenuPrimitive.RadioItem": {
+    tag: "div",
+    attrs: { role: "menuitemradio" },
+  },
+  "DropdownMenu.Label": { tag: "div" },
+  "DropdownMenuPrimitive.Label": { tag: "div" },
+  "DropdownMenu.Separator": { tag: "div", attrs: { role: "separator" } },
+  "DropdownMenuPrimitive.Separator": { tag: "div", attrs: { role: "separator" } },
+  "DropdownMenu.Group": { tag: "div", attrs: { role: "group" } },
+  "DropdownMenuPrimitive.Group": { tag: "div", attrs: { role: "group" } },
+  "DropdownMenu.SubTrigger": { tag: "div", attrs: { role: "menuitem" } },
+  "DropdownMenuPrimitive.SubTrigger": { tag: "div", attrs: { role: "menuitem" } },
+  "DropdownMenu.SubContent": { tag: "div", attrs: { role: "menu" } },
+  "DropdownMenuPrimitive.SubContent": { tag: "div", attrs: { role: "menu" } },
+  "DropdownMenu.RadioGroup": { tag: "div", attrs: { role: "group" } },
+  "DropdownMenuPrimitive.RadioGroup": { tag: "div", attrs: { role: "group" } },
+  "DropdownMenu.ItemIndicator": { tag: "span" },
+  "DropdownMenuPrimitive.ItemIndicator": { tag: "span" },
+
+  // HoverCard
+  "HoverCard.Root": { tag: null },
+  "HoverCardPrimitive.Root": { tag: null },
+  "HoverCard.Trigger": { tag: "span" },
+  "HoverCardPrimitive.Trigger": { tag: "span" },
+  "HoverCard.Portal": { tag: null },
+  "HoverCardPrimitive.Portal": { tag: null },
+  "HoverCard.Content": { tag: "div" },
+  "HoverCardPrimitive.Content": { tag: "div" },
+
+  // Label
+  "Label.Root": { tag: "label" },
+  "LabelPrimitive.Root": { tag: "label" },
+
+  // Menubar
+  "Menubar.Root": { tag: "div", attrs: { role: "menubar" } },
+  "MenubarPrimitive.Root": { tag: "div", attrs: { role: "menubar" } },
+  "Menubar.Menu": { tag: null },
+  "MenubarPrimitive.Menu": { tag: null },
+  "Menubar.Trigger": { tag: "button" },
+  "MenubarPrimitive.Trigger": { tag: "button" },
+  "Menubar.Portal": { tag: null },
+  "MenubarPrimitive.Portal": { tag: null },
+  "Menubar.Content": { tag: "div", attrs: { role: "menu" } },
+  "MenubarPrimitive.Content": { tag: "div", attrs: { role: "menu" } },
+  "Menubar.Item": { tag: "div", attrs: { role: "menuitem" } },
+  "MenubarPrimitive.Item": { tag: "div", attrs: { role: "menuitem" } },
+  "Menubar.CheckboxItem": { tag: "div", attrs: { role: "menuitemcheckbox" } },
+  "MenubarPrimitive.CheckboxItem": { tag: "div", attrs: { role: "menuitemcheckbox" } },
+  "Menubar.RadioItem": { tag: "div", attrs: { role: "menuitemradio" } },
+  "MenubarPrimitive.RadioItem": { tag: "div", attrs: { role: "menuitemradio" } },
+  "Menubar.Label": { tag: "div" },
+  "MenubarPrimitive.Label": { tag: "div" },
+  "Menubar.Separator": { tag: "div", attrs: { role: "separator" } },
+  "MenubarPrimitive.Separator": { tag: "div", attrs: { role: "separator" } },
+  "Menubar.Group": { tag: "div", attrs: { role: "group" } },
+  "MenubarPrimitive.Group": { tag: "div", attrs: { role: "group" } },
+  "Menubar.Sub": { tag: null },
+  "MenubarPrimitive.Sub": { tag: null },
+  "Menubar.SubTrigger": { tag: "div", attrs: { role: "menuitem" } },
+  "MenubarPrimitive.SubTrigger": { tag: "div", attrs: { role: "menuitem" } },
+  "Menubar.SubContent": { tag: "div", attrs: { role: "menu" } },
+  "MenubarPrimitive.SubContent": { tag: "div", attrs: { role: "menu" } },
+  "Menubar.RadioGroup": { tag: "div", attrs: { role: "group" } },
+  "MenubarPrimitive.RadioGroup": { tag: "div", attrs: { role: "group" } },
+  "Menubar.ItemIndicator": { tag: "span" },
+  "MenubarPrimitive.ItemIndicator": { tag: "span" },
+
+  // NavigationMenu
+  "NavigationMenu.Root": { tag: "nav" },
+  "NavigationMenuPrimitive.Root": { tag: "nav" },
+  "NavigationMenu.List": { tag: "ul" },
+  "NavigationMenuPrimitive.List": { tag: "ul" },
+  "NavigationMenu.Item": { tag: "li" },
+  "NavigationMenuPrimitive.Item": { tag: "li" },
+  "NavigationMenu.Trigger": { tag: "button" },
+  "NavigationMenuPrimitive.Trigger": { tag: "button" },
+  "NavigationMenu.Content": { tag: "div" },
+  "NavigationMenuPrimitive.Content": { tag: "div" },
+  "NavigationMenu.Link": { tag: "a" },
+  "NavigationMenuPrimitive.Link": { tag: "a" },
+  "NavigationMenu.Indicator": { tag: "div" },
+  "NavigationMenuPrimitive.Indicator": { tag: "div" },
+  "NavigationMenu.Viewport": { tag: "div" },
+  "NavigationMenuPrimitive.Viewport": { tag: "div" },
+
+  // Popover
+  "Popover.Root": { tag: null },
+  "PopoverPrimitive.Root": { tag: null },
+  "Popover.Trigger": { tag: "button" },
+  "PopoverPrimitive.Trigger": { tag: "button" },
+  "Popover.Anchor": { tag: "span" },
+  "PopoverPrimitive.Anchor": { tag: "span" },
+  "Popover.Portal": { tag: null },
+  "PopoverPrimitive.Portal": { tag: null },
+  "Popover.Content": { tag: "div" },
+  "PopoverPrimitive.Content": { tag: "div" },
+  "Popover.Close": { tag: "button" },
+  "PopoverPrimitive.Close": { tag: "button" },
+  "Popover.Arrow": { tag: "svg" },
+  "PopoverPrimitive.Arrow": { tag: "svg" },
+
+  // Progress
+  "Progress.Root": { tag: "div", attrs: { role: "progressbar" } },
+  "ProgressPrimitive.Root": { tag: "div", attrs: { role: "progressbar" } },
+  "Progress.Indicator": { tag: "div" },
+  "ProgressPrimitive.Indicator": { tag: "div" },
+
+  // RadioGroup
+  "RadioGroup.Root": { tag: "div", attrs: { role: "radiogroup" } },
+  "RadioGroupPrimitive.Root": { tag: "div", attrs: { role: "radiogroup" } },
+  "RadioGroup.Item": {
+    tag: "button",
+    attrs: { role: "radio", type: "button" },
+  },
+  "RadioGroupPrimitive.Item": {
+    tag: "button",
+    attrs: { role: "radio", type: "button" },
+  },
+  "RadioGroup.Indicator": { tag: "span" },
+  "RadioGroupPrimitive.Indicator": { tag: "span" },
+
+  // ScrollArea
+  "ScrollArea.Root": { tag: "div" },
+  "ScrollAreaPrimitive.Root": { tag: "div" },
+  "ScrollArea.Viewport": { tag: "div" },
+  "ScrollAreaPrimitive.Viewport": { tag: "div" },
+  "ScrollArea.ScrollAreaScrollbar": { tag: "div" },
+  "ScrollAreaPrimitive.ScrollAreaScrollbar": { tag: "div" },
+  "ScrollArea.Scrollbar": { tag: "div" },
+  "ScrollAreaPrimitive.Scrollbar": { tag: "div" },
+  "ScrollArea.ScrollAreaThumb": { tag: "div" },
+  "ScrollAreaPrimitive.ScrollAreaThumb": { tag: "div" },
+  "ScrollArea.Thumb": { tag: "div" },
+  "ScrollAreaPrimitive.Thumb": { tag: "div" },
+  "ScrollArea.Corner": { tag: "div" },
+  "ScrollAreaPrimitive.Corner": { tag: "div" },
+
+  // Select
+  "Select.Root": { tag: null },
+  "SelectPrimitive.Root": { tag: null },
+  "Select.Trigger": { tag: "button" },
+  "SelectPrimitive.Trigger": { tag: "button" },
+  "Select.Value": { tag: "span" },
+  "SelectPrimitive.Value": { tag: "span" },
+  "Select.Icon": { tag: "span" },
+  "SelectPrimitive.Icon": { tag: "span" },
+  "Select.Portal": { tag: null },
+  "SelectPrimitive.Portal": { tag: null },
+  "Select.Content": { tag: "div", attrs: { role: "listbox" } },
+  "SelectPrimitive.Content": { tag: "div", attrs: { role: "listbox" } },
+  "Select.Viewport": { tag: "div" },
+  "SelectPrimitive.Viewport": { tag: "div" },
+  "Select.Item": { tag: "div", attrs: { role: "option" } },
+  "SelectPrimitive.Item": { tag: "div", attrs: { role: "option" } },
+  "Select.ItemText": { tag: "span" },
+  "SelectPrimitive.ItemText": { tag: "span" },
+  "Select.ItemIndicator": { tag: "span" },
+  "SelectPrimitive.ItemIndicator": { tag: "span" },
+  "Select.Group": { tag: "div", attrs: { role: "group" } },
+  "SelectPrimitive.Group": { tag: "div", attrs: { role: "group" } },
+  "Select.Label": { tag: "div" },
+  "SelectPrimitive.Label": { tag: "div" },
+  "Select.Separator": { tag: "div", attrs: { role: "separator" } },
+  "SelectPrimitive.Separator": { tag: "div", attrs: { role: "separator" } },
+  "Select.ScrollUpButton": { tag: "div" },
+  "SelectPrimitive.ScrollUpButton": { tag: "div" },
+  "Select.ScrollDownButton": { tag: "div" },
+  "SelectPrimitive.ScrollDownButton": { tag: "div" },
+
+  // Separator
+  "Separator.Root": { tag: "div", attrs: { role: "separator" } },
+  "SeparatorPrimitive.Root": { tag: "div", attrs: { role: "separator" } },
+
+  // Sheet uses Dialog primitive — covered by Dialog entries above
+
+  // Slider
+  "Slider.Root": { tag: "span" },
+  "SliderPrimitive.Root": { tag: "span" },
+  "Slider.Track": { tag: "span" },
+  "SliderPrimitive.Track": { tag: "span" },
+  "Slider.Range": { tag: "span" },
+  "SliderPrimitive.Range": { tag: "span" },
+  "Slider.Thumb": {
+    tag: "span",
+    attrs: { role: "slider", "aria-orientation": "horizontal" },
+  },
+  "SliderPrimitive.Thumb": {
+    tag: "span",
+    attrs: { role: "slider", "aria-orientation": "horizontal" },
+  },
+
+  // Switch
+  "Switch.Root": { tag: "button", attrs: { role: "switch", type: "button" } },
+  "SwitchPrimitive.Root": {
+    tag: "button",
+    attrs: { role: "switch", type: "button" },
+  },
+  "Switch.Thumb": { tag: "span" },
+  "SwitchPrimitive.Thumb": { tag: "span" },
+
+  // Tabs
+  "Tabs.Root": { tag: "div" },
+  "TabsPrimitive.Root": { tag: "div" },
+  "Tabs.List": { tag: "div", attrs: { role: "tablist" } },
+  "TabsPrimitive.List": { tag: "div", attrs: { role: "tablist" } },
+  "Tabs.Trigger": {
+    tag: "button",
+    attrs: { role: "tab", type: "button" },
+  },
+  "TabsPrimitive.Trigger": {
+    tag: "button",
+    attrs: { role: "tab", type: "button" },
+  },
+  "Tabs.Content": { tag: "div", attrs: { role: "tabpanel" } },
+  "TabsPrimitive.Content": { tag: "div", attrs: { role: "tabpanel" } },
+
+  // Toggle
+  "Toggle.Root": { tag: "button", attrs: { type: "button" } },
+  "TogglePrimitive.Root": { tag: "button", attrs: { type: "button" } },
+
+  // ToggleGroup
+  "ToggleGroup.Root": { tag: "div", attrs: { role: "group" } },
+  "ToggleGroupPrimitive.Root": { tag: "div", attrs: { role: "group" } },
+  "ToggleGroup.Item": { tag: "button", attrs: { type: "button" } },
+  "ToggleGroupPrimitive.Item": { tag: "button", attrs: { type: "button" } },
+
+  // Tooltip
+  "Tooltip.Provider": { tag: null },
+  "TooltipPrimitive.Provider": { tag: null },
+  "Tooltip.Root": { tag: null },
+  "TooltipPrimitive.Root": { tag: null },
+  "Tooltip.Trigger": { tag: "button" },
+  "TooltipPrimitive.Trigger": { tag: "button" },
+  "Tooltip.Portal": { tag: null },
+  "TooltipPrimitive.Portal": { tag: null },
+  "Tooltip.Content": { tag: "div", attrs: { role: "tooltip" } },
+  "TooltipPrimitive.Content": { tag: "div", attrs: { role: "tooltip" } },
+  "Tooltip.Arrow": { tag: "svg" },
+  "TooltipPrimitive.Arrow": { tag: "svg" },
+}
+
+/**
+ * Resolve a Radix primitive reference (e.g. `CheckboxPrimitive.Root`) to
+ * its runtime HTML tag + extra attributes. Returns null if the
+ * primitive/part combination isn't in the map (caller falls through
+ * to a placeholder). Returns `{ tag: null }` for primitives that don't
+ * render any DOM of their own (Dialog.Root, Dialog.Portal, etc.) —
+ * caller should render children as a fragment.
+ */
+function resolveRadixTag(
+  primitive: string,
+  part: string,
+): RadixMapping | null {
+  const key = `${primitive}.${part}`
+  return RADIX_PRIMITIVE_MAP[key] ?? null
+}
+
 /* ── Render context ─────────────────────────────────────────────── */
 
 /**
@@ -167,14 +633,56 @@ function renderShell(
   //   default-branch HTML tag from the sub-component's passthrough so
   //   the canvas renders an actual <button> instead of a placeholder
   //   pill. Covers Button, Badge, Toggle, AlertDialog, etc.
-  // - `radix` / `third-party` / `component-ref`: genuinely can't be
-  //   rendered without instantiating the underlying primitive. Falls
-  //   through to the placeholder.
+  // - `radix`: a Radix primitive reference like
+  //   `CheckboxPrimitive.Root`. We resolve these via RADIX_PRIMITIVE_MAP
+  //   so parsed Checkbox / Label / RadioGroup / Switch / etc. render
+  //   as their actual runtime DOM elements (button[role=checkbox],
+  //   label, div[role=radiogroup], button[role=switch], ...). Primitives
+  //   that render no DOM of their own (Dialog.Root, Popover.Portal, ...)
+  //   return { tag: null } → we render the children as a fragment.
+  // - `third-party` / `component-ref`: genuinely can't be rendered
+  //   without instantiating the underlying component. Falls through
+  //   to the placeholder.
   let resolvedTag: string | null = null
+  let radixAttrs: Record<string, string> | undefined
+  let isTransparentRadix = false
   if (part.base.kind === "html") {
     resolvedTag = part.base.tag
   } else if (part.base.kind === "dynamic-ref") {
     resolvedTag = extractDefaultTagFromPassthrough(sub, part.base.localName)
+  } else if (part.base.kind === "radix") {
+    const mapping = resolveRadixTag(part.base.primitive, part.base.part)
+    if (mapping) {
+      if (mapping.tag === null) {
+        // Transparent wrapper (Dialog.Root, Popover.Portal, etc.) —
+        // no DOM element of its own, just renders children.
+        isTransparentRadix = true
+      } else {
+        resolvedTag = mapping.tag
+        radixAttrs = mapping.attrs
+      }
+    }
+  }
+
+  // Transparent Radix wrappers: render children as a fragment, no
+  // placeholder, no DOM of our own.
+  if (isTransparentRadix) {
+    const children: React.ReactNode[] = []
+    for (const nested of nestedSubs) {
+      const rendered = renderSubComponent(nested, ctx, undefined)
+      if (rendered !== null) children.push(rendered)
+    }
+    for (let i = 0; i < part.children.length; i++) {
+      const child = part.children[i]
+      const childRendered = renderBodyChild(child, path, i, ctx)
+      if (childRendered !== null) children.push(childRendered)
+    }
+    if (children.length === 0) {
+      // Empty transparent wrapper — render a placeholder so the user
+      // can still see and select this sub-component on the canvas.
+      return renderPlaceholder(sub.name, path)
+    }
+    return React.createElement(React.Fragment, { key: path }, ...children)
   }
 
   if (resolvedTag === null) {
@@ -209,6 +717,37 @@ function renderShell(
     )
   }
 
+  // Defensive: bail out if `tag` is PascalCase but not in the preview map
+  // (would crash React with "incorrect casing"). Render as a placeholder.
+  if (isPascalCase) {
+    return renderPlaceholder(`<${tag}>`, path)
+  }
+
+  // Void HTML elements (input, img, br, hr, etc.) cannot receive children.
+  // React's createElement will throw "<tag> is a void element tag and must
+  // neither have `children` nor use `dangerouslySetInnerHTML`." We render
+  // void elements with the two-argument createElement form and skip the
+  // empty-children placeholder entirely — a properly classed <input> or
+  // <img> renders at its natural dimensions and is visible on the canvas
+  // without any content.
+  const isVoid = VOID_HTML_ELEMENTS.has(tag)
+
+  const baseProps: Record<string, unknown> = {
+    key: path,
+    className,
+    style: inlineStyle,
+    "data-node-id": path,
+    ...(radixAttrs ?? {}),
+    ...extraProps,
+  }
+
+  if (isVoid) {
+    return React.createElement(
+      tag as keyof React.JSX.IntrinsicElements,
+      baseProps,
+    )
+  }
+
   // Render nested sub-components first
   const children: React.ReactNode[] = []
   for (const nested of nestedSubs) {
@@ -223,21 +762,31 @@ function renderShell(
     if (childRendered !== null) children.push(childRendered)
   }
 
-  // Empty placeholder if no children rendered. Two flavours:
+  // Empty placeholder if no children rendered. Three flavours:
+  //
+  // - Parsed sub-components (tree.originalSource is set): render the
+  //   sub-component name as a bare TEXT node. The rendered element
+  //   already has its resolved classes from source (cva, data-attr,
+  //   or plain cn()), so a parsed Button shows up as a styled button
+  //   labelled "Button" — like a real button you'd encounter in the
+  //   wild — instead of an empty button that collapses to zero size.
+  //
+  //   CRITICAL: for parsed sub-components we must NOT inject a
+  //   `<span class="text-xs">` wrapper. The span's text-xs overrides
+  //   any text-sm / text-lg / text-2xl set on the parent's className,
+  //   which silently defeats the font-size context picker. Discovered
+  //   by George while testing Label. See the lesson in memory file
+  //   `feedback_empty_placeholder_must_not_override_parent_classes.md`.
   //
   // - From-scratch sub-components (html base, no cva): render the
-  //   `<SubName>` placeholder span at very-low-opacity so the user
+  //   `<SubName>` placeholder span at very-low-opacity so the designer
   //   sees there's a sub-component slot here even when it's empty.
-  //   Matches the from-scratch builder's authoring affordance.
-  //
-  // - Parsed cva sub-components: the rendered element already has its
-  //   resolved cva classes (via resolveVariantClasses). We render just
-  //   the bare sub-component name as a TEXT node so a parsed Button
-  //   shows up as a styled button labelled "Button" — like a real
-  //   button you'd encounter in the wild — instead of an empty button
-  //   that collapses to zero size.
+  //   This is a builder authoring affordance, not a preview hint —
+  //   only makes sense when the user is constructing components from
+  //   nothing.
   if (children.length === 0) {
-    if (sub.variantStrategy.kind === "cva") {
+    const isParsed = ctx.tree.originalSource !== undefined
+    if (isParsed) {
       children.push(sub.name)
     } else {
       children.push(
@@ -253,21 +802,9 @@ function renderShell(
     }
   }
 
-  // Defensive: bail out if `tag` is PascalCase but not in the preview map
-  // (would crash React with "incorrect casing"). Render as a placeholder.
-  if (isPascalCase) {
-    return renderPlaceholder(`<${tag}>`, path)
-  }
-
   return React.createElement(
     tag as keyof React.JSX.IntrinsicElements,
-    {
-      key: path,
-      className,
-      style: inlineStyle,
-      "data-node-id": path,
-      ...extraProps,
-    },
+    baseProps,
     ...children,
   )
 }
@@ -331,12 +868,27 @@ function renderBodyPart(
     return renderPlaceholder(part.base.name, path)
   }
 
-  if (part.base.kind === "radix" || part.base.kind === "dynamic-ref") {
-    const label =
-      part.base.kind === "radix"
-        ? `${part.base.primitive}.${part.base.part}`
-        : part.base.localName
-    return renderPlaceholder(label, path)
+  // Radix primitive nested inside a sub-component's body.
+  // Resolve via RADIX_PRIMITIVE_MAP so parsed Checkbox.Indicator,
+  // Switch.Thumb, Progress.Indicator, Select.Value, etc. render as
+  // real DOM elements with their classes instead of as placeholder
+  // pills overlaying the parent. Mirrors the root-level fix in
+  // renderShell but stays self-contained (no nested sub-components,
+  // only body children).
+  if (part.base.kind === "radix") {
+    const mapping = resolveRadixTag(part.base.primitive, part.base.part)
+    if (mapping === null) {
+      // Unknown primitive — conservative fallback
+      return renderPlaceholder(
+        `${part.base.primitive}.${part.base.part}`,
+        path,
+      )
+    }
+    return renderRadixBodyPart(part, path, ctx, mapping)
+  }
+
+  if (part.base.kind === "dynamic-ref") {
+    return renderPlaceholder(part.base.localName, path)
   }
 
   if (part.base.kind === "third-party") {
@@ -345,6 +897,89 @@ function renderBodyPart(
 
   // html base
   return renderHtmlPart(part, path, ctx)
+}
+
+/**
+ * Render a Radix primitive part (nested inside a sub-component's body)
+ * as a real DOM element with its own classes, inline styles, children,
+ * and optional ARIA attributes from the Radix map.
+ *
+ * Structured like `renderHtmlPart` but resolves the tag + attrs from
+ * the Radix map instead of reading `part.base.tag` directly.
+ *
+ * Transparent wrappers (mapping.tag === null) render their children
+ * as a fragment — see renderShell for the same pattern at the root
+ * level.
+ */
+function renderRadixBodyPart(
+  part: PartNode,
+  path: PartPath,
+  ctx: RenderContextV2,
+  mapping: RadixMapping,
+): React.ReactNode {
+  // Transparent wrapper (e.g. Dialog.Root, Popover.Portal) — no DOM
+  // of its own, just render children as a fragment.
+  if (mapping.tag === null) {
+    const children: React.ReactNode[] = []
+    for (let i = 0; i < part.children.length; i++) {
+      const child = part.children[i]
+      const childRendered = renderBodyChild(child, path, i, ctx)
+      if (childRendered !== null) children.push(childRendered)
+    }
+    if (children.length === 0) {
+      // Empty transparent wrapper — fall back to a labelled placeholder
+      // so the user can still see + select it on the canvas.
+      if (part.base.kind !== "radix") return renderPlaceholder("?", path)
+      return renderPlaceholder(
+        `${part.base.primitive}.${part.base.part}`,
+        path,
+      )
+    }
+    return React.createElement(React.Fragment, { key: path }, ...children)
+  }
+
+  const tag = mapping.tag
+  const isSelected = ctx.selectedPath === path
+  const rawClasses = getPartClasses(part)
+  const resolved = ctx.resolveVariantClasses(rawClasses)
+  const { remainingClasses, style: colorStyle } = resolveColorStyles(resolved)
+  const allClasses = [
+    ...remainingClasses,
+    isSelected ? "ring-2 ring-blue-500 ring-offset-1" : "",
+  ].filter(Boolean)
+  const className = allClasses.length > 0 ? allClasses.join(" ") : undefined
+  const inlineStyle =
+    Object.keys(colorStyle).length > 0 ? colorStyle : undefined
+
+  const baseProps: Record<string, unknown> = {
+    key: path,
+    className,
+    style: inlineStyle,
+    "data-node-id": path,
+    ...(mapping.attrs ?? {}),
+  }
+
+  // Void element guard (e.g. Avatar.Image → <img>)
+  if (VOID_HTML_ELEMENTS.has(tag)) {
+    return React.createElement(
+      tag as keyof React.JSX.IntrinsicElements,
+      baseProps,
+    )
+  }
+
+  // Render body children (text / expression / nested parts)
+  const children: React.ReactNode[] = []
+  for (let i = 0; i < part.children.length; i++) {
+    const child = part.children[i]
+    const childRendered = renderBodyChild(child, path, i, ctx)
+    if (childRendered !== null) children.push(childRendered)
+  }
+
+  return React.createElement(
+    tag as keyof React.JSX.IntrinsicElements,
+    baseProps,
+    ...children,
+  )
 }
 
 function renderHtmlPart(
@@ -378,6 +1013,22 @@ function renderHtmlPart(
     return renderPlaceholder(`<${tag}>`, path)
   }
 
+  const baseProps: Record<string, unknown> = {
+    key: path,
+    className,
+    style: inlineStyle,
+    "data-node-id": path,
+  }
+
+  // Void HTML elements cannot receive children (see VOID_HTML_ELEMENTS
+  // for the full list and the root-renderer equivalent).
+  if (VOID_HTML_ELEMENTS.has(tag)) {
+    return React.createElement(
+      tag as keyof React.JSX.IntrinsicElements,
+      baseProps,
+    )
+  }
+
   const children: React.ReactNode[] = []
   for (let i = 0; i < part.children.length; i++) {
     const child = part.children[i]
@@ -400,12 +1051,7 @@ function renderHtmlPart(
 
   return React.createElement(
     tag as keyof React.JSX.IntrinsicElements,
-    {
-      key: path,
-      className,
-      style: inlineStyle,
-      "data-node-id": path,
-    },
+    baseProps,
     ...children,
   )
 }
