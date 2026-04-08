@@ -492,11 +492,13 @@ function emitSelfClosingShell(sub: SubComponentV2, indent: number): string {
   if (sub.dataSlot) {
     attrs.push(`data-slot="${sub.dataSlot}"`)
   }
-  // Variant data attributes (from cva variant strategy)
-  if (sub.variantStrategy.kind === "cva") {
-    // No-op for now — the user-supplied variants flow through
-    // VariantProps in the type signature. Future: emit data-* attrs here
-    // if the cva block uses CSS data-attribute selectors.
+  // Generic explicit attributes set by the factory path — currently used
+  // by the data-attr variant strategy to emit `data-<prop>={<prop>}`
+  // bindings like `data-size={size}`. Any other attributes on the root
+  // (user-added or generator-emitted) flow through the same channel.
+  // Source order is insertion order on the `attributes` record.
+  for (const [name, expr] of Object.entries(part.attributes)) {
+    attrs.push(`${name}=${expr}`)
   }
   attrs.push(`className={${classNameExpr}}`)
   attrs.push("{...props}")

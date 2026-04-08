@@ -11,6 +11,7 @@ import {
   toSlug,
   translatePropsToV2Inline,
   translateVariantsToV2Cva,
+  translateVariantsToV2DataAttr,
   type LegacyComponentTreeV1,
 } from "@/lib/component-tree-v2-factories"
 import type {
@@ -351,6 +352,157 @@ describe("translateVariantsToV2Cva", () => {
     expect(Object.keys(result.cva.variants)).toEqual(["size", "tone"])
     expect(result.cva.defaultVariants).toEqual({ size: "sm", tone: "light" })
   })
+
+  test("ignores variants with strategy: data-attr", () => {
+    const variants: CustomVariantDef[] = [
+      {
+        name: "size",
+        type: "variant",
+        options: ["default", "sm"],
+        defaultValue: "default",
+        strategy: "data-attr",
+      },
+    ]
+    expect(translateVariantsToV2Cva(variants, "MyCard")).toBeNull()
+  })
+
+  test("absent strategy defaults to cva for backwards compatibility", () => {
+    const variants: CustomVariantDef[] = [
+      {
+        name: "size",
+        type: "variant",
+        options: ["sm", "lg"],
+        defaultValue: "sm",
+        // no strategy field — mirrors existing localStorage entries
+      },
+    ]
+    const result = translateVariantsToV2Cva(variants, "MyCard")
+    expect(result).not.toBeNull()
+  })
+
+  test("mixes cva + data-attr variants: only cva-strategy ones land here", () => {
+    const variants: CustomVariantDef[] = [
+      {
+        name: "variant",
+        type: "variant",
+        options: ["default", "outline"],
+        defaultValue: "default",
+        strategy: "cva",
+      },
+      {
+        name: "size",
+        type: "variant",
+        options: ["default", "sm"],
+        defaultValue: "default",
+        strategy: "data-attr",
+      },
+    ]
+    const result = translateVariantsToV2Cva(variants, "MyButton")
+    expect(result).not.toBeNull()
+    if (!result) return
+    expect(Object.keys(result.cva.variants)).toEqual(["variant"])
+  })
+})
+
+/* ── translateVariantsToV2DataAttr ──────────────────────────────── */
+
+describe("translateVariantsToV2DataAttr", () => {
+  test("returns empty for variants with absent strategy (backwards compat)", () => {
+    const variants: CustomVariantDef[] = [
+      {
+        name: "size",
+        type: "variant",
+        options: ["sm", "lg"],
+        defaultValue: "sm",
+      },
+    ]
+    const result = translateVariantsToV2DataAttr(variants)
+    expect(result.dataAttrVariants).toEqual([])
+    expect(result.inlineProperties).toEqual([])
+  })
+
+  test("translates a string-union data-attr variant", () => {
+    const variants: CustomVariantDef[] = [
+      {
+        name: "size",
+        type: "variant",
+        options: ["default", "sm"],
+        defaultValue: "default",
+        strategy: "data-attr",
+      },
+    ]
+    const result = translateVariantsToV2DataAttr(variants)
+    expect(result.dataAttrVariants).toEqual([
+      {
+        propName: "size",
+        values: ["default", "sm"],
+        defaultValue: "default",
+        attrName: "data-size",
+      },
+    ])
+    expect(result.inlineProperties).toEqual([
+      {
+        name: "size",
+        type: '"default" | "sm"',
+        optional: true,
+        defaultValue: '"default"',
+      },
+    ])
+  })
+
+  test("translates a boolean data-attr variant to a true/false union prop", () => {
+    const variants: CustomVariantDef[] = [
+      {
+        name: "disabled",
+        type: "boolean",
+        options: [],
+        defaultValue: "false",
+        strategy: "data-attr",
+      },
+    ]
+    const result = translateVariantsToV2DataAttr(variants)
+    expect(result.dataAttrVariants[0]).toEqual({
+      propName: "disabled",
+      values: ["true", "false"],
+      defaultValue: "false",
+      attrName: "data-disabled",
+    })
+    expect(result.inlineProperties[0]).toEqual({
+      name: "disabled",
+      type: "boolean",
+      optional: true,
+      defaultValue: "false",
+    })
+  })
+
+  test("converts camelCase prop names to kebab-case for the data attribute", () => {
+    const variants: CustomVariantDef[] = [
+      {
+        name: "menuSize",
+        type: "variant",
+        options: ["default", "sm"],
+        defaultValue: "default",
+        strategy: "data-attr",
+      },
+    ]
+    const result = translateVariantsToV2DataAttr(variants)
+    expect(result.dataAttrVariants[0].attrName).toBe("data-menu-size")
+    expect(result.dataAttrVariants[0].propName).toBe("menuSize")
+  })
+
+  test("ignores cva-strategy variants", () => {
+    const variants: CustomVariantDef[] = [
+      {
+        name: "size",
+        type: "variant",
+        options: ["default", "sm"],
+        defaultValue: "default",
+        strategy: "cva",
+      },
+    ]
+    const result = translateVariantsToV2DataAttr(variants)
+    expect(result.dataAttrVariants).toEqual([])
+  })
 })
 
 /* ── createV2TreeFromScratch ────────────────────────────────────── */
@@ -418,6 +570,112 @@ describe("createV2TreeFromScratch", () => {
       "inline",
       "variant-props",
     ])
+  })
+
+  test("with a data-attr variant, sets variantStrategy + adds inline prop + adds root data attribute", () => {
+    const variants: CustomVariantDef[] = [
+      {
+        name: "size",
+        type: "variant",
+        options: ["default", "sm"],
+        defaultValue: "default",
+        strategy: "data-attr",
+      },
+    ]
+    const tree = createV2TreeFromScratch("MyCard", "div", [], variants)
+    const sub = tree.subComponents[0]
+
+    // No cva export (that was the cva-strategy path)
+    expect(tree.cvaExports).toEqual([])
+
+    // variantStrategy is data-attr with the variant in its list
+    expect(sub.variantStrategy).toEqual({
+      kind: "data-attr",
+      variants: [
+        {
+          propName: "size",
+          values: ["default", "sm"],
+          defaultValue: "default",
+          attrName: "data-size",
+        },
+      ],
+    })
+
+    // Inline prop was added to the propsDecl
+    expect(sub.propsDecl.kind).toBe("intersection")
+    if (sub.propsDecl.kind !== "intersection") return
+    const inline = sub.propsDecl.parts.find((p) => p.kind === "inline")
+    expect(inline).toBeDefined()
+    if (!inline || inline.kind !== "inline") return
+    expect(inline.properties).toEqual([
+      {
+        name: "size",
+        type: '"default" | "sm"',
+        optional: true,
+        defaultValue: '"default"',
+      },
+    ])
+
+    // Root element has the data-size={size} attribute binding
+    expect(sub.parts.root.attributes).toEqual({
+      "data-size": "{size}",
+    })
+  })
+
+  test("with a data-attr variant + existing prop, inline prop part contains both", () => {
+    const props: ComponentProp[] = [
+      { name: "label", type: "string", required: true },
+    ]
+    const variants: CustomVariantDef[] = [
+      {
+        name: "size",
+        type: "variant",
+        options: ["default", "sm"],
+        defaultValue: "default",
+        strategy: "data-attr",
+      },
+    ]
+    const tree = createV2TreeFromScratch("MyCard", "div", props, variants)
+    const sub = tree.subComponents[0]
+
+    if (sub.propsDecl.kind !== "intersection") throw new Error("expected intersection")
+    const inline = sub.propsDecl.parts.find((p) => p.kind === "inline")
+    if (!inline || inline.kind !== "inline") throw new Error("expected inline part")
+    expect(inline.properties.map((p) => p.name).sort()).toEqual(["label", "size"])
+  })
+
+  test("with cva + data-attr variants on the same sub-component, cva wins the strategy field", () => {
+    const variants: CustomVariantDef[] = [
+      {
+        name: "variant",
+        type: "variant",
+        options: ["default", "outline"],
+        defaultValue: "default",
+        strategy: "cva",
+      },
+      {
+        name: "size",
+        type: "variant",
+        options: ["default", "sm"],
+        defaultValue: "default",
+        strategy: "data-attr",
+      },
+    ]
+    const tree = createV2TreeFromScratch("MyButton", "button", [], variants)
+    const sub = tree.subComponents[0]
+
+    // cva claims the strategy field
+    expect(sub.variantStrategy.kind).toBe("cva")
+
+    // cva export has only the cva-strategy variant
+    expect(tree.cvaExports).toHaveLength(1)
+    expect(Object.keys(tree.cvaExports[0].variants)).toEqual(["variant"])
+
+    // Data-attr variant still becomes an inline prop + root attribute
+    expect(sub.parts.root.attributes).toHaveProperty("data-size", "{size}")
+    if (sub.propsDecl.kind !== "intersection") throw new Error("expected intersection")
+    const inline = sub.propsDecl.parts.find((p) => p.kind === "inline")
+    expect(inline && inline.kind === "inline" && inline.properties.some((p) => p.name === "size")).toBe(true)
   })
 })
 

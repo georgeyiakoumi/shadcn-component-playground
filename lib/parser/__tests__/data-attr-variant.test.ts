@@ -22,6 +22,9 @@ import { describe, expect, it } from "vitest"
 import { parseSource } from "@/lib/parser/parse-source-v2"
 import { generateFromTreeV2 } from "@/lib/parser/generate-from-tree-v2"
 import { recogniseDataAttrVariants } from "@/lib/parser/data-attr-variant-recogniser"
+import { createV2TreeFromScratch } from "@/lib/component-tree-v2-factories"
+import { setDataAttrSlotClasses } from "@/lib/parser/data-attr-slot"
+import type { CustomVariantDef } from "@/lib/component-state"
 
 const FIXTURES_DIR = path.resolve(__dirname, "fixtures")
 
@@ -261,5 +264,104 @@ describe("data-attr variant recogniser — unit edge cases", () => {
         attrName: "data-size",
       },
     ])
+  })
+})
+
+/* ── End-to-end: factory → slot edit → generate ─────────────────── */
+
+describe("from-scratch data-attr: factory → slot edit → generate", () => {
+  function makeCardFactoryTree() {
+    const variants: CustomVariantDef[] = [
+      {
+        name: "size",
+        type: "variant",
+        options: ["default", "sm"],
+        defaultValue: "default",
+        strategy: "data-attr",
+      },
+    ]
+    return createV2TreeFromScratch("MyCard", "div", [], variants)
+  }
+
+  it("generates a function signature with inline destructured size prop", () => {
+    const tree = makeCardFactoryTree()
+    const out = generateFromTreeV2(tree)
+    expect(out).toContain('size = "default"')
+    expect(out).toContain('"default" | "sm"')
+  })
+
+  it("emits data-size={size} on the root element", () => {
+    const tree = makeCardFactoryTree()
+    const out = generateFromTreeV2(tree)
+    expect(out).toContain("data-size={size}")
+  })
+
+  it("does NOT emit a cva import when the variant is data-attr only", () => {
+    const tree = makeCardFactoryTree()
+    const out = generateFromTreeV2(tree)
+    expect(out).not.toContain('from "class-variance-authority"')
+    expect(out).not.toContain("cva(")
+  })
+
+  it("writing default-slot classes emits them in the cn() base unprefixed", () => {
+    const before = makeCardFactoryTree()
+    const after = setDataAttrSlotClasses(before, "MyCard", "size", "default", [
+      "p-4",
+      "bg-muted",
+    ])
+    const out = generateFromTreeV2(after)
+    expect(out).toContain('cn("p-4 bg-muted", className)')
+    expect(out).not.toContain("data-[size=default]:")
+  })
+
+  it("writing sm-slot classes emits them with data-[size=sm]: prefix", () => {
+    const before = makeCardFactoryTree()
+    const after = setDataAttrSlotClasses(before, "MyCard", "size", "sm", [
+      "p-2",
+      "gap-2",
+    ])
+    const out = generateFromTreeV2(after)
+    expect(out).toContain("data-[size=sm]:p-2")
+    expect(out).toContain("data-[size=sm]:gap-2")
+  })
+
+  it("writing both default and sm slots coexists in the cn() base", () => {
+    let tree = makeCardFactoryTree()
+    tree = setDataAttrSlotClasses(tree, "MyCard", "size", "default", ["p-4"])
+    tree = setDataAttrSlotClasses(tree, "MyCard", "size", "sm", ["p-2"])
+    const out = generateFromTreeV2(tree)
+    expect(out).toContain('cn("p-4 data-[size=sm]:p-2", className)')
+  })
+
+  it("produces a parseable, round-trip-safe .tsx file end-to-end", () => {
+    // This is the critical invariant: the output of the generator on a
+    // factory-built data-attr tree must itself parse and re-generate
+    // byte-equivalently. Confirms the template emission path is on the
+    // same semantic grounding as the slow-path splicer.
+    let tree = makeCardFactoryTree()
+    tree = setDataAttrSlotClasses(tree, "MyCard", "size", "default", [
+      "p-4",
+      "rounded-xl",
+    ])
+    tree = setDataAttrSlotClasses(tree, "MyCard", "size", "sm", ["p-2"])
+    const out = generateFromTreeV2(tree)
+
+    const reparsed = parseSource(out, "components/ui/my-card.tsx")
+    const regenerated = generateFromTreeV2(reparsed)
+    expect(regenerated).toBe(out)
+
+    // The reparsed tree should also recognise the data-attr variant
+    const reSub = reparsed.subComponents.find((s) => s.name === "MyCard")!
+    expect(reSub.variantStrategy).toEqual({
+      kind: "data-attr",
+      variants: [
+        {
+          propName: "size",
+          values: ["default", "sm"],
+          defaultValue: "default",
+          attrName: "data-size",
+        },
+      ],
+    })
   })
 })

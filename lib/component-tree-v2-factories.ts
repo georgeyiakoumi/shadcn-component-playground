@@ -16,6 +16,7 @@ import type {
   ClassNameExpr,
   ComponentTreeV2,
   CvaExport,
+  DataAttrVariant,
   ImportDecl,
   InlineProperty,
   PartNode,
@@ -287,6 +288,8 @@ function formatDefaultValue(
  * sub-component's `variantStrategy` as `{ kind: "none" }` and not add
  * any `cvaExports` entry.
  *
+ * Only processes variants whose strategy is `"cva"` (absent strategy
+ * defaults to `"data-attr"`, handled by `translateVariantsToV2DataAttr`).
  * The cva export starts with empty class strings for each variant value;
  * the user fills them in via the visual editor in a later session.
  */
@@ -294,7 +297,16 @@ export function translateVariantsToV2Cva(
   variants: CustomVariantDef[],
   componentName: string,
 ): { cva: CvaExport; cvaRef: string } | null {
-  if (variants.length === 0) return null
+  // Filter to only the variants whose strategy is "cva". Variants with
+  // strategy "data-attr" explicitly go through the data-attr translator.
+  // Variants with ABSENT strategy default to cva for backwards
+  // compatibility with existing localStorage entries and v1-lifted trees
+  // (both of which pre-date this field). New UI surfaces that create
+  // variants default to "data-attr" explicitly.
+  const cvaVariants = variants.filter(
+    (v) => v.strategy === "cva" || v.strategy === undefined,
+  )
+  if (cvaVariants.length === 0) return null
 
   const cvaRef = `${componentName.charAt(0).toLowerCase()}${componentName.slice(1)}Variants`
 
@@ -303,7 +315,7 @@ export function translateVariantsToV2Cva(
   const variantsMap: Record<string, Record<string, string>> = {}
   const defaultVariants: Record<string, string> = {}
 
-  for (const v of variants) {
+  for (const v of cvaVariants) {
     if (v.type === "boolean") {
       // Boolean variants in cva become a group with "true" / "false" keys.
       variantsMap[v.name] = { true: "", false: "" }
@@ -330,6 +342,81 @@ export function translateVariantsToV2Cva(
     },
     cvaRef,
   }
+}
+
+/**
+ * Translate data-attribute variants from the from-scratch builder's UI
+ * input into the structured `DataAttrVariant[]` shape used by
+ * `VariantStrategy.kind === "data-attr"`.
+ *
+ * Only processes variants whose strategy is `"data-attr"` or absent
+ * (absent defaults to data-attr per the Define view's default choice).
+ * Returns an empty array when there are no data-attr variants.
+ *
+ * The inline prop properties that accompany these variants are returned
+ * alongside so the caller can attach them to the sub-component's
+ * propsDecl. Unlike the cva path, there is no separate export — the
+ * declaration lives entirely inside the sub-component's function
+ * signature + the root element's attributes + the cn() base.
+ */
+export function translateVariantsToV2DataAttr(
+  variants: CustomVariantDef[],
+): {
+  dataAttrVariants: DataAttrVariant[]
+  inlineProperties: InlineProperty[]
+} {
+  // Only process variants whose strategy is explicitly "data-attr".
+  // Absent strategy defaults to cva (see `translateVariantsToV2Cva`)
+  // for backwards compatibility with pre-existing localStorage entries
+  // and v1-lifted trees. The new Define view strategy picker sets
+  // "data-attr" explicitly when the user chooses it.
+  const daVariants = variants.filter((v) => v.strategy === "data-attr")
+
+  const dataAttrVariants: DataAttrVariant[] = []
+  const inlineProperties: InlineProperty[] = []
+
+  for (const v of daVariants) {
+    if (v.type === "boolean") {
+      // Booleans as data-attr variants: prop name becomes the attribute,
+      // values are "true" and "false", default lives in the destructuring.
+      const defaultValue = v.defaultValue || "false"
+      dataAttrVariants.push({
+        propName: v.name,
+        values: ["true", "false"],
+        defaultValue,
+        attrName: `data-${toKebabCase(v.name)}`,
+      })
+      inlineProperties.push({
+        name: v.name,
+        type: "boolean",
+        optional: true,
+        defaultValue,
+      })
+      continue
+    }
+
+    // String union variants: options become the string-literal union type.
+    if (v.options.length === 0) continue
+    const defaultValue = v.defaultValue || v.options[0]
+    dataAttrVariants.push({
+      propName: v.name,
+      values: v.options.slice(),
+      defaultValue,
+      attrName: `data-${toKebabCase(v.name)}`,
+    })
+    inlineProperties.push({
+      name: v.name,
+      type: v.options.map((opt) => `"${opt}"`).join(" | "),
+      optional: true,
+      defaultValue: `"${defaultValue}"`,
+    })
+  }
+
+  return { dataAttrVariants, inlineProperties }
+}
+
+function toKebabCase(name: string): string {
+  return name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase()
 }
 
 /* ── v1 → v2 lift (one-time, on legacy localStorage read) ───────── */
@@ -492,8 +579,16 @@ export function createV2TreeFromScratch(
     } satisfies PropsDecl
   }
 
-  // Attach pre-declared variants as a cva export and wire the root
-  // sub-component's variantStrategy to point at it.
+  // Apply pre-declared variants. A sub-component can mix strategies per
+  // variant — cva variants go to a cva export, data-attr variants become
+  // inline props + root `data-X={X}` attributes. When both strategies are
+  // present, cva takes precedence on the `variantStrategy` field (since
+  // it's the one that owns a storage structure in cvaExports) and the
+  // data-attr props are still emitted as inline props + attributes, but
+  // the sub-component's strategy field stays "cva". This is the edge
+  // case; the common case is all variants share one strategy.
+
+  // 1. cva variants first.
   const cvaResult = translateVariantsToV2Cva(variants, name)
   if (cvaResult) {
     tree.cvaExports.push(cvaResult.cva)
@@ -511,6 +606,57 @@ export function createV2TreeFromScratch(
       }
     } else if (root.propsDecl.kind === "intersection") {
       root.propsDecl.parts.push(variantPropsPart)
+    }
+  }
+
+  // 2. data-attr variants (the newer shadcn pattern). Append inline prop
+  //    properties for the destructuring signature, wire up the root's
+  //    `data-<prop>={<prop>}` attributes, and set variantStrategy if no
+  //    cva strategy claimed it first.
+  const { dataAttrVariants, inlineProperties: dataAttrInlineProps } =
+    translateVariantsToV2DataAttr(variants)
+  if (dataAttrVariants.length > 0) {
+    // Merge the data-attr inline props into the existing inline prop
+    // part (creating one if needed). The inline props for declared
+    // `props` and data-attr variants coexist in the same inline part.
+    if (root.propsDecl.kind === "single") {
+      root.propsDecl = {
+        kind: "intersection",
+        parts: [
+          root.propsDecl.part,
+          {
+            kind: "inline",
+            properties: dataAttrInlineProps,
+          } satisfies PropsPart,
+        ],
+      } satisfies PropsDecl
+    } else if (root.propsDecl.kind === "intersection") {
+      const existingInline = root.propsDecl.parts.find(
+        (p) => p.kind === "inline",
+      )
+      if (existingInline && existingInline.kind === "inline") {
+        existingInline.properties.push(...dataAttrInlineProps)
+      } else {
+        root.propsDecl.parts.push({
+          kind: "inline",
+          properties: dataAttrInlineProps,
+        } satisfies PropsPart)
+      }
+    }
+
+    // Set the root element's data attributes.
+    for (const variant of dataAttrVariants) {
+      root.parts.root.attributes[variant.attrName] = `{${variant.propName}}`
+    }
+
+    // Claim the variant strategy for this sub-component ONLY if cva
+    // didn't already. If both are in play, cva wins and the data-attr
+    // props are just inline prop decoration.
+    if (root.variantStrategy.kind !== "cva") {
+      root.variantStrategy = {
+        kind: "data-attr",
+        variants: dataAttrVariants,
+      }
     }
   }
 

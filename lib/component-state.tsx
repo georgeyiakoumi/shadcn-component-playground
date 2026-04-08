@@ -13,6 +13,25 @@ export interface CustomVariantDef {
   type: "variant" | "boolean"
   options: string[]
   defaultValue: string
+  /**
+   * Variant strategy: how the variant is expressed in the generated
+   * component source.
+   *
+   * - `"data-attr"` (default): plain TS union prop mirrored to the DOM via
+   *   `data-<name>={<name>}` on the root. Classes live inline in the cn()
+   *   base with `data-[<name>=<value>]:` prefixes. Matches the newer
+   *   shadcn authoring style (Card, Accordion). Good for compact/default
+   *   toggles and anything children should react to via group selectors.
+   *
+   * - `"cva"`: generates a cva() export with a `variants` map. Matches the
+   *   older shadcn pattern (Button, Badge, Alert). Good for variants with
+   *   many value-specific style sets that don't fit comfortably inline.
+   *
+   * Optional for backwards compatibility with existing localStorage
+   *  entries; undefined defaults to `"data-attr"` at the translator
+   *  boundary.
+   */
+  strategy?: "cva" | "data-attr"
 }
 
 /**
