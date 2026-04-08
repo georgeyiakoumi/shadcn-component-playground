@@ -73,6 +73,20 @@ interface ToolbarProps {
   /** When true, shows the custom-component (define/preview) state values
    *  under the unified Structure/Style toggle. */
   isCustom?: boolean
+  /**
+   * When true, suppresses the Structure/Style mode toggle entirely.
+   * Used by the stock page (parsed shadcn components) which only has a
+   * single editing surface — there's no Structure mode for parsed
+   * trees in v1, so a toggle with one option would be confusing.
+   */
+  hideModeToggle?: boolean
+  /**
+   * Optional extra actions rendered before the Export button. The stock
+   * page uses this for the Reset button (revert parsed-tree edits to
+   * the original source on disk). Kept generic so future pages can
+   * inject their own affordances without needing toolbar changes.
+   */
+  extraActions?: React.ReactNode
   className?: string
 }
 
@@ -90,6 +104,8 @@ export function PlaygroundToolbar({
   mode = "inspect",
   onModeChange,
   isCustom,
+  hideModeToggle,
+  extraActions,
   className,
 }: ToolbarProps) {
   const hasSelectors = propSelectors && propSelectors.length > 0
@@ -116,7 +132,7 @@ export function PlaygroundToolbar({
         </div>
 
         {/* ── Mode toggle ────────────────────────────────────── */}
-        {componentName && (
+        {componentName && !hideModeToggle && (
           <>
             <Separator orientation="vertical" className="mx-1.5 h-6" />
             <div className="flex items-center gap-0.5 rounded-md border p-0.5">
@@ -178,6 +194,9 @@ export function PlaygroundToolbar({
             custom pages now silent-autosave to localStorage. The Save
             label will return in Phase 2 (Supabase auth) when it can
             mean real cloud persistence. */}
+
+        {/* ── Extra actions slot ─────────────────────────────── */}
+        {extraActions}
 
         {/* ── Export ─────────────────────────────────────────── */}
         {componentName && (
