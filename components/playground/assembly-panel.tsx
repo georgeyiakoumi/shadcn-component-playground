@@ -158,10 +158,27 @@ export function AssemblyPanel({
   return (
     <TooltipProvider delayDuration={200}>
       <div className="flex max-h-96 flex-col">
-        <div className="flex shrink-0 items-center gap-1.5 border-b px-3 py-1.5">
+        <div className="flex shrink-0 items-center justify-between gap-1.5 border-b px-3 py-1.5">
           <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Assembly
           </span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="cursor-help text-[10px] italic text-muted-foreground/60">
+                preview only
+              </span>
+            </TooltipTrigger>
+            <TooltipContent
+              side="top"
+              className="max-w-xs text-xs"
+            >
+              Plain HTML and shadcn elements you add inside a sub-component are
+              for the canvas preview only. They show up here so you can see what
+              your component looks like with realistic content, but they aren't
+              exported to the .tsx file. Your component is still composed via
+              `children` in the consuming code.
+            </TooltipContent>
+          </Tooltip>
         </div>
         <div className="flex-1 overflow-auto">
           <div className="min-w-max p-1.5">

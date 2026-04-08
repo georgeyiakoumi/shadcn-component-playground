@@ -174,8 +174,9 @@ describe("generator — template emission (GEO-305 Step 2)", () => {
     expect(out).toContain("className,")
     expect(out).toContain("...props")
 
-    // The cn-call wraps an empty base literal alongside the className override
-    expect(out).toContain('className={cn("", className)}')
+    // With no base classes, no cva, no convention flags, the generator
+    // emits the bare `className` form (no wasted cn("", className) call).
+    expect(out).toContain("className={className}")
 
     // data-slot attribute derived from the name
     expect(out).toContain('data-slot="my-card"')
@@ -237,5 +238,66 @@ describe("generator — template emission (GEO-305 Step 2)", () => {
 
     const out = generateFromTreeV2(tree)
     expect(out.startsWith('"use client"\n')).toBe(true)
+  })
+
+  it("sub-components are emitted self-closing — body parts are preview-only", () => {
+    // From-scratch sub-components are always self-closing in the source.
+    // The user composes them via children in their own consuming code,
+    // matching how shadcn's actual Card/Dialog/etc. work. Body parts the
+    // user adds via the AssemblyPanel are canvas-preview-only and must
+    // NOT be emitted as JSX children.
+    const tree = createComponentTreeV2("MyCard", "div")
+    // Manually add a body part to simulate what AssemblyPanel does
+    tree.subComponents[0].parts.root.children = [
+      {
+        kind: "part",
+        part: {
+          base: { kind: "html", tag: "p" },
+          className: { kind: "literal", value: "" },
+          propsSpread: false,
+          attributes: {},
+          asChild: false,
+          children: [],
+        },
+      },
+    ]
+
+    const out = generateFromTreeV2(tree)
+    // Self-closing form
+    expect(out).toContain("/>")
+    // No <p> in the body
+    expect(out).not.toContain("<p")
+  })
+
+  it("namedGroup prepends group/<kebab-name> to the className base classes", () => {
+    const tree = createComponentTreeV2("MyCard", "div")
+    tree.subComponents[0].namedGroup = true
+
+    const out = generateFromTreeV2(tree)
+    expect(out).toContain('cn("group/my-card", className)')
+  })
+
+  it("headingFont prepends cn-font-heading to the className base classes", () => {
+    const tree = createComponentTreeV2("MyCard", "div")
+    tree.subComponents[0].headingFont = true
+
+    const out = generateFromTreeV2(tree)
+    expect(out).toContain('cn("cn-font-heading", className)')
+  })
+
+  it("namedGroup + headingFont + user classes all coexist in the cn() call", () => {
+    const tree = createComponentTreeV2("MyCard", "div")
+    tree.subComponents[0].namedGroup = true
+    tree.subComponents[0].headingFont = true
+    // Set some user classes via the cn-call literal
+    tree.subComponents[0].parts.root.className = {
+      kind: "cn-call",
+      args: ['"p-4 bg-muted"', "className"],
+    }
+
+    const out = generateFromTreeV2(tree)
+    expect(out).toContain(
+      'cn("group/my-card cn-font-heading p-4 bg-muted", className)',
+    )
   })
 })

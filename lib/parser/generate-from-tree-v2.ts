@@ -413,7 +413,17 @@ function quoteKey(key: string): string {
 function emitSubComponent(sub: SubComponentV2, _tree: ComponentTreeV2): string {
   const propsType = emitPropsDecl(sub.propsDecl)
   const destructured = emitDestructuringPattern(sub)
-  const body = emitPartNode(sub.parts.root, /* indent */ 4)
+  // From-scratch sub-components are always emitted as self-closing JSX
+  // with no body content. The user composes them via children in their
+  // own consuming code (just like shadcn's actual Card/Dialog/etc.).
+  // The body parts the user adds via the AssemblyPanel are canvas-
+  // preview-only — they're for visualising what the component looks
+  // like with content, not for the exported source.
+  //
+  // namedGroup and headingFont (re-added for the from-scratch flow)
+  // are prepended to the cn() base classes here, mirroring v1's
+  // generateSubComponent.
+  const body = emitSelfClosingShell(sub, /* indent */ 4)
 
   // Function declaration. Default-exported sub-components get the `default`
   // keyword on the export at the bottom; here we always use `function`.
@@ -430,6 +440,95 @@ function emitSubComponent(sub: SubComponentV2, _tree: ComponentTreeV2): string {
   lines.push("}")
 
   return lines.join("\n")
+}
+
+/**
+ * Emit the self-closing JSX shell for a from-scratch sub-component.
+ * Mirrors v1's `generateSubComponent`:
+ *
+ *   <div
+ *     data-slot="..."
+ *     className={cn("group/name cn-font-heading user-classes", className)}
+ *     {...props}
+ *   />
+ *
+ * - `namedGroup === true` prepends `group/<kebab-name>` to the base classes
+ * - `headingFont === true` prepends `cn-font-heading` to the base classes
+ * - The user's classes (from `parts.root.className`'s cn-call first arg)
+ *   come last in the prepend chain so they override convention classes
+ * - Body content (`parts.root.children`) is deliberately NOT emitted —
+ *   it's preview-only
+ */
+function emitSelfClosingShell(sub: SubComponentV2, indent: number): string {
+  const pad = " ".repeat(indent)
+  const part = sub.parts.root
+  const tag = part.base.kind === "html" ? part.base.tag : "div"
+
+  // Base classes from the part's cn-call (or literal) plus the convention
+  // classes (named group, heading font).
+  const conventionClasses: string[] = []
+  if (sub.namedGroup) {
+    const subKebab = sub.name
+      .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+      .replace(/([A-Z])([A-Z][a-z])/g, "$1-$2")
+      .toLowerCase()
+    conventionClasses.push(`group/${subKebab}`)
+  }
+  if (sub.headingFont) {
+    conventionClasses.push("cn-font-heading")
+  }
+  const userBase = readBaseClassesFromClassName(part.className)
+  const allBase = [...conventionClasses, userBase].filter(Boolean).join(" ")
+
+  // Build the className expression. If we have any base classes (from
+  // conventions OR user), wrap in cn() with the user's className override.
+  // Otherwise just pass through `className`.
+  const classNameExpr = allBase
+    ? `cn("${allBase}", className)`
+    : "className"
+
+  // Build attribute lines
+  const attrs: string[] = []
+  if (sub.dataSlot) {
+    attrs.push(`data-slot="${sub.dataSlot}"`)
+  }
+  // Variant data attributes (from cva variant strategy)
+  if (sub.variantStrategy.kind === "cva") {
+    // No-op for now — the user-supplied variants flow through
+    // VariantProps in the type signature. Future: emit data-* attrs here
+    // if the cva block uses CSS data-attribute selectors.
+  }
+  attrs.push(`className={${classNameExpr}}`)
+  attrs.push("{...props}")
+
+  return (
+    `${pad}<${tag}\n` +
+    attrs.map((a) => `${pad}  ${a}`).join("\n") +
+    `\n${pad}/>`
+  )
+}
+
+/**
+ * Read the user-set base classes from a className expression. Used by
+ * `emitSelfClosingShell` to inject `namedGroup`/`headingFont` convention
+ * classes alongside the user's classes.
+ */
+function readBaseClassesFromClassName(expr: ClassNameExpr): string {
+  if (expr.kind === "literal") return expr.value
+  if (expr.kind === "cn-call") {
+    const first = expr.args[0]
+    if (typeof first !== "string") return ""
+    // Strip surrounding quotes
+    if (
+      first.length >= 2 &&
+      (first[0] === '"' || first[0] === "'") &&
+      first[first.length - 1] === first[0]
+    ) {
+      return first.slice(1, -1)
+    }
+    return first
+  }
+  return ""
 }
 
 /**
