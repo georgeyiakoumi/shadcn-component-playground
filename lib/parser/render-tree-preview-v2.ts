@@ -49,6 +49,8 @@ import {
 } from "@/lib/parser/v2-tree-path"
 import { resolveColorStyles } from "@/lib/resolve-color-styles"
 import { shadcnPreviewMap } from "@/lib/shadcn-preview-map"
+import { lookupRule } from "@/lib/parser/preview-snippets"
+import { CompositionCanvas } from "@/lib/parser/preview-snippets/canvas-wrapper"
 
 /* ── Lucide icon namespace import ──────────────────────────────── */
 
@@ -822,8 +824,39 @@ export function renderTreePreviewV2(ctx: RenderContextV2): React.ReactNode {
   const { tree } = ctx
   if (tree.subComponents.length === 0) return null
 
+  // Composition-rule path — compound shadcn components. If the tree
+  // has a rule, delegate to the CompositionCanvas which owns the
+  // canvas container ref + state and invokes the rule's render
+  // function with a properly populated SnippetContext.
+  const rule = lookupRule(tree)
+  if (rule) {
+    return React.createElement(CompositionCanvas, {
+      rule,
+      tree,
+      selectedPath: ctx.selectedPath,
+      resolveVariantClasses: ctx.resolveVariantClasses,
+    })
+  }
+
+  // Flat rendering path — simple components + from-scratch.
+  //
+  // Wrap in a width-constrained container so simple components
+  // (Input, Button, Card, etc.) that use `w-full` in their
+  // className don't span the entire canvas. The parent
+  // ElementSelector is now `flex flex-1 w-full items-center
+  // justify-center` to give compound components a full-canvas
+  // positioning context, which means it's wide. Flat-rendered
+  // components need a reasonable max-width so their natural
+  // sizing looks right.
   const root = tree.subComponents[0]
-  return renderSubComponent(root, ctx, ctx.variantDataAttrs)
+  const rendered = renderSubComponent(root, ctx, ctx.variantDataAttrs)
+  return React.createElement(
+    "div",
+    {
+      className: "w-auto max-w-md",
+    },
+    rendered,
+  )
 }
 
 /* ── Sub-component renderer ─────────────────────────────────────── */

@@ -153,7 +153,7 @@ export function ElementSelector({
   return (
     <div
       ref={containerRef}
-      className="relative"
+      className="relative flex w-full flex-1 items-center justify-center"
       onClick={handleClick}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}

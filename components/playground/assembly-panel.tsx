@@ -49,6 +49,12 @@ import type {
 } from "@/lib/component-tree-v2"
 import { createPartNode } from "@/lib/component-tree-v2-factories"
 import {
+  findStragglers,
+  lookupRule,
+  type CompositionNode,
+  type CompositionRule,
+} from "@/lib/parser/preview-snippets"
+import {
   appendChildAtPath,
   makePartPath,
   movePartByPath,
@@ -155,6 +161,16 @@ export function AssemblyPanel({
   const root = tree.subComponents[0]
   if (!root) return null
 
+  // Composition rule for parsed compound components (null for
+  // from-scratch and for parsed components without a rule). Drives
+  // both the main tree structure and the "Additional exports"
+  // straggler list.
+  const rule = lookupRule(tree)
+  const stragglerNames = rule ? findStragglers(tree, rule) : []
+  const stragglerSubs = stragglerNames
+    .map((name) => tree.subComponents.find((sc) => sc.name === name))
+    .filter((sc): sc is SubComponentV2 => sc !== undefined)
+
   return (
     <TooltipProvider delayDuration={200}>
       <div className="flex max-h-96 flex-col">
@@ -187,6 +203,7 @@ export function AssemblyPanel({
               sub={root}
               isRoot
               depth={0}
+              rule={rule}
               hiddenPaths={hiddenPaths}
               selectedPath={selectedPath}
               onSelectPath={onSelectPath}
@@ -195,6 +212,31 @@ export function AssemblyPanel({
               onMove={handleMove}
               onAddChild={handleAddChild}
             />
+            {stragglerSubs.length > 0 && (
+              <>
+                <div className="my-1.5 border-t border-dashed border-muted-foreground/20" />
+                <div className="px-2 py-1 text-[9px] font-medium uppercase tracking-wider text-muted-foreground/60">
+                  Additional exports
+                </div>
+                {stragglerSubs.map((straggler) => (
+                  <SubComponentNode
+                    key={`straggler:${straggler.name}`}
+                    tree={tree}
+                    sub={straggler}
+                    isRoot={false}
+                    depth={0}
+                    rule={rule}
+                    hiddenPaths={hiddenPaths}
+                    selectedPath={selectedPath}
+                    onSelectPath={onSelectPath}
+                    onToggleHidden={toggleHidden}
+                    onRemove={handleRemove}
+                    onMove={handleMove}
+                    onAddChild={handleAddChild}
+                  />
+                ))}
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -204,11 +246,36 @@ export function AssemblyPanel({
 
 /* ── Helpers ────────────────────────────────────────────────────── */
 
-/** Find sub-components nested inside a given parent (per `nestInside`). */
+/**
+ * Find sub-components nested inside a given parent.
+ *
+ * Two strategies depending on tree type:
+ *
+ * 1. **Parsed tree with a composition rule**: walk the rule's
+ *    nested composition tree to find this parent's direct children.
+ *    Preserves the rule's author-specified order.
+ *
+ * 2. **From-scratch tree OR parsed tree without a rule**: fall back
+ *    to the `nestInside` field logic (from-scratch's source of truth).
+ */
 function findNestedChildren(
   tree: ComponentTreeV2,
   parentName: string,
+  rule: CompositionRule | null,
 ): SubComponentV2[] {
+  if (rule) {
+    const childNames = findChildNamesInRule(rule.composition, parentName)
+    if (childNames === null) return []
+    const subByName = new Map<string, SubComponentV2>()
+    for (const sc of tree.subComponents) subByName.set(sc.name, sc)
+    const result: SubComponentV2[] = []
+    for (const name of childNames) {
+      const sc = subByName.get(name)
+      if (sc) result.push(sc)
+    }
+    return result
+  }
+
   const root = tree.subComponents[0]
   const isRoot = root && root.name === parentName
   return tree.subComponents.filter((sc, i) => {
@@ -218,6 +285,28 @@ function findNestedChildren(
     }
     return sc.nestInside === parentName
   })
+}
+
+/**
+ * Walk a rule's composition tree to find the direct children of a
+ * node with the given name. Returns an empty array if the node has
+ * no children defined, or null if the name isn't found anywhere in
+ * the tree.
+ */
+function findChildNamesInRule(
+  node: CompositionNode,
+  targetName: string,
+): string[] | null {
+  if (node.name === targetName) {
+    return node.children?.map((c) => c.name) ?? []
+  }
+  if (node.children) {
+    for (const child of node.children) {
+      const found = findChildNamesInRule(child, targetName)
+      if (found !== null) return found
+    }
+  }
+  return null
 }
 
 function appendTextChildAtPath(
@@ -302,6 +391,7 @@ interface SubComponentNodeProps {
   sub: SubComponentV2
   isRoot: boolean
   depth: number
+  rule: CompositionRule | null
   hiddenPaths: Set<PartPath>
   selectedPath?: PartPath | null
   onSelectPath?: (path: PartPath | null) => void
@@ -316,6 +406,7 @@ function SubComponentNode({
   sub,
   isRoot,
   depth,
+  rule,
   hiddenPaths,
   selectedPath,
   onSelectPath,
@@ -329,14 +420,20 @@ function SubComponentNode({
   const isHidden = hiddenPaths.has(path)
   const isSelected = selectedPath === path
 
-  // Composition graph children: sub-components nested inside this one
-  const nestedSubs = findNestedChildren(tree, sub.name)
+  // Composition graph children: sub-components nested inside this one.
+  // Walks the composition rule for parsed compound components, or
+  // falls back to `nestInside` for from-scratch and unruled trees.
+  const nestedSubs = findNestedChildren(tree, sub.name, rule)
 
   // Body part children of this sub-component (raw HTML / shadcn / text /
   // expressions added via the picker)
   const bodyChildren = sub.parts.root.children
 
-  const hasAnyChildren = nestedSubs.length > 0 || bodyChildren.length > 0
+  // When a rule is active, the authoritative child list is `nestedSubs`
+  // (walked from the rule). Body children are suppressed because they
+  // represent source internals, not user-visible composition.
+  const hasAnyChildren =
+    nestedSubs.length > 0 || (!rule && bodyChildren.length > 0)
 
   return (
     <div>
@@ -433,6 +530,7 @@ function SubComponentNode({
               sub={nested}
               isRoot={false}
               depth={depth + 1}
+              rule={rule}
               hiddenPaths={hiddenPaths}
               selectedPath={selectedPath}
               onSelectPath={onSelectPath}
@@ -442,7 +540,20 @@ function SubComponentNode({
               onAddChild={onAddChild}
             />
           ))}
-          {bodyChildren.map((child, i) => {
+          {/*
+           * For parsed compound components with a composition rule,
+           * we suppress the raw parsed body children — those are
+           * source-internal plumbing (e.g. DialogContent's source
+           * wraps Portal+Overlay+Primitive.Content) that the rule
+           * already abstracts away. The user sees the rule's
+           * composition tree, not the parser's literal children.
+           *
+           * For from-scratch sub-components (no rule) OR simple
+           * parsed sub-components without a rule, render body
+           * children as before — that's how the authoring experience
+           * and flat rendering work.
+           */}
+          {!rule && bodyChildren.map((child, i) => {
             const childPath = appendIndexToPath(path, i)
             if (child.kind === "part") {
               return (

@@ -57,7 +57,7 @@ export function ComponentCanvas({
       style={{ colorScheme: theme === "dark" ? "dark" : "light" }}
     >
       <div
-        className="flex w-full items-center justify-center p-8 transition-all duration-300"
+        className="flex w-full flex-1 transition-all duration-300"
         style={{ maxWidth: maxWidth ? `${maxWidth}px` : undefined }}
       >
         <ElementSelector
