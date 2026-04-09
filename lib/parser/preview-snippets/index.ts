@@ -297,6 +297,42 @@ function walkToStylePart(
  * cva base + active variant slot classes by consulting
  * `tree.cvaExports` + the sub's strategy.
  */
+/**
+ * Tokens the parser sometimes emits as literal strings inside
+ * cn() arg arrays when it can't statically resolve an identifier
+ * or function call. The renderer should ignore these — they're
+ * not real Tailwind classes, just placeholder text.
+ *
+ * - `className` — the spread `className` parameter of the source
+ *   wrapper function. Parser preserves the identifier name.
+ *
+ * Function-call placeholders like `navigationMenuTriggerStyle()`
+ * are NOT in this set; those need real substitution and are
+ * handled per-rule (see `navigation-menu.tsx`).
+ *
+ * Inline ternary expressions like
+ *   orientation === "horizontal" ? "pl-4" : "pt-4"
+ * are also captured as literal text by the parser. The
+ * `TERNARY_PATTERN` regex detects them and strips the whole
+ * expression. Carousel's `CarouselItem`/`CarouselPrevious`/
+ * `CarouselNext` source has these and would otherwise leak
+ * `-translate-y-1/2`, `rotate-90`, etc. as live classes.
+ */
+const PARSER_NOISE_TOKENS = new Set(["className"])
+
+const TERNARY_PATTERN =
+  /\b\w+\s*(?:===|!==|==|!=)\s*(?:"[^"]*"|'[^']*')\s*\?\s*(?:"[^"]*"|'[^']*')\s*:\s*(?:"[^"]*"|'[^']*')/g
+
+function stripParserNoise(classes: string): string {
+  // Strip whole ternary expressions FIRST so the substring class
+  // tokens inside their quoted branches don't survive the split.
+  const dewedTernaries = classes.replace(TERNARY_PATTERN, "")
+  return dewedTernaries
+    .split(/\s+/)
+    .filter((tok) => tok.length > 0 && !PARSER_NOISE_TOKENS.has(tok))
+    .join(" ")
+}
+
 export function classesFor(ctx: SnippetContext, subName: string): string {
   const sub = ctx.tree.subComponents.find((sc) => sc.name === subName)
   if (!sub) return ""
@@ -309,7 +345,7 @@ export function classesFor(ctx: SnippetContext, subName: string): string {
   // active trigger with no background in the canvas preview.
   const rawClasses = getAllPartClassesForRender(part)
   const resolved = ctx.resolveClassesForSub(sub, rawClasses)
-  return resolved.join(" ")
+  return stripParserNoise(resolved.join(" "))
 }
 
 /**

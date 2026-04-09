@@ -16,11 +16,18 @@ import { accordionRule } from "./rules/accordion"
 import { alertDialogRule } from "./rules/alert-dialog"
 import { aspectRatioRule } from "./rules/aspect-ratio"
 import { cardRule } from "./rules/card"
+import { carouselRule } from "./rules/carousel"
 import { collapsibleRule } from "./rules/collapsible"
+import { commandRule } from "./rules/command"
+import { contextMenuRule } from "./rules/context-menu"
 import { dialogRule } from "./rules/dialog"
 import { drawerRule } from "./rules/drawer"
+import { dropdownMenuRule } from "./rules/dropdown-menu"
 import { hoverCardRule } from "./rules/hover-card"
+import { menubarRule } from "./rules/menubar"
+import { navigationMenuRule } from "./rules/navigation-menu"
 import { popoverRule } from "./rules/popover"
+import { selectRule } from "./rules/select"
 import { sheetRule } from "./rules/sheet"
 import { tabsRule } from "./rules/tabs"
 import { tooltipRule } from "./rules/tooltip"
@@ -30,11 +37,18 @@ export const COMPOSITION_RULES: Record<string, CompositionRule> = {
   "alert-dialog": alertDialogRule,
   "aspect-ratio": aspectRatioRule,
   card: cardRule,
+  carousel: carouselRule,
   collapsible: collapsibleRule,
+  command: commandRule,
+  "context-menu": contextMenuRule,
   dialog: dialogRule,
   drawer: drawerRule,
+  "dropdown-menu": dropdownMenuRule,
   "hover-card": hoverCardRule,
+  menubar: menubarRule,
+  "navigation-menu": navigationMenuRule,
   popover: popoverRule,
+  select: selectRule,
   sheet: sheetRule,
   tabs: tabsRule,
   tooltip: tooltipRule,
