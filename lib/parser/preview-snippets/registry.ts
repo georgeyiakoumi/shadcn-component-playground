@@ -12,10 +12,16 @@
  */
 
 import type { CompositionRule } from "./index"
+import { aspectRatioRule } from "./rules/aspect-ratio"
 import { cardRule } from "./rules/card"
+import { collapsibleRule } from "./rules/collapsible"
 import { dialogRule } from "./rules/dialog"
+import { hoverCardRule } from "./rules/hover-card"
 
 export const COMPOSITION_RULES: Record<string, CompositionRule> = {
+  "aspect-ratio": aspectRatioRule,
   card: cardRule,
+  collapsible: collapsibleRule,
   dialog: dialogRule,
+  "hover-card": hoverCardRule,
 }
