@@ -119,6 +119,23 @@ const VOID_HTML_ELEMENTS = new Set([
   "wbr",
 ])
 
+/**
+ * Sub-component names that render as a purely visual primitive — no
+ * meaningful text content, just a styled box. The renderer suppresses
+ * the empty-children fallback (which would otherwise inject the
+ * sub-component name as a text label) so the canvas shows the box at
+ * its natural styling without the word "Skeleton" / "Separator" /
+ * etc. floating in the middle.
+ *
+ * Discovered 2026-04-09 during the Batch 3 flat-renderer smoke-test —
+ * George flagged that Skeleton + Separator both render with their
+ * name as text inside, which is noise.
+ */
+const VISUAL_PLACEHOLDER_SUBS = new Set([
+  "Skeleton",
+  "Separator",
+])
+
 /* ── Radix primitive → runtime HTML tag map ─────────────────────── */
 
 /**
@@ -1115,7 +1132,12 @@ function renderShell(
   //   nothing.
   if (children.length === 0) {
     const isParsed = ctx.tree.originalSource !== undefined
-    if (isParsed) {
+    const isVisualPlaceholder = VISUAL_PLACEHOLDER_SUBS.has(sub.name)
+    if (isVisualPlaceholder) {
+      // Visual primitives (Skeleton, Separator, etc.) render as bare
+      // styled boxes with no text — the box's intrinsic dimensions
+      // come from its source classes (h-4 w-full / h-px w-full / etc.).
+    } else if (isParsed) {
       children.push(sub.name)
     } else {
       children.push(
@@ -1129,6 +1151,25 @@ function renderShell(
         ),
       )
     }
+  }
+
+  // <textarea> can't accept children — React requires `defaultValue`
+  // (or `value`) instead. If the empty-children fallback added the
+  // sub-component name as a text label, hoist it into `defaultValue`
+  // so the textarea still shows something on the canvas without
+  // tripping React's "use defaultValue/value props instead of setting
+  // children on <textarea>" warning. Discovered 2026-04-09.
+  if (tag === "textarea") {
+    const textChildren = children.filter(
+      (c) => typeof c === "string",
+    ) as string[]
+    if (textChildren.length > 0 && baseProps.defaultValue === undefined) {
+      baseProps.defaultValue = textChildren.join("")
+    }
+    return React.createElement(
+      tag as keyof React.JSX.IntrinsicElements,
+      baseProps,
+    )
   }
 
   return React.createElement(
@@ -1159,6 +1200,16 @@ function renderBodyChild(
     return child.value
   }
   if (child.kind === "expression") {
+    // For PARSED components we suppress JSX expression source text
+    // (e.g. `children ?? <ChevronRight />`, `{children}`,
+    // `Array.from(...).map(...)`) — the expression isn't real DOM and
+    // dumping it as italic text leaks parser internals into the canvas
+    // (see Breadcrumb separator, ToggleGroup context provider,
+    // Slider thumb generator). The italic-debug fallback is still
+    // useful for the from-scratch builder where the user is actively
+    // composing JSX, so we keep it for non-parsed trees.
+    const isParsed = ctx.tree.originalSource !== undefined
+    if (isParsed) return null
     return React.createElement(
       "span",
       {
@@ -1188,9 +1239,10 @@ function renderBodyPart(
   if (ctx.hiddenPaths.has(path)) return null
 
   // component-ref → try Lucide first (real icon SVG), then shadcn
-  // preview map, then placeholder. We deliberately do NOT recurse into
-  // other sub-components from here (composition graph nesting is
-  // handled by renderShell + nestInside).
+  // preview map, then Context.Provider (transparent fragment), then
+  // placeholder. We deliberately do NOT recurse into other
+  // sub-components from here (composition graph nesting is handled by
+  // renderShell + nestInside).
   if (part.base.kind === "component-ref") {
     const name = part.base.name
     const LucideIcon = getLucideIcon(name)
@@ -1199,6 +1251,27 @@ function renderBodyPart(
     }
     if (shadcnPreviewMap[name]) {
       return renderShadcnPreview(name, path, ctx)
+    }
+    // React Context.Provider components have no DOM of their own — they
+    // just inject a value and pass children through. Detect them by
+    // the `.Provider` suffix and render as a Fragment so the children
+    // (the actual JSX inside the Provider) come through to the canvas.
+    // Fixes ToggleGroup whose root has
+    // `<ToggleGroupContext.Provider value={...}>{children}</ToggleGroupContext.Provider>`
+    // and was previously rendered as a placeholder pill that hid the
+    // entire toggle group. Discovered 2026-04-09.
+    if (name.endsWith(".Provider")) {
+      const providerChildren: React.ReactNode[] = []
+      for (let i = 0; i < part.children.length; i++) {
+        const child = part.children[i]
+        const childRendered = renderBodyChild(child, path, i, ctx)
+        if (childRendered !== null) providerChildren.push(childRendered)
+      }
+      return React.createElement(
+        React.Fragment,
+        { key: path },
+        ...providerChildren,
+      )
     }
     return renderPlaceholder(name, path)
   }
