@@ -16,6 +16,7 @@ import { accordionRule } from "./rules/accordion"
 import { alertRule } from "./rules/alert"
 import { alertDialogRule } from "./rules/alert-dialog"
 import { aspectRatioRule } from "./rules/aspect-ratio"
+import { avatarRule } from "./rules/avatar"
 import { breadcrumbRule } from "./rules/breadcrumb"
 import { cardRule } from "./rules/card"
 import { carouselRule } from "./rules/carousel"
@@ -43,6 +44,7 @@ export const COMPOSITION_RULES: Record<string, CompositionRule> = {
   alert: alertRule,
   "alert-dialog": alertDialogRule,
   "aspect-ratio": aspectRatioRule,
+  avatar: avatarRule,
   breadcrumb: breadcrumbRule,
   card: cardRule,
   carousel: carouselRule,
