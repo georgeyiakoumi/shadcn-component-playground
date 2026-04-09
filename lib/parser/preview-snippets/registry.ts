@@ -13,6 +13,7 @@
 
 import type { CompositionRule } from "./index"
 import { accordionRule } from "./rules/accordion"
+import { alertRule } from "./rules/alert"
 import { alertDialogRule } from "./rules/alert-dialog"
 import { aspectRatioRule } from "./rules/aspect-ratio"
 import { breadcrumbRule } from "./rules/breadcrumb"
@@ -35,6 +36,7 @@ import { tooltipRule } from "./rules/tooltip"
 
 export const COMPOSITION_RULES: Record<string, CompositionRule> = {
   accordion: accordionRule,
+  alert: alertRule,
   "alert-dialog": alertDialogRule,
   "aspect-ratio": aspectRatioRule,
   breadcrumb: breadcrumbRule,
