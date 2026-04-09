@@ -33,6 +33,7 @@ import { paginationRule } from "./rules/pagination"
 import { popoverRule } from "./rules/popover"
 import { selectRule } from "./rules/select"
 import { sheetRule } from "./rules/sheet"
+import { tableRule } from "./rules/table"
 import { tabsRule } from "./rules/tabs"
 import { tooltipRule } from "./rules/tooltip"
 
@@ -58,6 +59,7 @@ export const COMPOSITION_RULES: Record<string, CompositionRule> = {
   popover: popoverRule,
   select: selectRule,
   sheet: sheetRule,
+  table: tableRule,
   tabs: tabsRule,
   tooltip: tooltipRule,
 }
