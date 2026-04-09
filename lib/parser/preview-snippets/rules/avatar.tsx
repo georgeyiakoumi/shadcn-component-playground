@@ -43,6 +43,7 @@
 import * as React from "react"
 import { Check } from "lucide-react"
 
+import { cn } from "@/lib/utils"
 import {
   classesFor,
   pathFor,
@@ -85,7 +86,12 @@ function AvatarRender(ctx: SnippetContext): React.ReactNode {
           data-size="default"
           data-node-id={avatarPath}
           className={withSelectionRing(
-            avatarCls,
+            // Override the source's `overflow-hidden` so the AvatarBadge
+            // (positioned absolute at the bottom-right corner) is fully
+            // visible. The source uses overflow-hidden to clip
+            // AvatarImage to the circle, but we don't render a real
+            // image in this demo so it's safe to lift the clipping.
+            cn(avatarCls, "overflow-visible"),
             ctx.selectedPath === avatarPath,
           )}
         >
