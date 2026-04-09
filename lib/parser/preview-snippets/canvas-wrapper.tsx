@@ -31,7 +31,10 @@
 
 import * as React from "react"
 
-import type { ComponentTreeV2 } from "@/lib/component-tree-v2"
+import type {
+  ComponentTreeV2,
+  SubComponentV2,
+} from "@/lib/component-tree-v2"
 import type { PartPath } from "@/lib/parser/v2-tree-path"
 import type { CompositionRule, SnippetContext } from "./index"
 
@@ -40,6 +43,17 @@ interface CompositionCanvasProps {
   tree: ComponentTreeV2
   selectedPath: PartPath | null
   resolveVariantClasses: (classes: string[]) => string[]
+  /**
+   * Per-sub-component resolver from the dashboard. Given a specific
+   * sub-component and its raw classes, returns the fully resolved
+   * class list including cva base + active variant slots + raw.
+   * Used by the rule layer to resolve classes for sub-components
+   * OTHER than the compound root (e.g. TabsList has its own cva).
+   */
+  resolveClassesForSub: (
+    sub: SubComponentV2,
+    rawClasses: string[],
+  ) => string[]
 }
 
 /**
@@ -56,6 +70,7 @@ export function CompositionCanvas({
   tree,
   selectedPath,
   resolveVariantClasses,
+  resolveClassesForSub,
 }: CompositionCanvasProps): React.ReactNode {
   const [container, setContainer] = React.useState<HTMLDivElement | null>(null)
 
@@ -63,6 +78,7 @@ export function CompositionCanvas({
     tree,
     selectedPath,
     resolveVariantClasses,
+    resolveClassesForSub,
     container,
   }
 

@@ -804,8 +804,25 @@ export interface RenderContextV2 {
    * Resolves data-attribute variant classes to active classes based on the
    * current variant prop values. Identical to v1's `resolveVariantClasses`
    * helper — passed in to avoid duplicating the logic.
+   *
+   * BOUND TO THE ROOT SUB-COMPONENT's cva/data-attr strategy. For
+   * compound components with per-sub variant strategies (e.g. Tabs
+   * where TabsList has its own cva), use `resolveClassesForSub`
+   * instead via `classesFor` in preview-snippets.
    */
   resolveVariantClasses: (classes: string[]) => string[]
+
+  /**
+   * Per-sub-component resolver. Given a specific sub-component + its
+   * raw classes, returns the resolved class list including cva base +
+   * active variant slot classes + raw classes. Used by the
+   * preview-snippet rule layer so each sub-component's cva strategy
+   * is honoured (not just the root's).
+   */
+  resolveClassesForSub: (
+    sub: SubComponentV2,
+    rawClasses: string[],
+  ) => string[]
 
   /** Variant prop values for the data-* attributes on the root element. */
   variantDataAttrs: Record<string, string>
@@ -835,6 +852,7 @@ export function renderTreePreviewV2(ctx: RenderContextV2): React.ReactNode {
       tree,
       selectedPath: ctx.selectedPath,
       resolveVariantClasses: ctx.resolveVariantClasses,
+      resolveClassesForSub: ctx.resolveClassesForSub,
     })
   }
 

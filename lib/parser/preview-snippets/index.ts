@@ -79,8 +79,12 @@
 
 import * as React from "react"
 
-import type { ComponentTreeV2 } from "@/lib/component-tree-v2"
+import type {
+  ComponentTreeV2,
+  SubComponentV2,
+} from "@/lib/component-tree-v2"
 import {
+  getAllPartClassesForRender,
   getPartClasses,
   makePartPath,
   type PartPath,
@@ -131,8 +135,31 @@ export type CompositionNode = {
 export interface SnippetContext {
   tree: ComponentTreeV2
   selectedPath: PartPath | null
-  /** Resolves data-attribute variant classes (from dashboard). */
+  /**
+   * Resolves data-attribute variant classes (from dashboard). Bound
+   * to the ROOT sub-component's variant context — sufficient for
+   * straightforward classes but doesn't handle per-sub-component
+   * cva strategies.
+   *
+   * For rules that need per-sub-component cva resolution (e.g.
+   * TabsList has its own `tabsListVariants` cva), use the
+   * `resolveClassesForSub` function below instead, which takes a
+   * specific sub and resolves against that sub's strategy.
+   */
   resolveVariantClasses: (classes: string[]) => string[]
+  /**
+   * Full per-sub resolver exposed by the dashboard. Given a specific
+   * sub and its raw class list, returns the resolved class list
+   * including cva base + active variant slot + rawClasses. Use this
+   * via `classesFor` which calls it with the correct sub.
+   *
+   * The dashboard passes this in so the rule layer doesn't need to
+   * know about cvaExports or propValues directly.
+   */
+  resolveClassesForSub: (
+    sub: SubComponentV2,
+    rawClasses: string[],
+  ) => string[]
   /**
    * Canvas container element the render function should target with
    * Radix Portals. Null on the initial render; populated on the
@@ -260,14 +287,28 @@ function walkToStylePart(
  * part and read from there instead of the root. This handles
  * Portal-wrapped sub-components where the root is an empty wrapper
  * and the real classes live on a nested primitive.
+ *
+ * Uses `resolveClassesForSub` (not `resolveVariantClasses`) so the
+ * resolver runs against the SPECIFIC sub-component's variant
+ * strategy. This matters for sub-components with their own cva
+ * exports — e.g. TabsList has `tabsListVariants` cva, where
+ * `getPartClasses` returns `[]` because the className shape is
+ * `cva-call`, and only `resolveClassesForSub` can synthesise the
+ * cva base + active variant slot classes by consulting
+ * `tree.cvaExports` + the sub's strategy.
  */
 export function classesFor(ctx: SnippetContext, subName: string): string {
   const sub = ctx.tree.subComponents.find((sc) => sc.name === subName)
   if (!sub) return ""
   const stylePath = resolveStylePath(ctx.tree, subName)
   const part = walkToStylePart(sub.parts.root, stylePath) ?? sub.parts.root
-  const rawClasses = getPartClasses(part)
-  const resolved = ctx.resolveVariantClasses(rawClasses)
+  // Use `getAllPartClassesForRender` (not `getPartClasses`) so we
+  // flatten every cn-arg — the shadcn TabsTrigger has
+  // `data-[state=active]:bg-background` in args[2], not args[0],
+  // and editable-classes-only reads would drop it, leaving the
+  // active trigger with no background in the canvas preview.
+  const rawClasses = getAllPartClassesForRender(part)
+  const resolved = ctx.resolveClassesForSub(sub, rawClasses)
   return resolved.join(" ")
 }
 

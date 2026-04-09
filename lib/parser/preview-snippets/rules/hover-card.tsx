@@ -65,7 +65,13 @@ function HoverCardRenderImpl({
   const contentPath = pathFor(ctx, "HoverCardContent")
 
   return (
-    <HoverCardPrimitive.Root open={true}>
+    /*
+     * `defaultOpen={true}` (uncontrolled) so Radix manages its own
+     * open state. Hovering the trigger closes/reopens the card to
+     * see the animation; the Content has blocked close handlers
+     * so Style panel clicks don't dismiss it.
+     */
+    <HoverCardPrimitive.Root defaultOpen={true}>
       {/*
        * Center the trigger in the canvas. HoverCard is designed
        * to be triggered by hovering a link or button, so we use

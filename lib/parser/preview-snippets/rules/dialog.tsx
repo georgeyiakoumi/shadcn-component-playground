@@ -134,7 +134,11 @@ function DialogRenderImpl({ ctx }: { ctx: SnippetContext }): React.ReactNode {
             data-node-id={overlayPath}
             className={withSelectionRing(
               cn(
-                "absolute inset-0 z-40 bg-black/50",
+                // pointer-events-none is critical — without it, the
+                // backdrop hijacks every click on the canvas area,
+                // blocking the style panel, assembly panel, drag
+                // handles, breakpoints/theme toggle, and sidebar.
+                "pointer-events-none absolute inset-0 z-40 bg-black/50",
                 stripPositioningAndWidth(overlayCls),
               ),
               ctx.selectedPath === overlayPath,

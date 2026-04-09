@@ -380,6 +380,8 @@ export function UnifiedDashboard({
           tree.subComponents[0] ?? null,
           tree.cvaExports,
         ),
+      resolveClassesForSub: (sub: SubComponentV2, classes: string[]) =>
+        resolveActiveClasses(classes, sub, tree.cvaExports),
       variantDataAttrs,
     }),
     [tree, selectedPath, hiddenPaths, resolveActiveClasses, variantDataAttrs],
