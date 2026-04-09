@@ -995,7 +995,18 @@ function renderShell(
   if (part.base.kind === "html") {
     resolvedTag = part.base.tag
   } else if (part.base.kind === "dynamic-ref") {
-    resolvedTag = extractDefaultTagFromPassthrough(sub, part.base.localName)
+    // React Context.Provider sub-components have no DOM of their own —
+    // they just inject a context value and render children. The parser
+    // emits `<CtxName.Provider>` as a `dynamic-ref` with the qualified
+    // name as `localName` (see parse-source-v2.ts:1283). Detect the
+    // `.Provider` suffix and treat as a transparent wrapper so the
+    // children come through to the canvas. Discovered 2026-04-09 during
+    // the ToggleGroup smoke-test (round 3).
+    if (part.base.localName.endsWith(".Provider")) {
+      isTransparentRadix = true
+    } else {
+      resolvedTag = extractDefaultTagFromPassthrough(sub, part.base.localName)
+    }
   } else if (part.base.kind === "radix") {
     const mapping = resolveRadixTag(part.base.primitive, part.base.part)
     if (mapping) {
@@ -1340,6 +1351,22 @@ function renderBodyPart(
   }
 
   if (part.base.kind === "dynamic-ref") {
+    // Same Context.Provider trick as renderShell — when a Provider is
+    // nested inside another sub-component's body (rather than being the
+    // root part), still render as a transparent fragment.
+    if (part.base.localName.endsWith(".Provider")) {
+      const providerChildren: React.ReactNode[] = []
+      for (let i = 0; i < part.children.length; i++) {
+        const child = part.children[i]
+        const childRendered = renderBodyChild(child, path, i, ctx)
+        if (childRendered !== null) providerChildren.push(childRendered)
+      }
+      return React.createElement(
+        React.Fragment,
+        { key: path },
+        ...providerChildren,
+      )
+    }
     return renderPlaceholder(part.base.localName, path)
   }
 
