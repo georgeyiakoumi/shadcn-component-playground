@@ -26,6 +26,7 @@ import { dialogRule } from "./rules/dialog"
 import { drawerRule } from "./rules/drawer"
 import { dropdownMenuRule } from "./rules/dropdown-menu"
 import { hoverCardRule } from "./rules/hover-card"
+import { itemRule } from "./rules/item"
 import { menubarRule } from "./rules/menubar"
 import { navigationMenuRule } from "./rules/navigation-menu"
 import { popoverRule } from "./rules/popover"
@@ -49,6 +50,7 @@ export const COMPOSITION_RULES: Record<string, CompositionRule> = {
   drawer: drawerRule,
   "dropdown-menu": dropdownMenuRule,
   "hover-card": hoverCardRule,
+  item: itemRule,
   menubar: menubarRule,
   "navigation-menu": navigationMenuRule,
   popover: popoverRule,
