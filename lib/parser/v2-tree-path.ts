@@ -273,6 +273,43 @@ export function getPartClasses(part: PartNode): string[] {
   return []
 }
 
+/**
+ * Read-only variant of `getPartClasses` that flattens ALL string-literal
+ * arguments of a cn-call, not just the first. `getPartClasses` only
+ * returns args[0] because that's the editable "base string" — all edits
+ * route to arg 0 so that downstream cn-args (which often hold state-
+ * specific or conditional classes) stay untouched.
+ *
+ * The preview-snippet renderer doesn't edit — it needs every class
+ * that would appear on the real DOM node so that Tailwind selectors
+ * like `data-[state=active]:bg-background` (which live in a LATER
+ * cn-arg in shadcn TabsTrigger) take effect in the canvas preview.
+ *
+ * DO NOT use this for anything that writes classes back — use it
+ * only in render-time code that consumes classes as strings.
+ */
+export function getAllPartClassesForRender(part: PartNode): string[] {
+  const expr = part.className
+  if (expr.kind === "literal") {
+    return expr.value.split(/\s+/).filter(Boolean)
+  }
+  if (expr.kind === "cn-call") {
+    const out: string[] = []
+    for (const arg of expr.args) {
+      if (typeof arg !== "string") continue
+      const stripped =
+        arg.length >= 2 &&
+        (arg[0] === '"' || arg[0] === "'") &&
+        arg[arg.length - 1] === arg[0]
+          ? arg.slice(1, -1)
+          : arg
+      out.push(...stripped.split(/\s+/).filter(Boolean))
+    }
+    return out
+  }
+  return []
+}
+
 /* ── Sub-component lookups ──────────────────────────────────────── */
 
 /** Find the parent sub-component (by name) of a given path. */
