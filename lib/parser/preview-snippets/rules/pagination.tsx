@@ -53,6 +53,8 @@
 import * as React from "react"
 import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react"
 
+import { buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import {
   classesFor,
   pathFor,
@@ -60,6 +62,28 @@ import {
   type CompositionRule,
   type SnippetContext,
 } from "../index"
+
+/*
+ * KNOWN PARSER LIMITATION (followup ticket TBD, similar to
+ * NavigationMenu's `navigationMenuTriggerStyle()` workaround):
+ *
+ * PaginationLink's source has
+ *   className={cn(buttonVariants({ variant, size }), className)}
+ *
+ * The parser stores `buttonVariants({...})` as a literal text token
+ * in the cn-call args (same family as ternary expressions and
+ * function-call expressions), so reading `linkCls` via the normal
+ * `classesFor` path returns nothing useful.
+ *
+ * Workaround: import `buttonVariants` from the canonical source and
+ * apply it directly. The cva variant choice mirrors the source —
+ * `outline` for the active page, `ghost` for inactive, `default` size
+ * (which matches what PaginationPrevious / PaginationNext explicitly
+ * pass). Same trick as navigation-menu.tsx + the ternary fix in
+ * carousel.tsx.
+ */
+const linkActiveCls = buttonVariants({ variant: "outline", size: "default" })
+const linkInactiveCls = buttonVariants({ variant: "ghost", size: "default" })
 
 function PaginationRender(ctx: SnippetContext): React.ReactNode {
   const paginationCls = classesFor(ctx, "Pagination")
@@ -108,12 +132,12 @@ function PaginationRender(ctx: SnippetContext): React.ReactNode {
               aria-label="Go to previous page"
               data-node-id={previousPath}
               className={withSelectionRing(
-                previousCls,
+                cn(linkInactiveCls, "gap-1 px-2.5", previousCls),
                 ctx.selectedPath === previousPath,
               )}
             >
               <ChevronLeft />
-              <span className="hidden sm:block">Previous</span>
+              <span>Previous</span>
             </a>
           </li>
           <li className={itemCls}>
@@ -121,7 +145,7 @@ function PaginationRender(ctx: SnippetContext): React.ReactNode {
               href="#"
               data-node-id={linkPath}
               className={withSelectionRing(
-                linkCls,
+                cn(linkInactiveCls, linkCls),
                 ctx.selectedPath === linkPath,
               )}
             >
@@ -133,13 +157,13 @@ function PaginationRender(ctx: SnippetContext): React.ReactNode {
               href="#"
               aria-current="page"
               data-active="true"
-              className={linkCls}
+              className={cn(linkActiveCls, linkCls)}
             >
               2
             </a>
           </li>
           <li className={itemCls}>
-            <a href="#" className={linkCls}>
+            <a href="#" className={cn(linkInactiveCls, linkCls)}>
               3
             </a>
           </li>
@@ -162,11 +186,11 @@ function PaginationRender(ctx: SnippetContext): React.ReactNode {
               aria-label="Go to next page"
               data-node-id={nextPath}
               className={withSelectionRing(
-                nextCls,
+                cn(linkInactiveCls, "gap-1 px-2.5", nextCls),
                 ctx.selectedPath === nextPath,
               )}
             >
-              <span className="hidden sm:block">Next</span>
+              <span>Next</span>
               <ChevronRight />
             </a>
           </li>
