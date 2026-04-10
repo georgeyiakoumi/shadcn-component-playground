@@ -86,7 +86,7 @@ function AvatarRender(ctx: SnippetContext): React.ReactNode {
           data-size="default"
           data-node-id={avatarPath}
           className={withSelectionRing(
-            avatarCls,
+            cn(avatarCls, "overflow-visible"),
             ctx.selectedPath === avatarPath,
           )}
         >
@@ -97,7 +97,7 @@ function AvatarRender(ctx: SnippetContext): React.ReactNode {
             src="https://github.com/shadcn.png"
             alt="@shadcn"
             className={withSelectionRing(
-              imageCls,
+              cn(imageCls, "rounded-full"),
               ctx.selectedPath === imagePath,
             )}
           />
