@@ -80,7 +80,18 @@ export default function Home() {
 
       {/* ── Footer attribution ──────────────────────────────── */}
       <footer className="absolute bottom-6 text-xs text-muted-foreground">
-        Built with <a href="https://ui.shadcn.com" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">shadcn/ui</a>
+        Built with{" "}
+        <a href="https://ui.shadcn.com" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">shadcn/ui</a>
+        {" · "}
+        <a href="https://nextjs.org" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">Next.js</a>
+        {" · "}
+        <a href="https://tailwindcss.com" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">Tailwind CSS</a>
+        {" · "}
+        <a href="https://www.radix-ui.com" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">Radix</a>
+        {" · "}
+        <a href="https://lucide.dev" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">Lucide</a>
+        {" · "}
+        <a href="https://shiki.style" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">Shiki</a>
       </footer>
     </main>
   )
