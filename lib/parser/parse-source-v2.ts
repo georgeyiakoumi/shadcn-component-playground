@@ -156,6 +156,7 @@ export function parseSource(
         stmt,
         ctx,
         subComponents.length,
+        cvaExports,
       )
       if (arrowComponent) {
         subComponents.push(arrowComponent)
@@ -185,7 +186,7 @@ export function parseSource(
         })
         continue
       }
-      subComponents.push(parseFunctionComponent(stmt, ctx, subComponents.length))
+      subComponents.push(parseFunctionComponent(stmt, ctx, subComponents.length, cvaExports))
       continue
     }
 
@@ -798,6 +799,7 @@ function parseFunctionComponent(
   node: ts.FunctionDeclaration,
   ctx: ParserContext,
   exportOrder: number,
+  cvaExports: CvaExport[],
 ): SubComponentV2 {
   if (!node.name) {
     throw parserError(node, ctx, "Function component must have a name.")
@@ -809,6 +811,7 @@ function parseFunctionComponent(
     ctx,
     exportOrder,
     node,
+    cvaExports,
   })
 }
 
@@ -821,6 +824,7 @@ function tryParseArrowFunctionComponent(
   stmt: ts.VariableStatement,
   ctx: ParserContext,
   exportOrder: number,
+  cvaExports: CvaExport[],
 ): SubComponentV2 | null {
   if (stmt.declarationList.declarations.length !== 1) return null
   const decl = stmt.declarationList.declarations[0]
@@ -845,6 +849,7 @@ function tryParseArrowFunctionComponent(
       ctx,
       exportOrder,
       node: arrow,
+      cvaExports,
     })
   }
 
@@ -855,6 +860,7 @@ function tryParseArrowFunctionComponent(
     ctx,
     exportOrder,
     node: arrow,
+    cvaExports,
   })
 }
 
@@ -866,10 +872,12 @@ interface BuildSubComponentArgs {
   exportOrder: number
   /** The original AST node, for error reporting. */
   node: ts.Node
+  /** Already-parsed cva exports, for VariantProps resolution. */
+  cvaExports: CvaExport[]
 }
 
 function buildSubComponent(args: BuildSubComponentArgs): SubComponentV2 {
-  const { name, parameters, body, ctx, exportOrder, node } = args
+  const { name, parameters, body, ctx, exportOrder, node, cvaExports } = args
 
   if (parameters.length !== 1) {
     throw parserError(
@@ -951,7 +959,7 @@ function buildSubComponent(args: BuildSubComponentArgs): SubComponentV2 {
   const variantStrategy: SubComponentV2["variantStrategy"] = (() => {
     const ref = findCvaRefInClassName(rootPart.className)
     if (ref) return { kind: "cva", cvaRef: ref }
-    const dataAttrVariants = recogniseDataAttrVariants(mergedPropsDecl, rootPart)
+    const dataAttrVariants = recogniseDataAttrVariants(mergedPropsDecl, rootPart, cvaExports, inlineDefaults)
     if (dataAttrVariants.length > 0) {
       return { kind: "data-attr", variants: dataAttrVariants }
     }

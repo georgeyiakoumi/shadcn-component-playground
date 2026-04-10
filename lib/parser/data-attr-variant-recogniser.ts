@@ -59,6 +59,7 @@
 
 import type {
   ClassNameExpr,
+  CvaExport,
   DataAttrVariant,
   InlineProperty,
   PartNode,
@@ -75,6 +76,8 @@ import type {
 export function recogniseDataAttrVariants(
   propsDecl: PropsDecl,
   rootPart: PartNode,
+  cvaExports: CvaExport[] = [],
+  inlineDefaults: Record<string, string> = {},
 ): DataAttrVariant[] {
   // Can only recognise data-attr variants on a cn-call className where the
   // first arg is a string literal. Literal-className and passthrough-className
@@ -85,7 +88,7 @@ export function recogniseDataAttrVariants(
 
   // Gather candidate inline properties: union-of-string-literals with a
   // default value.
-  const inlineProps = collectInlineProperties(propsDecl)
+  const inlineProps = collectInlineProperties(propsDecl, cvaExports, inlineDefaults)
   const candidates = inlineProps.filter(isCandidateProperty)
   if (candidates.length === 0) return []
 
@@ -147,14 +150,54 @@ function readCnCallBase(expr: ClassNameExpr): string | null {
   return first.slice(1, -1)
 }
 
-/** Flatten every inline property across a PropsDecl. */
-function collectInlineProperties(propsDecl: PropsDecl): InlineProperty[] {
+/**
+ * Flatten every inline property across a PropsDecl.
+ *
+ * When the PropsDecl contains a `variant-props` part (from
+ * `VariantProps<typeof fooVariants>`), synthesize InlineProperty
+ * entries by looking up the referenced cva export's variant groups.
+ * This lets the data-attr recogniser detect props like `variant` and
+ * `size` on components that type them via `VariantProps` rather than
+ * an explicit inline union. The synthesized properties won't have a
+ * `defaultValue` — that gets merged in upstream via
+ * `mergeInlineDefaults()` from the destructuring pattern.
+ */
+function collectInlineProperties(
+  propsDecl: PropsDecl,
+  cvaExports: CvaExport[],
+  inlineDefaults: Record<string, string>,
+): InlineProperty[] {
   const out: InlineProperty[] = []
-  if (propsDecl.kind === "single") {
-    if (propsDecl.part.kind === "inline") out.push(...propsDecl.part.properties)
-  } else if (propsDecl.kind === "intersection") {
-    for (const part of propsDecl.parts) {
-      if (part.kind === "inline") out.push(...part.properties)
+  const parts =
+    propsDecl.kind === "single"
+      ? [propsDecl.part]
+      : propsDecl.kind === "intersection"
+        ? propsDecl.parts
+        : []
+  for (const part of parts) {
+    if (part.kind === "inline") {
+      out.push(...part.properties)
+    } else if (part.kind === "variant-props") {
+      // Synthesize InlineProperty entries from the cva export's
+      // variant groups so the data-attr recogniser can detect them.
+      const cva = cvaExports.find((c) => c.name === part.cvaRef)
+      if (cva) {
+        for (const [groupName, valueMap] of Object.entries(cva.variants)) {
+          const values = Object.keys(valueMap)
+          // Build a union type string like `"default" | "outline" | "muted"`
+          const type = values.map((v) => `"${v}"`).join(" | ")
+          out.push({
+            name: groupName,
+            type,
+            optional: true,
+            // Apply the destructured default if available (e.g.
+            // `variant = "default"` in the function signature).
+            // mergeInlineDefaults() only merges onto `inline` parts,
+            // not synthesized properties, so we have to do it here.
+            defaultValue: inlineDefaults[groupName],
+          })
+        }
+      }
     }
   }
   return out
