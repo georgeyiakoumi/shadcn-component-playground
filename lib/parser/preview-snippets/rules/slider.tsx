@@ -6,12 +6,16 @@
  *
  * ## Implementation notes
  *
- * Imports the real shadcn Slider component and renders it with
- * `defaultValue={[50]}` so the canvas shows a draggable thumb at
- * 50%. The flat renderer couldn't show the thumb because the source
- * generates thumbs via `Array.from({ length: _values.length }, ...)`
- * which the parser captures as an expression and the renderer
- * suppresses for parsed components.
+ * Imports the real shadcn Slider component so the thumb is draggable
+ * and the track/range render correctly with Radix's internal state.
+ * The internal body parts (Track, Range, Thumb) aren't individual
+ * sub-components in the parser — they're body parts nested inside
+ * Slider's root JSX — so they won't appear as separate Assembly
+ * panel rows. Style panel edits route to Slider's root classes.
+ *
+ * A proper fix for sub-part selectability requires the parser to
+ * promote internal Radix primitives to selectable sub-components
+ * (a deeper architecture change tracked separately).
  */
 
 "use client"
