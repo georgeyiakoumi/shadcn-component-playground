@@ -89,8 +89,6 @@ function ItemRender(ctx: SnippetContext): React.ReactNode {
           title, description, and action button.
         */}
         <div
-          data-variant="default"
-          data-size="default"
           data-node-id={itemPath}
           className={withSelectionRing(
             itemCls,
@@ -163,8 +161,6 @@ function ItemRender(ctx: SnippetContext): React.ReactNode {
           sub-components are selectable in the AssemblyPanel.
         */}
         <div
-          data-variant="default"
-          data-size="default"
           className={itemCls}
         >
           <div
