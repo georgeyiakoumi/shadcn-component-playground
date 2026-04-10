@@ -125,12 +125,10 @@ function AvatarRender(ctx: SnippetContext): React.ReactNode {
             data-slot="avatar-badge"
             data-node-id={badgePath}
             className={withSelectionRing(
-              badgeCls,
+              cn(badgeCls, "bg-green-600"),
               ctx.selectedPath === badgePath,
             )}
-          >
-            <Check />
-          </span>
+          />
         </span>
 
         {/* Second Avatar — fallback only, no badge */}
