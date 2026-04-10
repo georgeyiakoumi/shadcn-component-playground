@@ -36,6 +36,7 @@ import { popoverRule } from "./rules/popover"
 import { resizableRule } from "./rules/resizable"
 import { selectRule } from "./rules/select"
 import { sheetRule } from "./rules/sheet"
+import { sonnerRule } from "./rules/sonner"
 import { tableRule } from "./rules/table"
 import { tabsRule } from "./rules/tabs"
 import { toggleGroupRule } from "./rules/toggle-group"
@@ -66,6 +67,7 @@ export const COMPOSITION_RULES: Record<string, CompositionRule> = {
   resizable: resizableRule,
   select: selectRule,
   sheet: sheetRule,
+  sonner: sonnerRule,
   table: tableRule,
   tabs: tabsRule,
   "toggle-group": toggleGroupRule,
