@@ -29,7 +29,6 @@ import * as React from "react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
-import { Toaster } from "@/components/ui/sonner"
 import {
   pathFor,
   withSelectionRing,
@@ -59,7 +58,6 @@ function SonnerRender(ctx: SnippetContext): React.ReactNode {
         >
           Show Toast
         </Button>
-        <Toaster />
       </div>
     </div>
   )
