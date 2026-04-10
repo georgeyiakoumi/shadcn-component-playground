@@ -33,6 +33,7 @@ import { menubarRule } from "./rules/menubar"
 import { navigationMenuRule } from "./rules/navigation-menu"
 import { paginationRule } from "./rules/pagination"
 import { popoverRule } from "./rules/popover"
+import { resizableRule } from "./rules/resizable"
 import { selectRule } from "./rules/select"
 import { sheetRule } from "./rules/sheet"
 import { tableRule } from "./rules/table"
@@ -62,6 +63,7 @@ export const COMPOSITION_RULES: Record<string, CompositionRule> = {
   "navigation-menu": navigationMenuRule,
   pagination: paginationRule,
   popover: popoverRule,
+  resizable: resizableRule,
   select: selectRule,
   sheet: sheetRule,
   table: tableRule,
