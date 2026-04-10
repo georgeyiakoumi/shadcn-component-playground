@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Plus, Copy, Code2 } from "lucide-react"
+import { Plus, Code2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -38,15 +38,12 @@ export default function Home() {
           </h1>
           <p className="text-sm text-muted-foreground">
             Browse, inspect, edit, and build UI components visually.
-            <br />
-            Built with shadcn/ui.
           </p>
         </div>
 
         {/* ── Command palette ─────────────────────────────────── */}
-        <p className="text-sm font-medium text-muted-foreground">Load component</p>
         <Command className="rounded-lg border shadow-md [&_[cmdk-list]]:max-h-[300px]">
-          <CommandInput placeholder="Search components..." />
+          <CommandInput placeholder="Search shadcn components" />
           <CommandList>
             <CommandEmpty>No components found.</CommandEmpty>
             {categories.map((category) => {
@@ -72,23 +69,19 @@ export default function Home() {
           </CommandList>
         </Command>
 
-        {/* ── Action buttons ──────────────────────────────────── */}
-        <p className="text-sm font-medium text-muted-foreground">Create new</p>
-        <div className="flex items-center gap-3">
-          <Button asChild>
-            <Link href="/playground/new?mode=scratch">
-              <Plus className="mr-2 size-4" />
-              From Scratch
-            </Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href="/playground/new?mode=copy">
-              <Copy className="mr-2 size-4" />
-              From Existing
-            </Link>
-          </Button>
-        </div>
+        {/* ── Action button ──────────────────────────────────── */}
+        <Button asChild>
+          <Link href="/playground/new?mode=scratch">
+            <Plus className="mr-2 size-4" />
+            Create from scratch
+          </Link>
+        </Button>
       </div>
+
+      {/* ── Footer attribution ──────────────────────────────── */}
+      <footer className="absolute bottom-6 text-xs text-muted-foreground">
+        Built with <a href="https://ui.shadcn.com" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">shadcn/ui</a>
+      </footer>
     </main>
   )
 }
