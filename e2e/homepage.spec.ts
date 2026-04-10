@@ -4,7 +4,7 @@ test.describe("Homepage", () => {
   test("loads with heading and command palette", async ({ page }) => {
     await page.goto("/")
     await expect(page.getByRole("heading", { name: /component lab/i })).toBeVisible()
-    await expect(page.getByPlaceholder(/search components/i)).toBeVisible()
+    await expect(page.getByPlaceholder(/search shadcn components/i)).toBeVisible()
   })
 
   test("shows component categories in command palette", async ({ page }) => {
@@ -16,14 +16,14 @@ test.describe("Homepage", () => {
 
   test("search filters components", async ({ page }) => {
     await page.goto("/")
-    const search = page.getByPlaceholder(/search components/i)
+    const search = page.getByPlaceholder(/search shadcn components/i)
     await search.fill("button")
     await expect(page.locator("[cmdk-item]").filter({ hasText: "Button" })).toBeVisible()
   })
 
   test("search with synonym finds component", async ({ page }) => {
     await page.goto("/")
-    const search = page.getByPlaceholder(/search components/i)
+    const search = page.getByPlaceholder(/search shadcn components/i)
     await search.fill("modal")
     await expect(page.locator("[cmdk-item]").filter({ hasText: "Dialog" }).first()).toBeVisible()
   })
@@ -34,9 +34,8 @@ test.describe("Homepage", () => {
     await expect(page).toHaveURL(/\/playground\/button/)
   })
 
-  test("From Scratch and From Existing buttons are visible", async ({ page }) => {
+  test("Create from scratch button is visible", async ({ page }) => {
     await page.goto("/")
-    await expect(page.getByRole("link", { name: /from scratch/i })).toBeVisible()
-    await expect(page.getByRole("link", { name: /from existing/i })).toBeVisible()
+    await expect(page.getByRole("link", { name: /create from scratch/i })).toBeVisible()
   })
 })
