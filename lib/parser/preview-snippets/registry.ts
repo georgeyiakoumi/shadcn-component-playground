@@ -33,10 +33,14 @@ import { menubarRule } from "./rules/menubar"
 import { navigationMenuRule } from "./rules/navigation-menu"
 import { paginationRule } from "./rules/pagination"
 import { popoverRule } from "./rules/popover"
+import { progressRule } from "./rules/progress"
 import { resizableRule } from "./rules/resizable"
+import { scrollAreaRule } from "./rules/scroll-area"
 import { selectRule } from "./rules/select"
 import { sheetRule } from "./rules/sheet"
+import { sliderRule } from "./rules/slider"
 import { sonnerRule } from "./rules/sonner"
+import { switchRule } from "./rules/switch"
 import { tableRule } from "./rules/table"
 import { tabsRule } from "./rules/tabs"
 import { toggleGroupRule } from "./rules/toggle-group"
@@ -64,10 +68,14 @@ export const COMPOSITION_RULES: Record<string, CompositionRule> = {
   "navigation-menu": navigationMenuRule,
   pagination: paginationRule,
   popover: popoverRule,
+  progress: progressRule,
   resizable: resizableRule,
+  "scroll-area": scrollAreaRule,
   select: selectRule,
   sheet: sheetRule,
+  slider: sliderRule,
   sonner: sonnerRule,
+  switch: switchRule,
   table: tableRule,
   tabs: tabsRule,
   "toggle-group": toggleGroupRule,
