@@ -42,7 +42,28 @@ import {
 
 function SonnerRender(ctx: SnippetContext): React.ReactNode {
   const toasterPath = pathFor(ctx, "Toaster")
-  const [visible, setVisible] = React.useState(true)
+  const [visible, setVisible] = React.useState(false)
+  // Track whether the toast is mounted (for exit animation)
+  const [mounted, setMounted] = React.useState(false)
+
+  const handleToggle = React.useCallback(() => {
+    if (visible) {
+      // Start exit animation, unmount after it finishes
+      setVisible(false)
+      setTimeout(() => setMounted(false), 300)
+    } else {
+      // Mount then trigger entrance animation on next frame
+      setMounted(true)
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setVisible(true))
+      })
+    }
+  }, [visible])
+
+  const handleDismiss = React.useCallback(() => {
+    setVisible(false)
+    setTimeout(() => setMounted(false), 300)
+  }, [])
 
   return (
     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
@@ -53,15 +74,19 @@ function SonnerRender(ctx: SnippetContext): React.ReactNode {
           ctx.selectedPath === toasterPath,
         )}
       >
-        <Button variant="outline" onClick={() => setVisible((v) => !v)}>
-          {visible ? "Hide Toast" : "Show Toast"}
+        <Button variant="outline" onClick={handleToggle}>
+          Show Toast
         </Button>
 
-        {visible && (
+        {mounted && (
           <div
-            className="w-[22rem] rounded-lg border bg-background p-4 shadow-lg"
+            className="w-[22rem] rounded-lg border bg-background p-4 shadow-lg transition-all duration-300 ease-out"
             style={{
               borderColor: "var(--border)",
+              opacity: visible ? 1 : 0,
+              transform: visible
+                ? "translateY(0)"
+                : "translateY(0.5rem)",
             }}
           >
             <div className="flex items-start gap-3">
@@ -76,7 +101,7 @@ function SonnerRender(ctx: SnippetContext): React.ReactNode {
               </div>
               <button
                 type="button"
-                onClick={() => setVisible(false)}
+                onClick={handleDismiss}
                 className="shrink-0 rounded-md p-0.5 text-muted-foreground/50 hover:text-foreground"
               >
                 <X className="size-4" />
