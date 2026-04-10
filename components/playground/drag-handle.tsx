@@ -59,11 +59,11 @@ export function DragHandle({
       <div
         onMouseDown={handleMouseDown}
         className={cn(
-          "relative z-[70] flex w-1 shrink-0 cursor-col-resize items-center justify-center transition-colors hover:bg-blue-500/20",
+          "relative z-10 flex w-1 shrink-0 cursor-col-resize items-center justify-center transition-colors hover:bg-blue-500/20",
           isDragging && "bg-blue-500/20",
         )}
       >
-        <div className="absolute z-[70] flex h-6 w-3.5 items-center justify-center rounded-sm border bg-background shadow-sm">
+        <div className="absolute z-10 flex h-6 w-3.5 items-center justify-center rounded-sm border bg-background shadow-sm">
           <GripVertical className="h-2.5 w-2.5 text-muted-foreground" />
         </div>
       </div>
