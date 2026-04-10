@@ -18,6 +18,7 @@ import { alertDialogRule } from "./rules/alert-dialog"
 import { aspectRatioRule } from "./rules/aspect-ratio"
 import { avatarRule } from "./rules/avatar"
 import { breadcrumbRule } from "./rules/breadcrumb"
+import { calendarRule } from "./rules/calendar"
 import { cardRule } from "./rules/card"
 import { carouselRule } from "./rules/carousel"
 import { collapsibleRule } from "./rules/collapsible"
@@ -46,6 +47,7 @@ export const COMPOSITION_RULES: Record<string, CompositionRule> = {
   "aspect-ratio": aspectRatioRule,
   avatar: avatarRule,
   breadcrumb: breadcrumbRule,
+  calendar: calendarRule,
   card: cardRule,
   carousel: carouselRule,
   collapsible: collapsibleRule,
