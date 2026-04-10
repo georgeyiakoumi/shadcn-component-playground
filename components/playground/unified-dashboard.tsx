@@ -168,44 +168,51 @@ export function UnifiedDashboard({
 
   /* ── Variant defs derived from the v2 tree ─────────────────── */
 
-  // Derive a flat variant list from the root sub-component for the
+  // Derive a flat variant list from ALL sub-components for the
   // bottom-bar Variants popover. Surfaces BOTH strategies:
   //
   // - cva: read groups from `tree.cvaExports[i].variants`
-  // - data-attr: read variants from `root.variantStrategy.variants`
+  // - data-attr: read variants from `sub.variantStrategy.variants`
   //
-  // Pre-PR #30 this only handled cva, which was the regression George
-  // caught: from-scratch components default to the data-attr strategy
-  // (per PR #30) and so the Variants popover disappeared from the
-  // bottom bar. Now we surface both.
+  // GEO-374: previously only read from subComponents[0]. Now walks
+  // every sub-component so Item's variant/size (which live on the
+  // Item sub-component, not on the root ItemGroup) are surfaced.
+  // Deduplicates by prop name — if multiple sub-components declare
+  // the same prop, the first one wins.
   const variantDefs = React.useMemo(() => {
     if (tree.subComponents.length === 0) return []
-    const root = tree.subComponents[0]
     const out: Array<{ name: string; options: string[]; defaultValue: string }> = []
+    const seen = new Set<string>()
 
-    if (root.variantStrategy.kind === "cva") {
-      const cvaRef = root.variantStrategy.cvaRef
-      const cva = tree.cvaExports.find((c) => c.name === cvaRef)
-      if (cva) {
-        for (const [groupName, valueMap] of Object.entries(cva.variants)) {
-          const valueNames = Object.keys(valueMap)
-          out.push({
-            name: groupName,
-            options: valueNames,
-            defaultValue:
-              cva.defaultVariants?.[groupName] ?? valueNames[0] ?? "",
-          })
+    for (const sub of tree.subComponents) {
+      if (sub.variantStrategy.kind === "cva") {
+        const cvaRef = sub.variantStrategy.cvaRef
+        const cva = tree.cvaExports.find((c) => c.name === cvaRef)
+        if (cva) {
+          for (const [groupName, valueMap] of Object.entries(cva.variants)) {
+            if (seen.has(groupName)) continue
+            seen.add(groupName)
+            const valueNames = Object.keys(valueMap)
+            out.push({
+              name: groupName,
+              options: valueNames,
+              defaultValue:
+                cva.defaultVariants?.[groupName] ?? valueNames[0] ?? "",
+            })
+          }
         }
       }
-    }
 
-    if (root.variantStrategy.kind === "data-attr") {
-      for (const dav of root.variantStrategy.variants) {
-        out.push({
-          name: dav.propName,
-          options: dav.values.slice(),
-          defaultValue: dav.defaultValue,
-        })
+      if (sub.variantStrategy.kind === "data-attr") {
+        for (const dav of sub.variantStrategy.variants) {
+          if (seen.has(dav.propName)) continue
+          seen.add(dav.propName)
+          out.push({
+            name: dav.propName,
+            options: dav.values.slice(),
+            defaultValue: dav.defaultValue,
+          })
+        }
       }
     }
 
@@ -355,13 +362,17 @@ export function UnifiedDashboard({
   // Pre-fix this object was always empty and the data-attr prefixed
   // classes never activated — toggling size in the popover did
   // nothing visible on the canvas.
+  // GEO-374: aggregate data-attr variants from ALL sub-components so
+  // the canvas preview reflects the active variant values regardless
+  // of which sub-component declares them.
   const variantDataAttrs = React.useMemo(() => {
-    const root = tree.subComponents[0]
-    if (!root || root.variantStrategy.kind !== "data-attr") return {}
     const attrs: Record<string, string> = {}
-    for (const v of root.variantStrategy.variants) {
-      const activeValue = propValues[v.propName] ?? v.defaultValue
-      attrs[v.attrName] = activeValue
+    for (const sub of tree.subComponents) {
+      if (sub.variantStrategy.kind !== "data-attr") continue
+      for (const v of sub.variantStrategy.variants) {
+        const activeValue = propValues[v.propName] ?? v.defaultValue
+        attrs[v.attrName] = activeValue
+      }
     }
     return attrs
   }, [tree, propValues])
