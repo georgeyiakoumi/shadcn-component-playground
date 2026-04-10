@@ -21,6 +21,7 @@ import { breadcrumbRule } from "./rules/breadcrumb"
 import { calendarRule } from "./rules/calendar"
 import { cardRule } from "./rules/card"
 import { carouselRule } from "./rules/carousel"
+import { checkboxRule } from "./rules/checkbox"
 import { collapsibleRule } from "./rules/collapsible"
 import { commandRule } from "./rules/command"
 import { contextMenuRule } from "./rules/context-menu"
@@ -56,6 +57,7 @@ export const COMPOSITION_RULES: Record<string, CompositionRule> = {
   calendar: calendarRule,
   card: cardRule,
   carousel: carouselRule,
+  checkbox: checkboxRule,
   collapsible: collapsibleRule,
   command: commandRule,
   "context-menu": contextMenuRule,

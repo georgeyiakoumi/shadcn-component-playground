@@ -77,6 +77,20 @@ interface AssemblyPanelProps {
 
 type DropPosition = "before" | "after" | "inside"
 
+/**
+ * A child entry in the AssemblyPanel tree. Can be either a real
+ * sub-component OR a body part declared in a composition rule.
+ */
+type NestedChild =
+  | { kind: "sub"; sub: SubComponentV2 }
+  | {
+      kind: "body-part"
+      name: string
+      parentSubName: string
+      bodyPartPath: number[]
+      compositionNode: CompositionNode
+    }
+
 /* ── Component ──────────────────────────────────────────────────── */
 
 /**
@@ -263,47 +277,61 @@ function findNestedChildren(
   tree: ComponentTreeV2,
   parentName: string,
   rule: CompositionRule | null,
-): SubComponentV2[] {
+): NestedChild[] {
   if (rule) {
-    const childNames = findChildNamesInRule(rule.composition, parentName)
-    if (childNames === null) return []
+    const childNodes = findChildNodesInRule(rule.composition, parentName)
+    if (childNodes === null) return []
     const subByName = new Map<string, SubComponentV2>()
     for (const sc of tree.subComponents) subByName.set(sc.name, sc)
-    const result: SubComponentV2[] = []
-    for (const name of childNames) {
-      const sc = subByName.get(name)
-      if (sc) result.push(sc)
+    const result: NestedChild[] = []
+    for (const node of childNodes) {
+      if (node.bodyPart && node.bodyPartPath) {
+        // Body-part entry — the parent sub-component that contains
+        // this body part is `parentName` (e.g. "Switch" contains "Thumb").
+        result.push({
+          kind: "body-part",
+          name: node.name,
+          parentSubName: parentName,
+          bodyPartPath: node.bodyPartPath,
+          compositionNode: node,
+        })
+      } else {
+        const sc = subByName.get(node.name)
+        if (sc) result.push({ kind: "sub", sub: sc })
+      }
     }
     return result
   }
 
   const root = tree.subComponents[0]
   const isRoot = root && root.name === parentName
-  return tree.subComponents.filter((sc, i) => {
-    if (i === 0) return false
-    if (isRoot) {
-      return !sc.nestInside || sc.nestInside === parentName
-    }
-    return sc.nestInside === parentName
-  })
+  return tree.subComponents
+    .filter((sc, i) => {
+      if (i === 0) return false
+      if (isRoot) {
+        return !sc.nestInside || sc.nestInside === parentName
+      }
+      return sc.nestInside === parentName
+    })
+    .map((sc): NestedChild => ({ kind: "sub", sub: sc }))
 }
 
 /**
- * Walk a rule's composition tree to find the direct children of a
- * node with the given name. Returns an empty array if the node has
- * no children defined, or null if the name isn't found anywhere in
- * the tree.
+ * Walk a rule's composition tree to find the direct child nodes of
+ * a node with the given name. Returns the full `CompositionNode[]`
+ * (not just names) so the caller can check `bodyPart` flags.
+ * Returns null if the name isn't found anywhere in the tree.
  */
-function findChildNamesInRule(
+function findChildNodesInRule(
   node: CompositionNode,
   targetName: string,
-): string[] | null {
+): CompositionNode[] | null {
   if (node.name === targetName) {
-    return node.children?.map((c) => c.name) ?? []
+    return node.children ?? []
   }
   if (node.children) {
     for (const child of node.children) {
-      const found = findChildNamesInRule(child, targetName)
+      const found = findChildNodesInRule(child, targetName)
       if (found !== null) return found
     }
   }
@@ -429,20 +457,23 @@ function SubComponentNode({
   const isHidden = hiddenPaths.has(path)
   const isSelected = selectedPath === path
 
-  // Composition graph children: sub-components nested inside this one.
-  // Walks the composition rule for parsed compound components, or
-  // falls back to `nestInside` for from-scratch and unruled trees.
-  const nestedSubs = findNestedChildren(tree, sub.name, rule)
+  // Composition graph children: sub-components + body parts nested
+  // inside this one. Walks the composition rule for parsed compound
+  // components, or falls back to `nestInside` for from-scratch and
+  // unruled trees.
+  const nestedChildren = findNestedChildren(tree, sub.name, rule)
 
   // Body part children of this sub-component (raw HTML / shadcn / text /
   // expressions added via the picker)
   const bodyChildren = sub.parts.root.children
 
-  // When a rule is active, the authoritative child list is `nestedSubs`
-  // (walked from the rule). Body children are suppressed because they
-  // represent source internals, not user-visible composition.
+  // When a rule is active, the authoritative child list is
+  // `nestedChildren` (walked from the rule). Raw parsed body children
+  // are suppressed because they represent source internals, not
+  // user-visible composition. But body-part entries declared in the
+  // rule ARE shown.
   const hasAnyChildren =
-    nestedSubs.length > 0 || (!rule && bodyChildren.length > 0)
+    nestedChildren.length > 0 || (!rule && bodyChildren.length > 0)
 
   return (
     <div>
@@ -532,23 +563,46 @@ function SubComponentNode({
           html/text body parts */}
       {expanded && (
         <>
-          {nestedSubs.map((nested) => (
-            <SubComponentNode
-              key={`sub:${nested.name}`}
-              tree={tree}
-              sub={nested}
-              isRoot={false}
-              depth={depth + 1}
-              rule={rule}
-              hiddenPaths={hiddenPaths}
-              selectedPath={selectedPath}
-              onSelectPath={onSelectPath}
-              onToggleHidden={onToggleHidden}
-              onRemove={onRemove}
-              onMove={onMove}
-              onAddChild={onAddChild}
-            />
-          ))}
+          {nestedChildren.map((child) => {
+            if (child.kind === "sub") {
+              return (
+                <SubComponentNode
+                  key={`sub:${child.sub.name}`}
+                  tree={tree}
+                  sub={child.sub}
+                  isRoot={false}
+                  depth={depth + 1}
+                  rule={rule}
+                  hiddenPaths={hiddenPaths}
+                  selectedPath={selectedPath}
+                  onSelectPath={onSelectPath}
+                  onToggleHidden={onToggleHidden}
+                  onRemove={onRemove}
+                  onMove={onMove}
+                  onAddChild={onAddChild}
+                />
+              )
+            }
+            // Body-part entry from the composition rule
+            const bpPath = makePartPath(
+              child.parentSubName,
+              child.bodyPartPath,
+            )
+            return (
+              <RuleBodyPartRow
+                key={`bp:${child.name}`}
+                name={child.name}
+                path={bpPath}
+                depth={depth + 1}
+                selectedPath={selectedPath}
+                onSelectPath={onSelectPath}
+                compositionNode={child.compositionNode}
+                tree={tree}
+                parentSubName={child.parentSubName}
+                rule={rule}
+              />
+            )
+          })}
           {/*
            * For parsed compound components with a composition rule,
            * we suppress the raw parsed body children — those are
@@ -598,6 +652,112 @@ function SubComponentNode({
           })}
         </>
       )}
+    </div>
+  )
+}
+
+/* ── RuleBodyPartRow — a body part declared in a composition rule ── */
+
+/**
+ * A lightweight row for body parts declared in composition rules
+ * (e.g. Switch.Thumb, Progress.Indicator). Simpler than
+ * SubComponentNode — no add/delete/drag/hide actions since body
+ * parts are source-internal, not user-editable structure. The user
+ * can click to select and edit the body part's classes in the Style
+ * panel.
+ */
+function RuleBodyPartRow({
+  name,
+  path,
+  depth,
+  selectedPath,
+  onSelectPath,
+  compositionNode,
+  tree,
+  parentSubName,
+  rule,
+}: {
+  name: string
+  path: PartPath
+  depth: number
+  selectedPath?: PartPath | null
+  onSelectPath?: (path: PartPath | null) => void
+  compositionNode: CompositionNode
+  tree: ComponentTreeV2
+  parentSubName: string
+  rule: CompositionRule | null
+}) {
+  const isSelected = selectedPath === path
+  const [expanded, setExpanded] = React.useState(true)
+
+  // Check for nested body-part children (e.g. Slider.Track > Range)
+  const nestedChildren = findNestedChildren(tree, name, rule)
+  const hasChildren = nestedChildren.length > 0
+
+  return (
+    <div>
+      <div
+        className={cn(
+          "group flex items-center gap-1 rounded-md py-0.5 pl-1",
+          isSelected && "bg-violet-500/10",
+        )}
+      >
+        {depth > 0 && (
+          <div className="shrink-0" style={{ width: `${depth * 14}px` }} />
+        )}
+        {hasChildren ? (
+          <button
+            type="button"
+            className="flex size-4 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground"
+            onClick={() => setExpanded(!expanded)}
+          >
+            {expanded ? (
+              <ChevronDown className="size-3" />
+            ) : (
+              <ChevronRight className="size-3" />
+            )}
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="flex size-4 shrink-0 items-center justify-center rounded-sm invisible"
+          >
+            <ChevronDown className="size-3" />
+          </button>
+        )}
+        <button
+          type="button"
+          className="min-w-0 flex-1 truncate text-left font-mono text-xs text-violet-500/80 hover:text-violet-500"
+          onClick={() => onSelectPath?.(isSelected ? null : path)}
+        >
+          &lt;{name} /&gt;
+        </button>
+      </div>
+      {expanded &&
+        hasChildren &&
+        nestedChildren.map((child) => {
+          if (child.kind === "body-part") {
+            const childPath = makePartPath(
+              child.parentSubName,
+              child.bodyPartPath,
+            )
+            return (
+              <RuleBodyPartRow
+                key={`bp:${child.name}`}
+                name={child.name}
+                path={childPath}
+                depth={depth + 1}
+                selectedPath={selectedPath}
+                onSelectPath={onSelectPath}
+                compositionNode={child.compositionNode}
+                tree={tree}
+                parentSubName={child.parentSubName}
+                rule={rule}
+              />
+            )
+          }
+          return null
+        })}
     </div>
   )
 }

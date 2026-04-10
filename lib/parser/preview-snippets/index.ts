@@ -125,6 +125,31 @@ export type CompositionNode = {
   stylePath?: number[]
   /** Nested composition children, if any. */
   children?: CompositionNode[]
+  /**
+   * When `true`, this node represents an internal body part (a Radix
+   * primitive nested inside a sub-component's JSX, like
+   * `SwitchPrimitive.Thumb` inside `Switch()`) rather than a top-level
+   * sub-component in `tree.subComponents`.
+   *
+   * Body parts are already in the parsed tree at
+   * `sub.parts.root.children[...]` — the parser captures them, the
+   * Style panel's `findPartByPath` / `setPartClasses` already work
+   * for their paths (e.g. `sub:Switch/0`). This flag simply tells
+   * the AssemblyPanel to show them as selectable rows.
+   *
+   * Must be paired with `bodyPartPath` (the child-index path from
+   * the parent sub-component's `parts.root` to the body part).
+   */
+  bodyPart?: true
+  /**
+   * Child-index path from the parent sub-component's `parts.root` to
+   * this body part's PartNode. Only meaningful when `bodyPart: true`.
+   *
+   * Examples:
+   *  - `[0]` → `parts.root.children[0]` (Switch.Thumb, Progress.Indicator)
+   *  - `[0, 0]` → `parts.root.children[0].part.children[0]` (Slider.Range inside Track)
+   */
+  bodyPartPath?: number[]
 }
 
 /**
@@ -346,6 +371,50 @@ export function classesFor(ctx: SnippetContext, subName: string): string {
   const rawClasses = getAllPartClassesForRender(part)
   const resolved = ctx.resolveClassesForSub(sub, rawClasses)
   return stripParserNoise(resolved.join(" "))
+}
+
+/**
+ * Read the resolved className string for a **body part** nested inside
+ * a sub-component's `parts.root.children` tree.
+ *
+ * `parentSubName` is the exported sub-component name (e.g. "Switch").
+ * `childIndices` is the child-index path from `parts.root` to the
+ * body part (e.g. `[0]` for Switch.Thumb, `[0, 0]` for Slider.Range
+ * inside Track).
+ *
+ * Falls back to an empty string if the sub-component or body part
+ * doesn't exist at the given path.
+ */
+export function classesForBodyPart(
+  ctx: SnippetContext,
+  parentSubName: string,
+  childIndices: number[],
+): string {
+  const sub = ctx.tree.subComponents.find((sc) => sc.name === parentSubName)
+  if (!sub) return ""
+  let part = sub.parts.root
+  for (const idx of childIndices) {
+    if (idx < 0 || idx >= part.children.length) return ""
+    const child = part.children[idx]
+    if (child.kind !== "part") return ""
+    part = child.part
+  }
+  const rawClasses = getAllPartClassesForRender(part)
+  const resolved = ctx.resolveClassesForSub(sub, rawClasses)
+  return stripParserNoise(resolved.join(" "))
+}
+
+/**
+ * Build a `PartPath` for a body part nested inside a sub-component.
+ *
+ * Returns the path format the canvas click handler and Style panel
+ * already understand, e.g. `"sub:Switch/0"` for Switch.Thumb.
+ */
+export function pathForBodyPart(
+  parentSubName: string,
+  childIndices: number[],
+): PartPath {
+  return makePartPath(parentSubName, childIndices)
 }
 
 /**
