@@ -79,6 +79,7 @@
 
 import * as React from "react"
 
+import { cn } from "@/lib/utils"
 import type {
   ComponentTreeV2,
   SubComponentV2,
@@ -377,7 +378,13 @@ export function classesFor(ctx: SnippetContext, subName: string): string {
   // active trigger with no background in the canvas preview.
   const rawClasses = getAllPartClassesForRender(part)
   const resolved = ctx.resolveClassesForSub(sub, rawClasses)
-  return stripParserNoise(resolved.join(" "))
+  // Use cn() (tailwind-merge) to deduplicate conflicting utilities.
+  // Without this, cva base classes like `border-transparent` and
+  // active variant slot classes like `border-border` both remain in
+  // the className — Tailwind v4 CSS order determines which wins
+  // (unreliable). cn() resolves deterministically (last wins),
+  // matching shadcn's runtime cn(cvaVariants({...}), className).
+  return stripParserNoise(cn(resolved))
 }
 
 /**
@@ -408,7 +415,13 @@ export function classesForBodyPart(
   }
   const rawClasses = getAllPartClassesForRender(part)
   const resolved = ctx.resolveClassesForSub(sub, rawClasses)
-  return stripParserNoise(resolved.join(" "))
+  // Use cn() (tailwind-merge) to deduplicate conflicting utilities.
+  // Without this, cva base classes like `border-transparent` and
+  // active variant slot classes like `border-border` both remain in
+  // the className — Tailwind v4 CSS order determines which wins
+  // (unreliable). cn() resolves deterministically (last wins),
+  // matching shadcn's runtime cn(cvaVariants({...}), className).
+  return stripParserNoise(cn(resolved))
 }
 
 /**
