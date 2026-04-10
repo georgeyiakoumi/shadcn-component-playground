@@ -605,12 +605,13 @@ export function UnifiedDashboard({
             mode="inspect"
           />
 
-          {/* Floating assembly panel (bottom-left). z-[60] keeps it
-              above compound-component previews that use Radix
-              portals at z-50 (Dialog, Popover, etc.) so the panel
-              stays visible over any modal content. */}
+          {/* Floating assembly panel (bottom-left). z-40 keeps it
+              above canvas content but below viewport-level overlays
+              like the Export dialog (z-50). Canvas portals (Radix
+              composition rule previews) are in a separate stacking
+              context inside the overflow-hidden canvas container. */}
           <div
-            className="absolute bottom-3 left-3 z-[60] w-72 rounded-lg border bg-background/95 shadow-lg backdrop-blur-sm"
+            className="absolute bottom-3 left-3 z-40 w-72 rounded-lg border bg-background/95 shadow-lg backdrop-blur-sm"
             onClick={(e) => e.stopPropagation()}
           >
             <AssemblyPanel
