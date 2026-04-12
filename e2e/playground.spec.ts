@@ -32,10 +32,10 @@ test.describe("Playground - Component Loading", () => {
     await expect(page.getByPlaceholder(/search components/i)).not.toBeVisible()
   })
 
-  test("collapsed sidebar can be reopened with sidebar rail", async ({ page }) => {
+  test("collapsed sidebar can be reopened with toggle button", async ({ page }) => {
     await page.goto("/playground/button")
-    // Sidebar is collapsed — click the rail to reopen
-    await page.getByLabel("Toggle Sidebar").click()
+    // Sidebar is collapsed — click the trigger button to reopen
+    await page.getByRole("button", { name: /toggle sidebar/i }).click()
     // Sidebar should now show search and categories
     await expect(page.getByPlaceholder(/search components/i)).toBeVisible()
   })
@@ -43,7 +43,7 @@ test.describe("Playground - Component Loading", () => {
   test("clicking sidebar component navigates", async ({ page }) => {
     await page.goto("/playground/button")
     // Reopen sidebar first
-    await page.getByLabel("Toggle Sidebar").click()
+    await page.getByRole("button", { name: /toggle sidebar/i }).click()
     await expect(page.getByPlaceholder(/search components/i)).toBeVisible()
     // Expand Inputs category and click Checkbox
     await page.getByText("Inputs").click()

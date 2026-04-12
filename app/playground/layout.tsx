@@ -7,7 +7,7 @@ import { PlaygroundSidebar } from "@/components/playground/sidebar"
 import {
   SidebarProvider,
   SidebarInset,
-  SidebarRail,
+  SidebarTrigger,
   Sidebar,
 } from "@/components/ui/sidebar"
 import type { ComponentMeta } from "@/lib/registry"
@@ -52,10 +52,14 @@ export default function PlaygroundLayout({
               : pathname.replace("/playground/", "")
           }
         />
-        <SidebarRail />
       </Sidebar>
 
       <SidebarInset className="overflow-hidden">
+        {!sidebarOpen && (
+          <div className="flex shrink-0 items-center border-b px-2 py-1.5">
+            <SidebarTrigger />
+          </div>
+        )}
         {children}
       </SidebarInset>
     </SidebarProvider>
