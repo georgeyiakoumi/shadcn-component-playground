@@ -32,9 +32,9 @@ test.describe("Playground - Component Loading", () => {
     await expect(page.getByPlaceholder(/search components/i)).not.toBeVisible()
   })
 
-  test("collapsed sidebar can be reopened with toggle button", async ({ page }) => {
+  test("collapsed sidebar can be reopened with trigger button", async ({ page }) => {
     await page.goto("/playground/button")
-    // Sidebar is collapsed — click the trigger button to reopen
+    // Sidebar is collapsed to icon mode — click the trigger to expand
     await page.getByRole("button", { name: /toggle sidebar/i }).click()
     // Sidebar should now show search and categories
     await expect(page.getByPlaceholder(/search components/i)).toBeVisible()

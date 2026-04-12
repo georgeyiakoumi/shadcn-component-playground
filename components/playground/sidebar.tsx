@@ -1,10 +1,15 @@
 "use client"
 
 import * as React from "react"
-import { Search, ChevronRight, Layers, Plus, Trash2 } from "lucide-react"
+import { ChevronRight, Plus, Search, Trash2 } from "lucide-react"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@radix-ui/react-collapsible"
 
 import { Badge } from "@/components/ui/badge"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group"
 import {
   SidebarContent,
   SidebarGroup,
@@ -12,7 +17,7 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
-  SidebarInput,
+
   SidebarMenu,
   SidebarMenuAction,
   SidebarMenuButton,
@@ -25,7 +30,6 @@ import {
 } from "@/components/ui/sidebar"
 import {
   categories,
-  registry,
   searchComponents,
   getComponentsByCategory,
   type ComponentMeta,
@@ -87,21 +91,11 @@ export function PlaygroundSidebar({
       {/* ── Header ──────────────────────────────────────────── */}
       <SidebarHeader>
         <div className="flex items-center gap-2">
-          <Layers className="size-4 text-muted-foreground" />
           <span className="text-sm font-semibold tracking-tight">
-            Components
+            Component Lab
           </span>
           <div className="flex-1" />
           <SidebarTrigger />
-        </div>
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <SidebarInput
-            placeholder="Search components..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="pl-8 text-xs"
-          />
         </div>
       </SidebarHeader>
 
@@ -118,13 +112,11 @@ export function PlaygroundSidebar({
                 </Badge>
               )}
             </SidebarGroupLabel>
-            <SidebarGroupAction asChild title="Create new component">
-              <CreateComponentDialog>
-                <button type="button">
-                  <Plus />
-                </button>
-              </CreateComponentDialog>
-            </SidebarGroupAction>
+            <CreateComponentDialog>
+              <SidebarGroupAction title="Create new component">
+                <Plus />
+              </SidebarGroupAction>
+            </CreateComponentDialog>
             <SidebarGroupContent>
               <SidebarMenu>
                 {customComponents.map((uc) => (
@@ -151,10 +143,23 @@ export function PlaygroundSidebar({
 
         <SidebarSeparator />
 
-        {/* ── Search results (flat) ────────────────────────── */}
-        {isSearching ? (
-          <SidebarGroup>
-            <SidebarGroupContent>
+        {/* ── Explore shadcn components ──────────────────── */}
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <div className="px-2 pb-2">
+              <InputGroup className="h-8">
+                <InputGroupAddon>
+                  <Search className="size-3.5" />
+                </InputGroupAddon>
+                <InputGroupInput
+                  placeholder="Search shadcn/ui..."
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  className="text-xs"
+                />
+              </InputGroup>
+            </div>
+            {isSearching ? (
               <SidebarMenu>
                 {filteredComponents.length === 0 ? (
                   <p className="px-4 py-6 text-center text-xs text-muted-foreground">
@@ -176,18 +181,7 @@ export function PlaygroundSidebar({
                   ))
                 )}
               </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ) : (
-          /* ── Explore shadcn components (grouped) ──────── */
-          <SidebarGroup>
-            <SidebarGroupLabel>
-              Explore shadcn components
-              <Badge variant="secondary" className="ml-2 text-xs">
-                {registry.length}
-              </Badge>
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
+            ) : (
               <SidebarMenu>
                 {categories.map((category) => {
                   const components = grouped.get(category.name) ?? []
@@ -200,9 +194,6 @@ export function PlaygroundSidebar({
                           <SidebarMenuButton>
                             <ChevronRight className="transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                             <span>{category.name}</span>
-                            <span className="ml-auto tabular-nums text-xs text-muted-foreground/60">
-                              {components.length}
-                            </span>
                           </SidebarMenuButton>
                         </CollapsibleTrigger>
                         <CollapsibleContent>
@@ -237,9 +228,9 @@ export function PlaygroundSidebar({
                   )
                 })}
               </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+            )}
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
     </>
   )

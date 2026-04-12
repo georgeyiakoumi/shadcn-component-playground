@@ -54,12 +54,13 @@ export default function PlaygroundLayout({
         />
       </Sidebar>
 
+      {!sidebarOpen && (
+        <div className="flex shrink-0 flex-col border-r bg-sidebar px-1.5 pt-2">
+          <SidebarTrigger />
+        </div>
+      )}
+
       <SidebarInset className="overflow-hidden">
-        {!sidebarOpen && (
-          <div className="flex shrink-0 items-center border-b px-2 py-1.5">
-            <SidebarTrigger />
-          </div>
-        )}
         {children}
       </SidebarInset>
     </SidebarProvider>
