@@ -61,9 +61,9 @@ test.describe("Inspect Panels", () => {
   }) => {
     await page.goto("/playground/dialog")
     // Unified dashboard mounts directly — no mode toggle on stock pages.
-    // Wait for the toolbar Export button as a proxy for "page ready".
+    // Wait for the download button as a proxy for "page ready".
     await expect(
-      page.getByRole("button", { name: /^export$/i }),
+      page.getByRole("button", { name: "dialog.tsx" }),
     ).toBeVisible({ timeout: 10_000 })
   })
 })

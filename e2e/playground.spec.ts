@@ -15,7 +15,7 @@ test.describe("Playground - Component Loading", () => {
 
   test("sidebar search filters components on index page", async ({ page }) => {
     await page.goto("/playground")
-    const search = page.getByPlaceholder(/search components/i)
+    const search = page.getByPlaceholder(/search shadcn/i)
     await search.fill("card")
     await expect(page.getByText("Card", { exact: true })).toBeVisible()
   })
@@ -23,13 +23,13 @@ test.describe("Playground - Component Loading", () => {
   test("sidebar auto-collapses when navigating to a component", async ({ page }) => {
     await page.goto("/playground")
     // Sidebar should be open initially
-    await expect(page.getByPlaceholder(/search components/i)).toBeVisible()
+    await expect(page.getByPlaceholder(/search shadcn/i)).toBeVisible()
     // Click a component to navigate
     await page.getByText("Inputs").click()
     await page.getByText("Button", { exact: true }).first().click()
     await page.waitForURL(/\/playground\/button/)
     // Sidebar should have collapsed — search input no longer visible
-    await expect(page.getByPlaceholder(/search components/i)).not.toBeVisible()
+    await expect(page.getByPlaceholder(/search shadcn/i)).not.toBeVisible()
   })
 
   test("collapsed sidebar can be reopened with trigger button", async ({ page }) => {
@@ -37,14 +37,14 @@ test.describe("Playground - Component Loading", () => {
     // Sidebar is collapsed to icon mode — click the trigger to expand
     await page.getByRole("button", { name: /toggle sidebar/i }).click()
     // Sidebar should now show search and categories
-    await expect(page.getByPlaceholder(/search components/i)).toBeVisible()
+    await expect(page.getByPlaceholder(/search shadcn/i)).toBeVisible()
   })
 
   test("clicking sidebar component navigates", async ({ page }) => {
     await page.goto("/playground/button")
     // Reopen sidebar first
     await page.getByRole("button", { name: /toggle sidebar/i }).click()
-    await expect(page.getByPlaceholder(/search components/i)).toBeVisible()
+    await expect(page.getByPlaceholder(/search shadcn/i)).toBeVisible()
     // Expand Inputs category and click Checkbox
     await page.getByText("Inputs").click()
     await page.getByText("Checkbox").click()
