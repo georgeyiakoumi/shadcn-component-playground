@@ -139,6 +139,7 @@ export function UnifiedDashboard({
   const [propValues, setPropValues] = React.useState<Record<string, string>>({})
   const [selectedPath, setSelectedPath] = React.useState<PartPath | null>(null)
   const [codePanelWidth, setCodePanelWidth] = React.useState(350)
+  const codePanelInitialised = React.useRef(false)
   const [editPanelWidth, setEditPanelWidth] = React.useState(384)
   const [highlightLine, setHighlightLine] = React.useState<number | null>(null)
   const [focusRange, setFocusRange] = React.useState<{
@@ -151,6 +152,14 @@ export function UnifiedDashboard({
   // own variant, edits route into the slot instead of the base.
   const [activeContexts, setActiveContexts] = React.useState<string[]>([])
   const contentRef = React.useRef<HTMLDivElement>(null)
+
+  // Initialise code panel width to 35% of container on mount
+  React.useEffect(() => {
+    if (!codePanelInitialised.current && contentRef.current) {
+      codePanelInitialised.current = true
+      setCodePanelWidth(Math.round(contentRef.current.offsetWidth * 0.35))
+    }
+  })
 
   /* ── Source (derived from tree) ────────────────────────────── */
 

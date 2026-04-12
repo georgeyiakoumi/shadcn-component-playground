@@ -175,7 +175,7 @@ export default function CustomComponentPage() {
       {/* ── Toolbar ──────────────────────────────────────────── */}
       <PlaygroundToolbar
         componentName={tree?.name ?? userComponent.name}
-        slug={hasAnyStyles ? slug : undefined}
+        slug={hasAnyStyles ? (tree?.slug ?? slug) : undefined}
         source={hasAnyStyles ? source : undefined}
         mode={mode}
         onModeChange={setMode}

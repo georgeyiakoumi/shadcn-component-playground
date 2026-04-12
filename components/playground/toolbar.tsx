@@ -12,11 +12,12 @@ import {
   Layers,
   Download,
 } from "lucide-react"
-import { ExportDialog } from "@/components/playground/export-dialog"
+import { exportAsTsx } from "@/lib/export-utils"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Select,
   SelectContent,
@@ -135,55 +136,31 @@ export function PlaygroundToolbar({
         {componentName && !hideModeToggle && (
           <>
             <Separator orientation="vertical" className="mx-1.5 h-6" />
-            <div className="flex items-center gap-0.5 rounded-md border p-0.5">
-              {/* Pillar 6.1 — unified labels: Structure / Style across
-                  both stock and custom pages. Underlying state values
-                  stay the same (inspect/edit on stock, define/preview on
-                  custom) so consumers don't need to refactor. */}
-              {isCustom ? (
-                <>
-                  <Button
-                    variant={mode === "define" ? "default" : "ghost"}
-                    size="sm"
-                    className="h-6 gap-1 px-2 text-xs"
-                    onClick={() => onModeChange?.("define")}
-                  >
-                    <Layers className="size-3" />
-                    Structure
-                  </Button>
-                  <Button
-                    variant={mode === "preview" ? "default" : "ghost"}
-                    size="sm"
-                    className="h-6 gap-1 px-2 text-xs"
-                    onClick={() => onModeChange?.("preview")}
-                  >
-                    <Eye className="size-3" />
-                    Style
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button
-                    variant={mode === "inspect" ? "default" : "ghost"}
-                    size="sm"
-                    className="h-6 gap-1 px-2 text-xs"
-                    onClick={() => onModeChange?.("inspect")}
-                  >
-                    <Layers className="size-3" />
-                    Structure
-                  </Button>
-                  <Button
-                    variant={mode === "edit" ? "default" : "ghost"}
-                    size="sm"
-                    className="h-6 gap-1 px-2 text-xs"
-                    onClick={() => onModeChange?.("edit")}
-                  >
-                    <Eye className="size-3" />
-                    Style
-                  </Button>
-                </>
-              )}
-            </div>
+            {/* Pillar 6.1 — unified labels: Structure / Style across
+                both stock and custom pages. Underlying state values
+                stay the same (inspect/edit on stock, define/preview on
+                custom) so consumers don't need to refactor. */}
+            <Tabs
+              value={isCustom ? (mode === "define" ? "structure" : "style") : (mode === "inspect" ? "structure" : "style")}
+              onValueChange={(v) => {
+                if (isCustom) {
+                  onModeChange?.(v === "structure" ? "define" : "preview")
+                } else {
+                  onModeChange?.(v === "structure" ? "inspect" : "edit")
+                }
+              }}
+            >
+              <TabsList>
+                <TabsTrigger value="structure">
+                  <Layers className="size-3" />
+                  Structure
+                </TabsTrigger>
+                <TabsTrigger value="style">
+                  <Eye className="size-3" />
+                  Style
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </>
         )}
 
@@ -199,28 +176,15 @@ export function PlaygroundToolbar({
         {extraActions}
 
         {/* ── Export ─────────────────────────────────────────── */}
-        {componentName && (
-          slug && source ? (
-            <ExportDialog
-              slug={slug}
-              source={source}
-              componentName={componentName}
-            />
-          ) : (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span tabIndex={0}>
-                  <Button variant="outline" size="sm" disabled className="gap-1.5 pointer-events-none">
-                    <Download className="size-3.5" />
-                    Export
-                  </Button>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Design your component first to enable export</p>
-              </TooltipContent>
-            </Tooltip>
-          )
+        {componentName && slug && source && (
+          <Button
+            size="sm"
+            className="h-8 gap-1.5 text-xs"
+            onClick={() => exportAsTsx(`${slug}.tsx`, source)}
+          >
+            <Download className="size-3.5" />
+            {slug}.tsx
+          </Button>
         )}
       </div>
     </TooltipProvider>

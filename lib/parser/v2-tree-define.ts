@@ -511,6 +511,31 @@ export function renameSubComponent(
     },
   }
 
+  // When renaming the root (index 0), also rename child sub-components
+  // whose names are prefixed with the old root name.
+  // e.g. MyCardHeader → GegeHeader when MyCard → Gege
+  if (subIndex === 0 && oldName !== newName) {
+    for (let i = 1; i < newSubs.length; i++) {
+      const childSub = newSubs[i]
+      if (childSub.name.startsWith(oldName)) {
+        const suffix = childSub.name.slice(oldName.length)
+        const renamedChildName = newName + suffix
+        const renamedChildSlot = toDataSlot(renamedChildName)
+        newSubs[i] = {
+          ...childSub,
+          name: renamedChildName,
+          dataSlot: renamedChildSlot,
+          parts: {
+            root: {
+              ...childSub.parts.root,
+              dataSlot: renamedChildSlot,
+            },
+          },
+        }
+      }
+    }
+  }
+
   // Rename component-ref bases pointing at the old name
   if (oldName !== newName) {
     for (let i = 0; i < newSubs.length; i++) {

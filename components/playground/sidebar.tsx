@@ -129,7 +129,7 @@ export function PlaygroundSidebar({
             <div className="mb-2">
               <div className="flex items-center gap-2 px-4 py-2">
                 <span className="text-xs font-medium text-muted-foreground">
-                  My Components
+                  Custom components
                 </span>
                 {customComponents.length > 0 && (
                   <Badge variant="secondary" className="text-xs">
@@ -162,12 +162,6 @@ export function PlaygroundSidebar({
                     )}
                   >
                     <span className="truncate">{uc.name}</span>
-                    <Badge
-                      variant="outline"
-                      className="h-4 shrink-0 px-1 text-xs font-normal"
-                    >
-                      custom
-                    </Badge>
                     <button
                       type="button"
                       onClick={(e) => handleDeleteCustom(e, uc.slug)}
@@ -206,7 +200,7 @@ export function PlaygroundSidebar({
             <>
             <div className="flex items-center gap-2 px-4 py-2">
               <span className="text-xs font-medium text-muted-foreground">
-                shadcn Components
+                Explore shadcn components
               </span>
               <Badge variant="secondary" className="text-xs">
                 {registry.length}

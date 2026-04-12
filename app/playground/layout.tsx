@@ -27,8 +27,8 @@ export default function PlaygroundLayout({
   const router = useRouter()
   const pathname = usePathname()
   const [sidebarWidth, setSidebarWidth] = React.useState(DEFAULT_WIDTH)
-  // Auto-collapse sidebar once a component is selected
-  const [sidebarOpen, setSidebarOpen] = React.useState(true)
+  // Sidebar starts collapsed unless on the index page
+  const [sidebarOpen, setSidebarOpen] = React.useState(pathname === "/playground")
 
   // Collapse sidebar when navigating to a component page
   React.useEffect(() => {

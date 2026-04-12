@@ -187,6 +187,20 @@ describe("addSubComponent / removeSubComponent / renameSubComponent", () => {
     })
   })
 
+  test("renaming root cascades to child sub-component names", () => {
+    let tree = createComponentTreeV2("Gege", "div")
+    tree = addSubComponent(tree, "GegeSgds", "div")
+    tree = addSubComponent(tree, "GegeSgs", "div")
+
+    const renamed = renameSubComponent(tree, 0, "AnotheRard", "div")
+
+    expect(renamed.subComponents[0].name).toBe("AnotheRard")
+    expect(renamed.subComponents[1].name).toBe("AnotheRardSgds")
+    expect(renamed.subComponents[1].dataSlot).toBe("anothe-rard-sgds")
+    expect(renamed.subComponents[2].name).toBe("AnotheRardSgs")
+    expect(renamed.subComponents[2].dataSlot).toBe("anothe-rard-sgs")
+  })
+
   test("reorderSubComponents updates exportOrder", () => {
     const tree = createComponentTreeV2("MyCard", "div")
     const withSubs = addSubComponent(

@@ -443,12 +443,12 @@ export function DefineView({ tree, onTreeChange }: DefineViewProps) {
               </div>
             </div>
           ) : (
-            <Empty className="py-8">
+            <Empty className="bg-muted/30 border border-dashed">
               <EmptyHeader>
                 <EmptyMedia variant="icon">
                   <Layers />
                 </EmptyMedia>
-                <EmptyTitle className="text-sm">No sub-components yet</EmptyTitle>
+                <EmptyTitle>No sub-components yet</EmptyTitle>
                 <EmptyDescription>
                   Add one to create a compound component.
                 </EmptyDescription>
