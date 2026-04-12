@@ -20,6 +20,7 @@ import {
   deleteUserComponent,
   type UserComponent,
 } from "@/lib/component-store"
+import { CreateComponentDialog } from "@/components/playground/create-component-dialog"
 
 /* ── Types ──────────────────────────────────────────────────────── */
 
@@ -135,13 +136,15 @@ export function PlaygroundSidebar({
                     {customComponents.length}
                   </Badge>
                 )}
-                <a
-                  href="/playground/new"
-                  className="ml-auto rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground"
-                  title="Create new component"
-                >
-                  <Plus className="size-3.5" />
-                </a>
+                <CreateComponentDialog>
+                  <button
+                    type="button"
+                    className="ml-auto rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground"
+                    title="Create new component"
+                  >
+                    <Plus className="size-3.5" />
+                  </button>
+                </CreateComponentDialog>
               </div>
               <div className="space-y-0.5">
                 {customComponents.map((uc) => (

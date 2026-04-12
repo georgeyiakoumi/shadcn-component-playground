@@ -1,11 +1,11 @@
 "use client"
 
 import * as React from "react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Plus, Code2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { CreateComponentDialog } from "@/components/playground/create-component-dialog"
 import {
   Command,
   CommandEmpty,
@@ -70,12 +70,12 @@ export default function Home() {
         </Command>
 
         {/* ── Action button ──────────────────────────────────── */}
-        <Button asChild>
-          <Link href="/playground/new?mode=scratch">
+        <CreateComponentDialog>
+          <Button>
             <Plus className="mr-2 size-4" />
             Create from scratch
-          </Link>
-        </Button>
+          </Button>
+        </CreateComponentDialog>
       </div>
 
       {/* ── Footer attribution ──────────────────────────────── */}

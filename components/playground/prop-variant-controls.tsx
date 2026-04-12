@@ -1,8 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Plus, Pencil, X, ToggleLeft, Type, Hash, Blocks, Diamond } from "lucide-react"
-
+import { Plus, Pencil, X, ToggleLeft, Type, Hash, Blocks, Diamond, Puzzle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -34,6 +33,13 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+} from "@/components/ui/empty"
 import type { ComponentProp, CustomVariantDef } from "@/lib/component-state"
 
 /* ── VariantStrategyPicker ──────────────────────────────────────── */
@@ -225,7 +231,7 @@ export function VariantRow({
 
 /* ── AddPropPopover ── */
 
-export function AddPropPopover({ onAdd }: { onAdd: (prop: ComponentProp) => void }) {
+export function AddPropPopover({ onAdd, label }: { onAdd: (prop: ComponentProp) => void; label?: string }) {
   const [open, setOpen] = React.useState(false)
   const [name, setName] = React.useState("")
   const [type, setType] = React.useState<ComponentProp["type"]>("string")
@@ -249,7 +255,7 @@ export function AddPropPopover({ onAdd }: { onAdd: (prop: ComponentProp) => void
       <PopoverTrigger asChild>
         <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs text-muted-foreground">
           <Plus className="size-3.5" />
-          Add prop
+          {label ?? "Add prop"}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-72 space-y-3 p-3" align="start">
@@ -440,7 +446,7 @@ export function VariantOptionsEditor({
 
 /* ── AddVariantPopover ── */
 
-export function AddVariantPopover({ onAdd }: { onAdd: (v: CustomVariantDef) => void }) {
+export function AddVariantPopover({ onAdd, label }: { onAdd: (v: CustomVariantDef) => void; label?: string }) {
   const [open, setOpen] = React.useState(false)
   const [name, setName] = React.useState("")
   const [type, setType] = React.useState<"variant" | "boolean">("variant")
@@ -493,7 +499,7 @@ export function AddVariantPopover({ onAdd }: { onAdd: (v: CustomVariantDef) => v
       <PopoverTrigger asChild>
         <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs text-muted-foreground">
           <Plus className="size-3.5" />
-          Add variant
+          {label ?? "Add variant"}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80 space-y-3 p-3" align="start">
@@ -702,16 +708,59 @@ export function InlineVariantsSection({
   onUpdate,
   onDelete,
   onAdd,
+  optional,
+  headless,
 }: {
   variants: CustomVariantDef[]
   onUpdate: (index: number, updated: CustomVariantDef) => void
   onDelete: (index: number) => void
   onAdd: (variant: CustomVariantDef) => void
+  optional?: boolean
+  headless?: boolean
 }) {
+  if (headless) {
+    return (
+      <div>
+        {variants.length === 0 ? (
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Diamond />
+              </EmptyMedia>
+              <EmptyTitle>No variants yet</EmptyTitle>
+              <EmptyDescription>
+                Add different styles like size or colour options.
+              </EmptyDescription>
+            </EmptyHeader>
+            <AddVariantPopover
+              onAdd={onAdd}
+              label="Add your first variant"
+            />
+          </Empty>
+        ) : (
+          <div className="space-y-1">
+            {variants.map((v, i) => (
+              <VariantRow
+                key={`${v.name}-${i}`}
+                variant={v}
+                onUpdate={(updated) => onUpdate(i, updated)}
+                onDelete={() => onDelete(i)}
+              />
+            ))}
+            <AddVariantPopover onAdd={onAdd} />
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between pb-1">
-        <h4 className="text-sm font-medium">Variants</h4>
+        <h4 className="text-sm font-medium">
+          Variants
+          {optional && <span className="ml-1.5 font-normal text-muted-foreground">(optional)</span>}
+        </h4>
         <AddVariantPopover onAdd={onAdd} />
       </div>
       {variants.length === 0 ? (
@@ -739,16 +788,59 @@ export function InlinePropsSection({
   onUpdate,
   onDelete,
   onAdd,
+  optional,
+  headless,
 }: {
   props: ComponentProp[]
   onUpdate: (index: number, updated: ComponentProp) => void
   onDelete: (index: number) => void
   onAdd: (prop: ComponentProp) => void
+  optional?: boolean
+  headless?: boolean
 }) {
+  if (headless) {
+    return (
+      <div>
+        {props.length === 0 ? (
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Puzzle />
+              </EmptyMedia>
+              <EmptyTitle>No props yet</EmptyTitle>
+              <EmptyDescription>
+                Props let you pass data into your component.
+              </EmptyDescription>
+            </EmptyHeader>
+            <AddPropPopover
+              onAdd={onAdd}
+              label="Add your first prop"
+            />
+          </Empty>
+        ) : (
+          <div className="space-y-1">
+            {props.map((p, i) => (
+              <PropRow
+                key={`${p.name}-${i}`}
+                prop={p}
+                onUpdate={(updated) => onUpdate(i, updated)}
+                onDelete={() => onDelete(i)}
+              />
+            ))}
+            <AddPropPopover onAdd={onAdd} />
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between pb-1">
-        <h4 className="text-sm font-medium">Props</h4>
+        <h4 className="text-sm font-medium">
+          Props
+          {optional && <span className="ml-1.5 font-normal text-muted-foreground">(optional)</span>}
+        </h4>
         <AddPropPopover onAdd={onAdd} />
       </div>
       {props.length === 0 ? (
