@@ -210,6 +210,7 @@ export interface SubComponentV2 {
    */
   nestInside?: string
   namedGroup?: boolean
+  containerQuery?: boolean
   headingFont?: boolean
 }
 

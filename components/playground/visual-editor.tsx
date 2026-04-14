@@ -164,6 +164,7 @@ export function VisualEditor({
   // Section key groups for hasValues / clear
   const SECTION_KEYS: Record<string, (keyof ControlState)[]> = React.useMemo(() => ({
     layout: [
+      "container", "containerName",
       "display", "direction", "justify", "align", "gap", "gapX", "gapY",
       "flexWrap", "alignContent", "gridCols", "gridRows", "gridFlow", "autoRows", "autoCols",
       "justifyItems",
@@ -307,6 +308,7 @@ export function VisualEditor({
             isFlex={isFlex}
             isGrid={isGrid}
             selectedElementTagName={selectedElement.tagName}
+            selectedElementDataSlot={selectedElement.domElement?.dataset?.slot ?? undefined}
             isUserChange={isUserChange}
             setState={setState}
           />

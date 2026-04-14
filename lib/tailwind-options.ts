@@ -47,6 +47,7 @@ export function getNativeDisplay(tag: string): string {
 
 /* ── Class-to-state mapping ──────────────────────────────────────── */
 
+export const CONTAINER_OPTIONS = ["@container"]
 export const DISPLAY_OPTIONS = [
   "block", "inline-block", "inline", "flex", "inline-flex",
   "grid", "inline-grid", "contents", "hidden",

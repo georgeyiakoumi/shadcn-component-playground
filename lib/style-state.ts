@@ -10,6 +10,7 @@ import {
   getNativeDisplay,
   TW_SWATCH_COLORS,
   PLACE_ITEMS_MAP,
+  CONTAINER_OPTIONS,
   DISPLAY_OPTIONS,
   DIRECTION_OPTIONS,
   JUSTIFY_OPTIONS,
@@ -179,6 +180,9 @@ import {
 /* ── ControlState interface ──────────────────────────────────────── */
 
 export interface ControlState {
+  // Container queries
+  container: string
+  containerName: string
   // Layout — shared
   display: string
   // Layout — flex/grid only
@@ -441,7 +445,16 @@ export function classesToControlState(classes: string[], context: StyleContext =
     parsedAlign = `items-${axis}`
   }
 
+  // Parse @container and @container/{name}
+  const containerClass = classes.find((c) => c === "@container" || c.startsWith("@container/"))
+  const parsedContainer = containerClass ? "@container" : ""
+  const parsedContainerName = containerClass?.startsWith("@container/")
+    ? containerClass.replace("@container/", "")
+    : ""
+
   return {
+    container: parsedContainer,
+    containerName: parsedContainerName,
     display: findMatch(classes, DISPLAY_OPTIONS),
     direction: findMatch(classes, DIRECTION_OPTIONS),
     justify: parsedJustify,
@@ -622,6 +635,7 @@ export function classesToControlState(classes: string[], context: StyleContext =
 
 /** All class prefixes that the visual editor manages. */
 export const MANAGED_PREFIXES = [
+  ...CONTAINER_OPTIONS,
   ...DISPLAY_OPTIONS,
   ...DIRECTION_OPTIONS,
   ...JUSTIFY_OPTIONS,
@@ -796,6 +810,15 @@ export function controlStateToClasses(state: ControlState, context: StyleContext
   const result: string[] = []
   const push = (v: string) => {
     if (v) result.push(addPrefix(v, context))
+  }
+
+  // Container queries
+  if (state.container) {
+    if (state.containerName) {
+      push(`@container/${state.containerName}`)
+    } else {
+      push("@container")
+    }
   }
 
   // Don't emit display class if it matches the element's native default

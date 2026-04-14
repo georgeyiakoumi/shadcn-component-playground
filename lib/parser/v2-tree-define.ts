@@ -560,6 +560,7 @@ export function renameSubComponent(
 export interface AddSubComponentOptions {
   nestInside?: string
   namedGroup?: boolean
+  containerQuery?: boolean
   headingFont?: boolean
 }
 
@@ -594,6 +595,7 @@ export function addSubComponent(
     },
     nestInside: options.nestInside,
     namedGroup: options.namedGroup,
+    containerQuery: options.containerQuery,
     headingFont: options.headingFont,
   }
   return { ...tree, subComponents: [...tree.subComponents, newSub] }
@@ -614,6 +616,7 @@ export function updateSubComponentFlags(
     ...sub,
     nestInside: flags.nestInside,
     namedGroup: flags.namedGroup,
+    containerQuery: flags.containerQuery,
     headingFont: flags.headingFont,
   }
   return { ...tree, subComponents: newSubs }

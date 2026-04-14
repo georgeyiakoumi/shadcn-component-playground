@@ -1,17 +1,20 @@
 # Project: Component Lab
 **Type:** Web app
 **Created:** 2026-03-25
+**Status:** Launched. Live at https://comp-lab.netlify.app
 
 ## Stack
 
 | Layer | Tool |
 |---|---|
 | Framework | Next.js (App Router) |
-| Styling | Tailwind CSS |
-| Components | shadcn/ui |
+| Styling | Tailwind CSS v4 |
+| Components | shadcn/ui (new-york style) |
 | Icons | Lucide React |
-| Database | Supabase |
+| Database | Supabase (planned for auth) |
 | Deployment | Netlify |
+| Syntax highlighting | Shiki |
+| Carousel | Embla |
 
 ## Active MCPs
 
@@ -27,13 +30,15 @@
 - If scope changes, update Notion first, then adjust Linear to match
 - Never create Linear issues without a corresponding Notion plan entry
 - For diagrams (IA, flows, architecture), use Mermaid code blocks in Notion — not Excalidraw
-- **Round-trip fidelity (M4 onwards):** the M4 parser must read every shadcn registry component and the M4 generator must emit it byte-equivalently. shadcn source is the ground truth. If a component can't round-trip, the parser is broken — never reformat the component to fit the parser. Enforced by the Pillar 4 CI test (GEO-289). This rule applies to any code that touches `components/ui/` or the `ComponentTreeV2` model, not just M4 work.
+- **Round-trip fidelity:** the parser must read every shadcn registry component and the generator must emit it byte-equivalently. shadcn source is the ground truth. If a component can't round-trip, the parser is broken — never reformat the component to fit the parser. Enforced by CI (55 round-trip tests). This rule applies to any code that touches `components/ui/` or the `ComponentTreeV2` model.
+- **Always run E2E tests locally before pushing.** Never use CI as a debugger.
+- **Never push code without George confirming it renders correctly in the browser.**
 
 ## Current milestone
 
-**M4 — Unified Editor** (target 2026-05-15). Make the M3 visual editor the only editor in the playground via a shadcn-source-to-ComponentTree parser with strict round-trip fidelity. Includes a foundation reset (React 19, Tailwind v4, shadcn registry refresh, default→new-york style migration, toast→sonner cleanup) as Phase 0. Full plan and dependency chain in Notion under "M4 — Unified Editor: pillars and dependency chain".
+**M5 — Polish & Ship** (target 2026-05-30). The final milestone. Edge cases, performance, onboarding, user accounts, deployment polish.
 
-After M4 ships, M5 — Polish & Ship is the final milestone (edge cases, performance, onboarding, user accounts, deployment).
+Completed milestones: M1 (Inspect & Browse), M2 (Edit & Customize), M3 (Build from Scratch), M4 (Unified Editor). Full history in Notion master plan.
 
 ---
 
@@ -78,10 +83,10 @@ This project uses the following by default. Do not introduce alternatives unless
 | Layer | Tool |
 |---|---|
 | Framework | Next.js (App Router) |
-| Styling | Tailwind CSS |
-| Components | shadcn/ui |
+| Styling | Tailwind CSS v4 |
+| Components | shadcn/ui (new-york style) |
 | Icons | Lucide React |
-| Database | Supabase |
+| Database | Supabase (planned for auth) |
 | Deployment | Netlify |
 
 ---

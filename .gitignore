@@ -31,6 +31,9 @@ playwright-report/
 test-results/
 blob-report/
 
+# Reference files (local only)
+reference/
+
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts

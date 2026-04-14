@@ -55,6 +55,7 @@ interface LayoutSectionProps extends SectionProps, SectionCallbacks {
   isFlex: boolean
   isGrid: boolean
   selectedElementTagName: string
+  selectedElementDataSlot?: string
   isUserChange: React.MutableRefObject<boolean>
   setState: React.Dispatch<React.SetStateAction<ControlState>>
 }
@@ -76,6 +77,7 @@ export function LayoutSection({
   isFlex,
   isGrid,
   selectedElementTagName,
+  selectedElementDataSlot,
   isUserChange,
   setState,
 }: LayoutSectionProps) {
