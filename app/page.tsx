@@ -42,12 +42,19 @@ function Hero() {
         The visual workspace for shadcn/ui. Explore components, build
         new ones, and export production-ready code.
       </p>
-      <Button asChild size="lg" className="hidden lg:inline-flex">
-        <Link href="/playground">
-          Launch Component Lab
-          <ArrowRight className="ml-2 size-4" />
-        </Link>
-      </Button>
+      <Link href="/playground" className="group/btn hidden lg:inline-flex">
+        <Button size="lg" className="overflow-hidden">
+          <span className="relative inline-flex overflow-hidden">
+            <span className="flex items-center transition-transform duration-300 group-hover/btn:-translate-y-full">
+              Launch Component Lab
+            </span>
+            <span className="absolute inset-0 flex items-center transition-transform duration-300 translate-y-full group-hover/btn:translate-y-0">
+              Launch Component Lab
+            </span>
+          </span>
+          <ArrowRight className="ml-2 size-4 transition-transform duration-300 group-hover/btn:translate-x-1" />
+        </Button>
+      </Link>
       <Button size="lg" disabled className="lg:hidden">
         Desktop only
       </Button>
@@ -71,9 +78,10 @@ function Screenshot({
           alt={`${feature.label} screenshot`}
           fill
           className={cn(
-            "object-cover object-left-top transition-opacity duration-500",
+            "pointer-events-none object-cover object-left-top transition-opacity duration-500",
             i === featureIndex ? "opacity-100" : "opacity-0",
           )}
+          draggable={false}
           priority={i === 0}
         />
       ))}
@@ -145,6 +153,19 @@ export default function Home() {
   const [featureIndex, setFeatureIndex] = React.useState(0)
   const [carouselApi, setCarouselApi] = React.useState<CarouselApi>()
   const current = features[featureIndex]
+  const [tilt, setTilt] = React.useState({ x: 2, y: -4 })
+  const rightColRef = React.useRef<HTMLDivElement>(null)
+
+  const handleMouseMove = React.useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = (e.clientX - rect.left) / rect.width - 0.5  // -0.5 to 0.5
+    const y = (e.clientY - rect.top) / rect.height - 0.5
+    setTilt({ x: y * -3, y: x * 4 })  // subtle: 3deg vertical, 4deg horizontal
+  }, [])
+
+  const handleMouseLeave = React.useCallback(() => {
+    setTilt({ x: 2, y: -4 })  // return to default resting tilt
+  }, [])
 
   // Sync tabs when carousel is swiped
   React.useEffect(() => {
@@ -204,15 +225,25 @@ export default function Home() {
       {/* ── Desktop layout ────────────────────────────────────── */}
       <main className="hidden h-screen w-screen overflow-hidden lg:flex">
         {/* Left column */}
-        <div className="flex w-[45%] flex-col justify-center bg-muted p-14">
+        <div className="flex w-[45%] flex-col items-center justify-center bg-gradient-to-l from-muted to-muted/0 p-14 text-center">
           <Hero />
-          <Footer className="mt-auto pt-8" />
+          <Footer className="mt-8" />
         </div>
 
         {/* Right column */}
-        <div className="flex w-[55%] flex-col p-14">
-          <div className="flex flex-1 items-center justify-center">
-            <Screenshot features={features} featureIndex={featureIndex} />
+        <div
+          ref={rightColRef}
+          className="flex w-[55%] flex-col p-14"
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+        >
+          <div className="flex flex-1 items-center justify-center [perspective:1200px]">
+            <div
+              className="w-full transition-transform duration-300 ease-out"
+              style={{ transform: `rotateY(${tilt.y}deg) rotateX(${tilt.x}deg)` }}
+            >
+              <Screenshot features={features} featureIndex={featureIndex} />
+            </div>
           </div>
           <FeatureTabs
             features={features}
