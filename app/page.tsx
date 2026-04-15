@@ -43,7 +43,7 @@ function Hero() {
         new ones, and export production-ready code.
       </p>
       <Link href="/playground" className="group/btn hidden lg:inline-flex">
-        <Button size="lg" className="overflow-hidden">
+        <Button size="lg" className="cursor-pointer overflow-hidden">
           <span className="relative inline-flex overflow-hidden">
             <span className="flex items-center transition-transform duration-300 group-hover/btn:-translate-y-full">
               Launch Component Lab
@@ -153,19 +153,6 @@ export default function Home() {
   const [featureIndex, setFeatureIndex] = React.useState(0)
   const [carouselApi, setCarouselApi] = React.useState<CarouselApi>()
   const current = features[featureIndex]
-  const [tilt, setTilt] = React.useState({ x: 2, y: -4 })
-  const rightColRef = React.useRef<HTMLDivElement>(null)
-
-  const handleMouseMove = React.useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    const x = (e.clientX - rect.left) / rect.width - 0.5  // -0.5 to 0.5
-    const y = (e.clientY - rect.top) / rect.height - 0.5
-    setTilt({ x: y * -3, y: x * 4 })  // subtle: 3deg vertical, 4deg horizontal
-  }, [])
-
-  const handleMouseLeave = React.useCallback(() => {
-    setTilt({ x: 2, y: -4 })  // return to default resting tilt
-  }, [])
 
   // Sync tabs when carousel is swiped
   React.useEffect(() => {
@@ -231,17 +218,9 @@ export default function Home() {
         </div>
 
         {/* Right column */}
-        <div
-          ref={rightColRef}
-          className="flex w-[55%] flex-col p-14"
-          onMouseMove={handleMouseMove}
-          onMouseLeave={handleMouseLeave}
-        >
-          <div className="flex flex-1 items-center justify-center [perspective:1200px]">
-            <div
-              className="w-full transition-transform duration-300 ease-out"
-              style={{ transform: `rotateY(${tilt.y}deg) rotateX(${tilt.x}deg)` }}
-            >
+        <div className="flex w-[55%] flex-col p-14">
+          <div className="flex flex-1 items-center justify-center">
+            <div className="w-full">
               <Screenshot features={features} featureIndex={featureIndex} />
             </div>
           </div>
