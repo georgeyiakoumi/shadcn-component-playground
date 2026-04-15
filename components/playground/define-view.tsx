@@ -55,9 +55,9 @@ import {
 import {
   Select,
   SelectContent,
-  SelectGroup,
+
   SelectItem,
-  SelectLabel,
+
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
@@ -73,6 +73,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { VariantStrategyPicker } from "@/components/playground/prop-variant-controls"
+import {
+  BaseElementSelect,
+  ConventionToggles,
+} from "@/components/playground/shared-form-controls"
 
 import type { ComponentTreeV2, SubComponentV2 } from "@/lib/component-tree-v2"
 import type { ComponentProp, CustomVariantDef } from "@/lib/component-state"
@@ -93,41 +97,6 @@ import {
 
 const PROP_TYPES = ["string", "number", "boolean", "ReactNode"] as const
 
-const HTML_ELEMENTS = [
-  "div",
-  "section",
-  "header",
-  "footer",
-  "nav",
-  "aside",
-  "span",
-  "p",
-  "ul",
-  "li",
-  "button",
-  "a",
-  "form",
-  "input",
-  "textarea",
-  "select",
-  "img",
-  "article",
-]
-
-const SHADCN_BASE_COMPONENTS = [
-  "Button",
-  "Badge",
-  "Input",
-  "Label",
-  "Separator",
-  "Checkbox",
-  "Switch",
-  "Slider",
-  "Progress",
-  "Skeleton",
-  "Avatar",
-  "Toggle",
-]
 
 /** Local helper — kebab-case for data slot, mirrors the factories' helper. */
 function toDataSlot(name: string): string {
@@ -288,12 +257,14 @@ export function DefineView({ tree, onTreeChange }: DefineViewProps) {
     baseTag: string,
     nestInside?: string,
     namedGroup?: boolean,
+    containerQuery?: boolean,
     headingFont?: boolean,
   ) {
     onTreeChange(
       addSubComponent(tree, name, baseTag, {
         nestInside,
         namedGroup,
+        containerQuery,
         headingFont,
       }),
     )
@@ -309,6 +280,7 @@ export function DefineView({ tree, onTreeChange }: DefineViewProps) {
     newBaseTag: string,
     nestInside?: string,
     namedGroup?: boolean,
+    containerQuery?: boolean,
     headingFont?: boolean,
   ) {
     // Rename + base tag change first, then update flags
@@ -316,6 +288,7 @@ export function DefineView({ tree, onTreeChange }: DefineViewProps) {
     next = updateSubComponentFlags(next, scIndex, {
       nestInside,
       namedGroup,
+      containerQuery,
       headingFont,
     })
     onTreeChange(next)
@@ -346,17 +319,19 @@ export function DefineView({ tree, onTreeChange }: DefineViewProps) {
                 name={tree.name}
                 baseElement={rootBaseTag}
                 isCompound
-                onSave={(newName, newBaseElement) => {
-                  // Renaming the root also renames the tree's `name`. The
-                  // helper updates the sub-component, then we update the
-                  // tree-level name afterwards.
+                namedGroup={tree.subComponents[0]?.namedGroup}
+                containerQuery={tree.subComponents[0]?.containerQuery}
+                headingFont={tree.subComponents[0]?.headingFont}
+                onSave={(newName, newBaseElement, _nestInside, namedGroup, containerQuery, headingFont) => {
                   const renamed = renameSubComponent(
                     tree,
                     0,
                     newName,
                     newBaseElement,
                   )
-                  onTreeChange({ ...renamed, name: newName, slug: toSlug(newName) })
+                  const updatedSubs = [...renamed.subComponents]
+                  updatedSubs[0] = { ...updatedSubs[0], namedGroup, containerQuery, headingFont }
+                  onTreeChange({ ...renamed, name: newName, slug: toSlug(newName), subComponents: updatedSubs })
                 }}
               />
               <AlertDialog>
@@ -469,12 +444,13 @@ export function DefineView({ tree, onTreeChange }: DefineViewProps) {
           <AddSubComponentDialog
             parentName={tree.name}
             existingNames={childSubs.map((sc) => sc.name)}
-            onAdd={(name, baseTag, nestInside, namedGroup, headingFont) =>
+            onAdd={(name, baseTag, nestInside, namedGroup, containerQuery, headingFont) =>
               handleAddSubComponent(
                 name,
                 baseTag,
                 nestInside,
                 namedGroup,
+                containerQuery,
                 headingFont,
               )
             }
@@ -509,6 +485,7 @@ export function DefineView({ tree, onTreeChange }: DefineViewProps) {
                       baseElement={subBaseTag}
                       nestInside={sc.nestInside}
                       namedGroup={sc.namedGroup}
+                      containerQuery={sc.containerQuery}
                       headingFont={sc.headingFont}
                       existingSubNames={childSubs
                         .filter((other) => other.name !== sc.name)
@@ -518,6 +495,7 @@ export function DefineView({ tree, onTreeChange }: DefineViewProps) {
                         newBaseElement,
                         newNestInside,
                         newNamedGroup,
+                        newContainerQuery,
                         newHeadingFont,
                       ) => {
                         handleEditSubComponent(
@@ -526,6 +504,7 @@ export function DefineView({ tree, onTreeChange }: DefineViewProps) {
                           newBaseElement,
                           newNestInside,
                           newNamedGroup,
+                          newContainerQuery,
                           newHeadingFont,
                         )
                       }}
@@ -1285,6 +1264,7 @@ function EditSettingsDialog({
   isCompound,
   nestInside: initialNestInside,
   namedGroup: initialNamedGroup,
+  containerQuery: initialContainerQuery,
   headingFont: initialHeadingFont,
   existingSubNames,
   onSave,
@@ -1294,6 +1274,7 @@ function EditSettingsDialog({
   isCompound?: boolean
   nestInside?: string
   namedGroup?: boolean
+  containerQuery?: boolean
   headingFont?: boolean
   /** Other sub-component names this can nest inside (excluding self). */
   existingSubNames?: string[]
@@ -1302,6 +1283,7 @@ function EditSettingsDialog({
     baseElement: string,
     nestInside?: string,
     namedGroup?: boolean,
+    containerQuery?: boolean,
     headingFont?: boolean,
   ) => void
 }) {
@@ -1311,6 +1293,9 @@ function EditSettingsDialog({
   const [nestInside, setNestInside] = React.useState(initialNestInside ?? "")
   const [namedGroup, setNamedGroup] = React.useState<boolean>(
     initialNamedGroup ?? false,
+  )
+  const [containerQuery, setContainerQuery] = React.useState<boolean>(
+    initialContainerQuery ?? false,
   )
   const [headingFont, setHeadingFont] = React.useState<boolean>(
     initialHeadingFont ?? false,
@@ -1323,6 +1308,7 @@ function EditSettingsDialog({
       setBaseElement(initialBaseElement)
       setNestInside(initialNestInside ?? "")
       setNamedGroup(initialNamedGroup ?? false)
+      setContainerQuery(initialContainerQuery ?? false)
       setHeadingFont(initialHeadingFont ?? false)
     }
   }, [
@@ -1331,6 +1317,7 @@ function EditSettingsDialog({
     initialBaseElement,
     initialNestInside,
     initialNamedGroup,
+    initialContainerQuery,
     initialHeadingFont,
   ])
 
@@ -1376,34 +1363,13 @@ function EditSettingsDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs">Based on</Label>
-            <Select value={baseElement} onValueChange={setBaseElement}>
-              <SelectTrigger className="h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel className="text-xs text-muted-foreground">
-                    HTML elements
-                  </SelectLabel>
-                  {HTML_ELEMENTS.map((el) => (
-                    <SelectItem key={el} value={el} className="text-xs">
-                      &lt;{el}&gt;
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-                <SelectGroup>
-                  <SelectLabel className="text-xs text-muted-foreground">
-                    shadcn components
-                  </SelectLabel>
-                  {SHADCN_BASE_COMPONENTS.map((el) => (
-                    <SelectItem key={el} value={el} className="text-xs">
-                      {el}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+            <Label className="text-xs">Base HTML element</Label>
+            <BaseElementSelect
+              value={baseElement}
+              onValueChange={setBaseElement}
+              size="sm"
+              includeShadcn
+            />
           </div>
 
           {/* Nests inside — sub-components only */}
@@ -1431,29 +1397,15 @@ function EditSettingsDialog({
             </div>
           )}
 
-          {/* Conventions — sub-components only */}
-          {isSubComponent && (
-            <div className="space-y-2 rounded-md border bg-muted/40 p-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-0.5">
-                  <Label className="text-xs">Named group</Label>
-                  <p className="text-[11px] leading-snug text-muted-foreground">
-                    Adds <code className="rounded bg-muted px-1">group/{toDataSlot(initialName || editName || "name")}</code> so children can use <code className="rounded bg-muted px-1">group-data-[…]/name:</code> modifiers.
-                  </p>
-                </div>
-                <Switch checked={namedGroup} onCheckedChange={setNamedGroup} />
-              </div>
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-0.5">
-                  <Label className="text-xs">Heading font</Label>
-                  <p className="text-[11px] leading-snug text-muted-foreground">
-                    Adds <code className="rounded bg-muted px-1">cn-font-heading</code> for heading typography (uses <code className="rounded bg-muted px-1">--font-heading</code>).
-                  </p>
-                </div>
-                <Switch checked={headingFont} onCheckedChange={setHeadingFont} />
-              </div>
-            </div>
-          )}
+          <ConventionToggles
+            name={pascalName || initialName}
+            namedGroup={namedGroup}
+            onNamedGroupChange={setNamedGroup}
+            containerQuery={containerQuery}
+            onContainerQueryChange={setContainerQuery}
+            headingFont={headingFont}
+            onHeadingFontChange={setHeadingFont}
+          />
         </div>
 
         <AlertDialogFooter>
@@ -1464,8 +1416,9 @@ function EditSettingsDialog({
                 pascalName || initialName,
                 baseElement,
                 isSubComponent ? (nestInside || undefined) : undefined,
-                isSubComponent ? namedGroup : undefined,
-                isSubComponent ? headingFont : undefined,
+                namedGroup,
+                containerQuery,
+                headingFont,
               )
             }
             disabled={!pascalName}
@@ -1584,6 +1537,7 @@ function AddSubComponentDialog({
     baseTag: string,
     nestInside?: string,
     namedGroup?: boolean,
+    containerQuery?: boolean,
     headingFont?: boolean,
   ) => void
   open?: boolean
@@ -1596,6 +1550,7 @@ function AddSubComponentDialog({
   const [baseElement, setBaseElement] = React.useState("div")
   const [nestInside, setNestInside] = React.useState("")
   const [namedGroup, setNamedGroup] = React.useState<boolean>(false)
+  const [containerQuery, setContainerQuery] = React.useState<boolean>(false)
   const [headingFont, setHeadingFont] = React.useState<boolean>(false)
   const [error, setError] = React.useState<string | null>(null)
 
@@ -1610,6 +1565,7 @@ function AddSubComponentDialog({
     setBaseElement("div")
     setNestInside("")
     setNamedGroup(false)
+    setContainerQuery(false)
     setHeadingFont(false)
     setError(null)
   }
@@ -1628,6 +1584,7 @@ function AddSubComponentDialog({
       baseElement,
       nestInside || undefined,
       namedGroup,
+      containerQuery,
       headingFont,
     )
     resetForm()
@@ -1648,6 +1605,7 @@ function AddSubComponentDialog({
       baseElement,
       nestInside || undefined,
       namedGroup,
+      containerQuery,
       headingFont,
     )
     const keepBase = baseElement
@@ -1695,34 +1653,13 @@ function AddSubComponentDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs">Based on</Label>
-            <Select value={baseElement} onValueChange={setBaseElement}>
-              <SelectTrigger className="h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel className="text-xs text-muted-foreground">
-                    HTML elements
-                  </SelectLabel>
-                  {HTML_ELEMENTS.map((el) => (
-                    <SelectItem key={el} value={el} className="text-xs">
-                      &lt;{el}&gt;
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-                <SelectGroup>
-                  <SelectLabel className="text-xs text-muted-foreground">
-                    shadcn components
-                  </SelectLabel>
-                  {SHADCN_BASE_COMPONENTS.map((el) => (
-                    <SelectItem key={el} value={el} className="text-xs">
-                      {el}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+            <Label className="text-xs">Base HTML element</Label>
+            <BaseElementSelect
+              value={baseElement}
+              onValueChange={setBaseElement}
+              size="sm"
+              includeShadcn
+            />
           </div>
 
           {/* Nests inside */}
@@ -1748,27 +1685,15 @@ function AddSubComponentDialog({
             </Select>
           </div>
 
-          {/* Conventions */}
-          <div className="space-y-2 rounded-md border bg-muted/40 p-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-0.5">
-                <Label className="text-xs">Named group</Label>
-                <p className="text-[11px] leading-snug text-muted-foreground">
-                  Adds <code className="rounded bg-muted px-1">group/{toDataSlot(pascalName || "name")}</code> so children can use <code className="rounded bg-muted px-1">group-data-[…]/name:</code> modifiers.
-                </p>
-              </div>
-              <Switch checked={namedGroup} onCheckedChange={setNamedGroup} />
-            </div>
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-0.5">
-                <Label className="text-xs">Heading font</Label>
-                <p className="text-[11px] leading-snug text-muted-foreground">
-                  Adds <code className="rounded bg-muted px-1">cn-font-heading</code> for heading typography (uses <code className="rounded bg-muted px-1">--font-heading</code>).
-                </p>
-              </div>
-              <Switch checked={headingFont} onCheckedChange={setHeadingFont} />
-            </div>
-          </div>
+          <ConventionToggles
+            name={pascalName}
+            namedGroup={namedGroup}
+            onNamedGroupChange={setNamedGroup}
+            containerQuery={containerQuery}
+            onContainerQueryChange={setContainerQuery}
+            headingFont={headingFont}
+            onHeadingFontChange={setHeadingFont}
+          />
 
           {error && <p className="text-xs text-destructive">{error}</p>}
         </div>

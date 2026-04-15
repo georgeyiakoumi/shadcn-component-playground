@@ -85,6 +85,11 @@ export function RightPanel({
                 selectedElement={selectedElement}
                 onClassChange={onClassChange ?? (() => {})}
                 onDeselect={onDeselect ?? (() => {})}
+                baseDisplay={
+                  selectedElement?.currentClasses?.find((c) =>
+                    ["flex", "inline-flex", "grid", "inline-grid", "block", "inline", "inline-block", "hidden", "contents"].includes(c)
+                  ) || ""
+                }
               />
             </div>
           </div>

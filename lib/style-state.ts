@@ -10,6 +10,7 @@ import {
   getNativeDisplay,
   TW_SWATCH_COLORS,
   PLACE_ITEMS_MAP,
+  CONTAINER_OPTIONS,
   DISPLAY_OPTIONS,
   DIRECTION_OPTIONS,
   JUSTIFY_OPTIONS,
@@ -109,6 +110,10 @@ import {
   GRADIENT_VIA_OPTIONS,
   GRADIENT_TO_OPTIONS,
   BORDER_RADIUS_OPTIONS,
+  BORDER_RADIUS_T_OPTIONS,
+  BORDER_RADIUS_R_OPTIONS,
+  BORDER_RADIUS_B_OPTIONS,
+  BORDER_RADIUS_L_OPTIONS,
   BORDER_RADIUS_TL_OPTIONS,
   BORDER_RADIUS_TR_OPTIONS,
   BORDER_RADIUS_BR_OPTIONS,
@@ -179,6 +184,9 @@ import {
 /* ── ControlState interface ──────────────────────────────────────── */
 
 export interface ControlState {
+  // Container queries
+  container: string
+  containerName: string
   // Layout — shared
   display: string
   // Layout — flex/grid only
@@ -300,6 +308,10 @@ export interface ControlState {
   gradientTo: string
   // Borders
   borderRadius: string
+  borderRadiusT: string
+  borderRadiusR: string
+  borderRadiusB: string
+  borderRadiusL: string
   borderRadiusTL: string
   borderRadiusTR: string
   borderRadiusBR: string
@@ -441,7 +453,16 @@ export function classesToControlState(classes: string[], context: StyleContext =
     parsedAlign = `items-${axis}`
   }
 
+  // Parse @container and @container/{name}
+  const containerClass = classes.find((c) => c === "@container" || c.startsWith("@container/"))
+  const parsedContainer = containerClass ? "@container" : ""
+  const parsedContainerName = containerClass?.startsWith("@container/")
+    ? containerClass.replace("@container/", "")
+    : ""
+
   return {
+    container: parsedContainer,
+    containerName: parsedContainerName,
     display: findMatch(classes, DISPLAY_OPTIONS),
     direction: findMatch(classes, DIRECTION_OPTIONS),
     justify: parsedJustify,
@@ -547,6 +568,10 @@ export function classesToControlState(classes: string[], context: StyleContext =
     gradientVia: findPrefixColorMatch(classes, "via"),
     gradientTo: findPrefixColorMatch(classes, "to"),
     borderRadius: findMatch(classes, BORDER_RADIUS_OPTIONS),
+    borderRadiusT: findMatch(classes, BORDER_RADIUS_T_OPTIONS),
+    borderRadiusR: findMatch(classes, BORDER_RADIUS_R_OPTIONS),
+    borderRadiusB: findMatch(classes, BORDER_RADIUS_B_OPTIONS),
+    borderRadiusL: findMatch(classes, BORDER_RADIUS_L_OPTIONS),
     borderRadiusTL: findMatch(classes, BORDER_RADIUS_TL_OPTIONS),
     borderRadiusTR: findMatch(classes, BORDER_RADIUS_TR_OPTIONS),
     borderRadiusBR: findMatch(classes, BORDER_RADIUS_BR_OPTIONS),
@@ -622,6 +647,7 @@ export function classesToControlState(classes: string[], context: StyleContext =
 
 /** All class prefixes that the visual editor manages. */
 export const MANAGED_PREFIXES = [
+  ...CONTAINER_OPTIONS,
   ...DISPLAY_OPTIONS,
   ...DIRECTION_OPTIONS,
   ...JUSTIFY_OPTIONS,
@@ -721,6 +747,10 @@ export const MANAGED_PREFIXES = [
   ...GRADIENT_VIA_OPTIONS,
   ...GRADIENT_TO_OPTIONS,
   ...BORDER_RADIUS_OPTIONS,
+  ...BORDER_RADIUS_T_OPTIONS,
+  ...BORDER_RADIUS_R_OPTIONS,
+  ...BORDER_RADIUS_B_OPTIONS,
+  ...BORDER_RADIUS_L_OPTIONS,
   ...BORDER_RADIUS_TL_OPTIONS,
   ...BORDER_RADIUS_TR_OPTIONS,
   ...BORDER_RADIUS_BR_OPTIONS,
@@ -796,6 +826,15 @@ export function controlStateToClasses(state: ControlState, context: StyleContext
   const result: string[] = []
   const push = (v: string) => {
     if (v) result.push(addPrefix(v, context))
+  }
+
+  // Container queries
+  if (state.container) {
+    if (state.containerName) {
+      push(`@container/${state.containerName}`)
+    } else {
+      push("@container")
+    }
   }
 
   // Don't emit display class if it matches the element's native default
@@ -919,6 +958,10 @@ export function controlStateToClasses(state: ControlState, context: StyleContext
   push(state.gradientVia)
   push(state.gradientTo)
   push(state.borderRadius)
+  push(state.borderRadiusT)
+  push(state.borderRadiusR)
+  push(state.borderRadiusB)
+  push(state.borderRadiusL)
   push(state.borderRadiusTL)
   push(state.borderRadiusTR)
   push(state.borderRadiusBR)

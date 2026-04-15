@@ -39,11 +39,15 @@ export function SpacingSection({
 
       <PaddingControl
         padding={state.padding}
+        paddingX={state.paddingX}
+        paddingY={state.paddingY}
         paddingTop={state.paddingTop}
         paddingRight={state.paddingRight}
         paddingBottom={state.paddingBottom}
         paddingLeft={state.paddingLeft}
         onPaddingChange={(v) => update("padding", v)}
+        onPaddingXChange={(v) => update("paddingX", v)}
+        onPaddingYChange={(v) => update("paddingY", v)}
         onPaddingTopChange={(v) => update("paddingTop", v)}
         onPaddingRightChange={(v) => update("paddingRight", v)}
         onPaddingBottomChange={(v) => update("paddingBottom", v)}
@@ -52,11 +56,15 @@ export function SpacingSection({
 
       <MarginControl
         margin={state.margin}
+        marginX={state.marginX}
+        marginY={state.marginY}
         marginTop={state.marginTop}
         marginRight={state.marginRight}
         marginBottom={state.marginBottom}
         marginLeft={state.marginLeft}
         onMarginChange={(v) => update("margin", v)}
+        onMarginXChange={(v) => update("marginX", v)}
+        onMarginYChange={(v) => update("marginY", v)}
         onMarginTopChange={(v) => update("marginTop", v)}
         onMarginRightChange={(v) => update("marginRight", v)}
         onMarginBottomChange={(v) => update("marginBottom", v)}

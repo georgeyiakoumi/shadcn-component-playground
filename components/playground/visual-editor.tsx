@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { X } from "lucide-react"
+import { X, Code2, Plus } from "lucide-react"
 
 import type { ElementInfo } from "@/components/playground/element-selector"
 import { Button } from "@/components/ui/button"
@@ -14,7 +14,9 @@ import { getNativeDisplay, DISPLAY_OPTIONS } from "@/lib/tailwind-options"
 import type { StyleContext } from "@/lib/style-context"
 import { getCssPrefix } from "@/lib/style-context"
 import type { ControlState } from "@/lib/style-state"
-import { classesToControlState, controlStateToClasses, mergeClasses } from "@/lib/style-state"
+import { classesToControlState, controlStateToClasses, mergeClasses, MANAGED_PREFIXES } from "@/lib/style-state"
+import { EditSection } from "@/components/playground/edit-panel-section"
+import { Badge } from "@/components/ui/badge"
 
 import { ContextPicker } from "@/components/playground/context-picker"
 import {
@@ -54,6 +56,119 @@ interface VisualEditorProps {
    * current element's own cva. Fires on every context change.
    */
   onContextsChange?: (contexts: string[]) => void
+  /** Base display value from the full (unprefixed) class list, computed by parent */
+  baseDisplay?: string
+}
+
+/* ── Raw class input for unmanaged modifiers ────────────────────── */
+
+function RawClassInput({
+  originalClasses,
+  state,
+  combinedPrefix,
+  selectedElementTagName,
+  onClassChange,
+  isUserChange,
+}: {
+  originalClasses: React.MutableRefObject<string[]>
+  state: ControlState
+  combinedPrefix: string
+  selectedElementTagName: string
+  onClassChange: (classes: string[]) => void
+  isUserChange: React.MutableRefObject<boolean>
+}) {
+  const [inputValue, setInputValue] = React.useState("")
+
+  // Compute unmanaged classes (ones not represented in ControlState)
+  const managedSet = React.useMemo(() => new Set(MANAGED_PREFIXES), [])
+  const managedOutput = React.useMemo(
+    () => new Set(controlStateToClasses(state, "default", selectedElementTagName)),
+    [state, selectedElementTagName],
+  )
+
+  const unmanagedClasses = React.useMemo(() => {
+    return originalClasses.current.filter((cls) => {
+      if (managedOutput.has(cls)) return false
+      // Check if the class (stripped of prefix) is in managed set
+      const stripped = cls.includes(":") ? cls.slice(cls.lastIndexOf(":") + 1) : cls
+      const slashIdx = stripped.lastIndexOf("/")
+      const base = slashIdx === -1 ? stripped : stripped.slice(0, slashIdx)
+      if (managedSet.has(stripped) || managedSet.has(base)) return false
+      // className and data-slot are not classes
+      if (cls === "className" || cls.startsWith("data-")) return false
+      return true
+    })
+  }, [originalClasses.current, managedOutput, managedSet])
+
+  const handleAdd = () => {
+    const cls = inputValue.trim()
+    if (!cls) return
+    if (!originalClasses.current.includes(cls)) {
+      originalClasses.current = [...originalClasses.current, cls]
+      isUserChange.current = true
+      onClassChange(mergeClasses(originalClasses.current, state, combinedPrefix, selectedElementTagName))
+    }
+    setInputValue("")
+  }
+
+  const handleRemove = (cls: string) => {
+    originalClasses.current = originalClasses.current.filter((c) => c !== cls)
+    isUserChange.current = true
+    onClassChange(mergeClasses(originalClasses.current, state, combinedPrefix, selectedElementTagName))
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault()
+      handleAdd()
+    }
+  }
+
+  return (
+    <EditSection icon={Code2} title="Custom classes" hasValues={unmanagedClasses.length > 0} onClear={() => {}}>
+      <div className="space-y-2">
+        {unmanagedClasses.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {unmanagedClasses.map((cls) => (
+              <Badge
+                key={cls}
+                variant="secondary"
+                className="gap-1 font-mono text-[10px]"
+              >
+                {cls}
+                <button
+                  type="button"
+                  className="ml-0.5 text-muted-foreground hover:text-destructive"
+                  onClick={() => handleRemove(cls)}
+                >
+                  <X className="size-2.5" />
+                </button>
+              </Badge>
+            ))}
+          </div>
+        )}
+        <div className="flex gap-1">
+          <input
+            type="text"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="e.g. has-[>img:first-child]:pt-0"
+            className="h-7 flex-1 rounded-md border bg-transparent px-2 font-mono text-[11px] placeholder:text-muted-foreground/50"
+          />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7 shrink-0"
+            onClick={handleAdd}
+            disabled={!inputValue.trim()}
+          >
+            <Plus className="size-3.5" />
+          </Button>
+        </div>
+      </div>
+    </EditSection>
+  )
 }
 
 /* ── Main component ──────────────────────────────────────────────── */
@@ -69,6 +184,7 @@ export function VisualEditor({
   parentClasses,
   parentTag,
   onContextsChange,
+  baseDisplay = "",
 }: VisualEditorProps) {
   const [contexts, setContexts] = React.useState<string[]>([])
 
@@ -112,6 +228,8 @@ export function VisualEditor({
     const classes = selectedElement?.currentClasses ?? []
     originalClasses.current = classes
     setState(classesToControlState(classes, combinedPrefix))
+
+    // baseDisplay is now a prop from the parent — no need to compute here
   }, [selectedElement, combinedPrefix])
 
   // Emit class changes only when user interacts with controls
@@ -164,6 +282,7 @@ export function VisualEditor({
   // Section key groups for hasValues / clear
   const SECTION_KEYS: Record<string, (keyof ControlState)[]> = React.useMemo(() => ({
     layout: [
+      "container", "containerName",
       "display", "direction", "justify", "align", "gap", "gapX", "gapY",
       "flexWrap", "alignContent", "gridCols", "gridRows", "gridFlow", "autoRows", "autoCols",
       "justifyItems",
@@ -231,10 +350,13 @@ export function VisualEditor({
     [SECTION_KEYS],
   )
 
+  // baseDisplay is passed as a prop from the parent, computed from the full
+  // unprefixed class list. This avoids stale/corrupted values from re-renders.
+
   if (!selectedElement) return null
 
   const nativeDisplay = getNativeDisplay(selectedElement.tagName)
-  const effectiveDisplay = state.display || nativeDisplay
+  const effectiveDisplay = state.display || baseDisplay || nativeDisplay
   const isFlex = effectiveDisplay === "flex" || effectiveDisplay === "inline-flex"
   const isGrid = effectiveDisplay === "grid" || effectiveDisplay === "inline-grid"
 
@@ -307,6 +429,7 @@ export function VisualEditor({
             isFlex={isFlex}
             isGrid={isGrid}
             selectedElementTagName={selectedElement.tagName}
+            selectedElementDataSlot={selectedElement.domElement?.dataset?.slot ?? undefined}
             isUserChange={isUserChange}
             setState={setState}
           />
@@ -376,6 +499,16 @@ export function VisualEditor({
             />
           </>
           )}
+
+          {/* ── Raw class input for unsupported modifiers ──── */}
+          <RawClassInput
+            originalClasses={originalClasses}
+            state={state}
+            combinedPrefix={combinedPrefix}
+            selectedElementTagName={selectedElement.tagName}
+            onClassChange={onClassChange}
+            isUserChange={isUserChange}
+          />
         </div>
         </TooltipProvider>
       </ScrollArea>

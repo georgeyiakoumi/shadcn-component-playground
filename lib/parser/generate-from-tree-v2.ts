@@ -474,6 +474,13 @@ function emitSelfClosingShell(sub: SubComponentV2, indent: number): string {
       .toLowerCase()
     conventionClasses.push(`group/${subKebab}`)
   }
+  if (sub.containerQuery) {
+    const subKebab = sub.name
+      .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+      .replace(/([A-Z])([A-Z][a-z])/g, "$1-$2")
+      .toLowerCase()
+    conventionClasses.push(`@container/${subKebab}`)
+  }
   if (sub.headingFont) {
     conventionClasses.push("cn-font-heading")
   }

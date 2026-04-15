@@ -819,7 +819,8 @@ export function UnifiedDashboard({
               const ownVariantContext = activeContexts.find((c) =>
                 c.startsWith("variant:"),
               )
-              let partClasses: string[] = getPartClasses(selectedPart)
+              const baseClasses: string[] = getPartClasses(selectedPart)
+              let partClasses: string[] = baseClasses
               if (ownVariantContext && isRoot) {
                 const parts = ownVariantContext.split(":")
                 const group = parts[1]
@@ -905,6 +906,9 @@ export function UnifiedDashboard({
                   props={[]}
                   subComponentNames={tree.subComponents.map((sc) => sc.name)}
                   onContextsChange={setActiveContexts}
+                  baseDisplay={
+                    baseClasses.find((c) => ["flex", "inline-flex", "grid", "inline-grid", "block", "inline", "inline-block", "hidden", "contents"].includes(c)) || ""
+                  }
                 />
               )
             })()

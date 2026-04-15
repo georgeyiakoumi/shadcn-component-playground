@@ -135,10 +135,22 @@ const SHADCN_SWATCH_MAP: Record<string, string> = {
   "border-sidebar-ring": "bg-sidebar-ring",
   // ring tokens
   "ring-ring": "bg-ring",
+  "ring-foreground": "bg-foreground",
   "ring-primary": "bg-primary",
+  "ring-primary-foreground": "bg-primary-foreground border",
   "ring-secondary": "bg-secondary",
+  "ring-secondary-foreground": "bg-secondary-foreground",
+  "ring-muted": "bg-muted",
+  "ring-muted-foreground": "bg-muted-foreground",
   "ring-accent": "bg-accent",
+  "ring-accent-foreground": "bg-accent-foreground",
   "ring-destructive": "bg-destructive",
+  "ring-destructive-foreground": "bg-destructive-foreground border",
+  "ring-border": "bg-border",
+  "ring-input": "bg-input",
+  "ring-background": "bg-background border",
+  "ring-card": "bg-card border",
+  "ring-card-foreground": "bg-card-foreground",
   "ring-sidebar-ring": "bg-sidebar-ring",
 }
 
@@ -440,24 +452,49 @@ function SteppedSlider({
 
 /* ── Linked control header (shared by Scale, Translate, Rotate, Skew) */
 
-import { Link2, Unlink2 } from "lucide-react"
+import { Link2, Unlink2, Maximize, Columns2 } from "lucide-react"
+
+type LinkMode = "linked" | "axis" | "independent"
 
 function LinkedControlHeader({
   label,
   value,
   linked,
+  mode,
   onToggleLink,
+  onModeChange,
   onClear,
 }: {
   label: string
-  /** Display value string, e.g. "105%" or "105%, 90%" */
   value: string
-  linked: boolean
-  onToggleLink: () => void
-  /** Called when clear button is clicked — clears all values */
+  /** @deprecated Use mode instead */
+  linked?: boolean
+  mode?: LinkMode
+  /** @deprecated Use onModeChange instead */
+  onToggleLink?: () => void
+  onModeChange?: (mode: LinkMode) => void
   onClear?: () => void
 }) {
+  // Backwards compat: derive mode from linked if mode not provided
+  const effectiveMode: LinkMode = mode ?? (linked ? "linked" : "independent")
+  const hasAxis = !!onModeChange
   const hasValue = value.length > 0
+
+  const handleModeClick = (target: LinkMode) => {
+    if (onModeChange) {
+      onModeChange(target)
+    } else if (onToggleLink) {
+      onToggleLink()
+    }
+  }
+
+  const btnClass = (active: boolean) =>
+    cn(
+      "inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors",
+      active
+        ? "bg-muted text-foreground"
+        : "text-muted-foreground hover:bg-muted hover:text-foreground",
+    )
 
   return (
     <div className="flex items-center gap-1">
@@ -473,19 +510,29 @@ function LinkedControlHeader({
       <div className="flex gap-0.5">
         <Tooltip>
           <TooltipTrigger asChild>
-            <button type="button" className={cn("inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors", linked ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground")} onClick={onToggleLink}>
-              <Link2 className="size-3.5" />
+            <button type="button" className={btnClass(effectiveMode === "linked")} onClick={() => handleModeClick("linked")}>
+              <Maximize className="size-3.5" />
             </button>
           </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-xs">Linked</TooltipContent>
+          <TooltipContent side="bottom" className="text-xs">All sides</TooltipContent>
         </Tooltip>
+        {hasAxis && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button type="button" className={btnClass(effectiveMode === "axis")} onClick={() => handleModeClick("axis")}>
+                <Link2 className="size-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">X / Y axis</TooltipContent>
+          </Tooltip>
+        )}
         <Tooltip>
           <TooltipTrigger asChild>
-            <button type="button" className={cn("inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors", !linked ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground")} onClick={onToggleLink}>
+            <button type="button" className={btnClass(effectiveMode === "independent")} onClick={() => handleModeClick("independent")}>
               <Unlink2 className="size-3.5" />
             </button>
           </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-xs">Independent</TooltipContent>
+          <TooltipContent side="bottom" className="text-xs">Per side</TooltipContent>
         </Tooltip>
       </div>
     </div>
@@ -528,43 +575,101 @@ function SideIcon({ side, className }: { side: "top" | "right" | "bottom" | "lef
   )
 }
 
+function AxisIcon({ axis, className }: { axis: "x" | "y"; className?: string }) {
+  return (
+    <svg className={cn("size-4 shrink-0", className)} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <rect x="2" y="2" width="12" height="12" rx="1" opacity="0.3" />
+      {axis === "x" && (
+        <>
+          <line x1="2" y1="2" x2="2" y2="14" strokeWidth="3" strokeLinecap="round" />
+          <line x1="14" y1="2" x2="14" y2="14" strokeWidth="3" strokeLinecap="round" />
+        </>
+      )}
+      {axis === "y" && (
+        <>
+          <line x1="2" y1="2" x2="14" y2="2" strokeWidth="3" strokeLinecap="round" />
+          <line x1="2" y1="14" x2="14" y2="14" strokeWidth="3" strokeLinecap="round" />
+        </>
+      )}
+    </svg>
+  )
+}
+
 /* ── Border radius control with link/unlink ──────────────────────── */
 
 function BorderRadiusControl({
-  radius, radiusTL, radiusTR, radiusBR, radiusBL,
-  onRadiusChange, onRadiusTLChange, onRadiusTRChange, onRadiusBRChange, onRadiusBLChange,
+  radius, radiusT, radiusR, radiusB, radiusL, radiusTL, radiusTR, radiusBR, radiusBL,
+  onRadiusChange, onRadiusTChange, onRadiusRChange, onRadiusBChange, onRadiusLChange, onRadiusTLChange, onRadiusTRChange, onRadiusBRChange, onRadiusBLChange,
 }: {
-  radius: string; radiusTL: string; radiusTR: string; radiusBR: string; radiusBL: string
-  onRadiusChange: (v: string) => void; onRadiusTLChange: (v: string) => void; onRadiusTRChange: (v: string) => void; onRadiusBRChange: (v: string) => void; onRadiusBLChange: (v: string) => void
+  radius: string; radiusT: string; radiusR: string; radiusB: string; radiusL: string; radiusTL: string; radiusTR: string; radiusBR: string; radiusBL: string
+  onRadiusChange: (v: string) => void; onRadiusTChange: (v: string) => void; onRadiusRChange: (v: string) => void; onRadiusBChange: (v: string) => void; onRadiusLChange: (v: string) => void; onRadiusTLChange: (v: string) => void; onRadiusTRChange: (v: string) => void; onRadiusBRChange: (v: string) => void; onRadiusBLChange: (v: string) => void
 }) {
-  const [linked, setLinked] = React.useState(!radiusTL && !radiusTR && !radiusBR && !radiusBL)
+  const initialMode: LinkMode = (radiusT || radiusR || radiusB || radiusL)
+    ? "axis"
+    : (radiusTL || radiusTR || radiusBR || radiusBL)
+      ? "independent"
+      : "linked"
+  const [mode, setMode] = React.useState<LinkMode>(initialMode)
   const radiusValues = ["none", "sm", "md", "lg", "xl", "2xl", "full"] as const
 
-  const handleToggleLink = () => {
-    if (!linked) {
+  const clearAll = () => {
+    onRadiusChange(""); onRadiusTChange(""); onRadiusRChange(""); onRadiusBChange(""); onRadiusLChange("")
+    onRadiusTLChange(""); onRadiusTRChange(""); onRadiusBRChange(""); onRadiusBLChange("")
+  }
+
+  const handleModeChange = (newMode: LinkMode) => {
+    if (newMode === "linked") {
+      onRadiusTChange(""); onRadiusRChange(""); onRadiusBChange(""); onRadiusLChange("")
       onRadiusTLChange(""); onRadiusTRChange(""); onRadiusBRChange(""); onRadiusBLChange("")
-      setLinked(true)
+    } else if (newMode === "axis") {
+      onRadiusChange("")
+      onRadiusTLChange(""); onRadiusTRChange(""); onRadiusBRChange(""); onRadiusBLChange("")
     } else {
-      setLinked(false)
+      onRadiusChange("")
+      onRadiusTChange(""); onRadiusRChange(""); onRadiusBChange(""); onRadiusLChange("")
     }
+    setMode(newMode)
   }
 
   const getVal = (v: string, pfx: string) => v ? v.replace(`${pfx}-`, "") : ""
-  const headerValue = linked
+  const headerValue = mode === "linked"
     ? getVal(radius, "rounded")
-    : [radiusTL ? `TL:${getVal(radiusTL, "rounded-tl")}` : null, radiusTR ? `TR:${getVal(radiusTR, "rounded-tr")}` : null, radiusBR ? `BR:${getVal(radiusBR, "rounded-br")}` : null, radiusBL ? `BL:${getVal(radiusBL, "rounded-bl")}` : null].filter(Boolean).join(", ")
+    : mode === "axis"
+      ? [radiusT ? `T:${getVal(radiusT, "rounded-t")}` : null, radiusR ? `R:${getVal(radiusR, "rounded-r")}` : null, radiusB ? `B:${getVal(radiusB, "rounded-b")}` : null, radiusL ? `L:${getVal(radiusL, "rounded-l")}` : null].filter(Boolean).join(", ")
+      : [radiusTL ? `TL:${getVal(radiusTL, "rounded-tl")}` : null, radiusTR ? `TR:${getVal(radiusTR, "rounded-tr")}` : null, radiusBR ? `BR:${getVal(radiusBR, "rounded-br")}` : null, radiusBL ? `BL:${getVal(radiusBL, "rounded-bl")}` : null].filter(Boolean).join(", ")
 
   return (
     <div className="space-y-2">
       <LinkedControlHeader
         label="Radius"
         value={headerValue}
-        linked={linked}
-        onToggleLink={handleToggleLink}
-        onClear={() => { onRadiusChange(""); onRadiusTLChange(""); onRadiusTRChange(""); onRadiusBRChange(""); onRadiusBLChange("") }}
+        mode={mode}
+        onModeChange={handleModeChange}
+        onClear={clearAll}
       />
-      {linked ? (
+      {mode === "linked" ? (
         <SteppedSlider label="Radius" values={radiusValues} prefix="rounded" value={radius} onChange={onRadiusChange} hideLabel />
+      ) : mode === "axis" ? (
+        <>
+          {([
+            { side: "top" as const, key: radiusT, prefix: "rounded-t", onChange: onRadiusTChange },
+            { side: "right" as const, key: radiusR, prefix: "rounded-r", onChange: onRadiusRChange },
+            { side: "bottom" as const, key: radiusB, prefix: "rounded-b", onChange: onRadiusBChange },
+            { side: "left" as const, key: radiusL, prefix: "rounded-l", onChange: onRadiusLChange },
+          ]).map(({ side, key, prefix, onChange: onSideChange }) => (
+            <div key={side} className="flex items-center gap-1.5">
+              <SideIcon side={side} />
+              <Slider
+                className="flex-1"
+                value={[Math.max(0, key ? radiusValues.indexOf(key.replace(`${prefix}-`, "") as typeof radiusValues[number]) : -1)]}
+                min={0}
+                max={radiusValues.length - 1}
+                step={1}
+                onValueChange={([idx]) => onSideChange(`${prefix}-${radiusValues[idx]}`)}
+              />
+            </div>
+          ))}
+        </>
       ) : (
         <>
           {([
@@ -670,55 +775,75 @@ const SPACING_VALUES_FULL = [
 ] as const
 
 function PaddingControl({
-  padding, paddingTop, paddingRight, paddingBottom, paddingLeft,
-  onPaddingChange, onPaddingTopChange, onPaddingRightChange, onPaddingBottomChange, onPaddingLeftChange,
+  padding, paddingX, paddingY, paddingTop, paddingRight, paddingBottom, paddingLeft,
+  onPaddingChange, onPaddingXChange, onPaddingYChange, onPaddingTopChange, onPaddingRightChange, onPaddingBottomChange, onPaddingLeftChange,
 }: {
   padding: string
+  paddingX: string
+  paddingY: string
   paddingTop: string
   paddingRight: string
   paddingBottom: string
   paddingLeft: string
   onPaddingChange: (v: string) => void
+  onPaddingXChange: (v: string) => void
+  onPaddingYChange: (v: string) => void
   onPaddingTopChange: (v: string) => void
   onPaddingRightChange: (v: string) => void
   onPaddingBottomChange: (v: string) => void
   onPaddingLeftChange: (v: string) => void
 }) {
-  const [linked, setLinked] = React.useState(!paddingTop && !paddingRight && !paddingBottom && !paddingLeft)
+  const initialMode: LinkMode = (paddingX || paddingY)
+    ? "axis"
+    : (paddingTop || paddingRight || paddingBottom || paddingLeft)
+      ? "independent"
+      : "linked"
+  const [mode, setMode] = React.useState<LinkMode>(initialMode)
 
-  const handleToggleLink = () => {
-    if (!linked) {
-      // Linking → clear per-side, keep 'all'
+  const handleModeChange = (newMode: LinkMode) => {
+    // Clear values from the mode we're leaving
+    if (newMode === "linked") {
+      onPaddingXChange(""); onPaddingYChange("")
       onPaddingTopChange(""); onPaddingRightChange(""); onPaddingBottomChange(""); onPaddingLeftChange("")
-      setLinked(true)
+    } else if (newMode === "axis") {
+      onPaddingChange("")
+      onPaddingTopChange(""); onPaddingRightChange(""); onPaddingBottomChange(""); onPaddingLeftChange("")
     } else {
-      setLinked(false)
+      onPaddingChange("")
+      onPaddingXChange(""); onPaddingYChange("")
     }
+    setMode(newMode)
   }
 
   const parseVal = (v: string, pfx: string) => v ? v.replace(`${pfx}-`, "") : ""
-  const headerValue = linked
+  const headerValue = mode === "linked"
     ? parseVal(padding, "p")
-    : [
-        paddingTop ? `T:${parseVal(paddingTop, "pt")}` : null,
-        paddingRight ? `R:${parseVal(paddingRight, "pr")}` : null,
-        paddingBottom ? `B:${parseVal(paddingBottom, "pb")}` : null,
-        paddingLeft ? `L:${parseVal(paddingLeft, "pl")}` : null,
-      ].filter(Boolean).join(", ")
+    : mode === "axis"
+      ? [
+          paddingX ? `X:${parseVal(paddingX, "px")}` : null,
+          paddingY ? `Y:${parseVal(paddingY, "py")}` : null,
+        ].filter(Boolean).join(", ")
+      : [
+          paddingTop ? `T:${parseVal(paddingTop, "pt")}` : null,
+          paddingRight ? `R:${parseVal(paddingRight, "pr")}` : null,
+          paddingBottom ? `B:${parseVal(paddingBottom, "pb")}` : null,
+          paddingLeft ? `L:${parseVal(paddingLeft, "pl")}` : null,
+        ].filter(Boolean).join(", ")
 
   return (
     <div className="space-y-2">
       <LinkedControlHeader
         label="Padding"
         value={headerValue}
-        linked={linked}
-        onToggleLink={handleToggleLink}
+        mode={mode}
+        onModeChange={handleModeChange}
         onClear={() => {
           onPaddingChange("")
+          onPaddingXChange(""); onPaddingYChange("")
           onPaddingTopChange(""); onPaddingRightChange(""); onPaddingBottomChange(""); onPaddingLeftChange("")
         }}
       />
-      {linked ? (
+      {mode === "linked" ? (
         <SteppedSlider
           label=""
           hideLabel
@@ -727,6 +852,21 @@ function PaddingControl({
           value={padding}
           onChange={onPaddingChange}
         />
+      ) : mode === "axis" ? (
+        <>
+          <div className="flex items-center gap-1.5">
+            <AxisIcon axis="x" />
+            <div className="flex-1">
+              <SteppedSlider label="" hideLabel values={SPACING_VALUES_FULL} prefix="px" value={paddingX} onChange={onPaddingXChange} />
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <AxisIcon axis="y" />
+            <div className="flex-1">
+              <SteppedSlider label="" hideLabel values={SPACING_VALUES_FULL} prefix="py" value={paddingY} onChange={onPaddingYChange} />
+            </div>
+          </div>
+        </>
       ) : (
         <>
           {([
@@ -758,29 +898,43 @@ function PaddingControl({
 /* ── Margin control with link/unlink ─────────────────────────────── */
 
 function MarginControl({
-  margin, marginTop, marginRight, marginBottom, marginLeft,
-  onMarginChange, onMarginTopChange, onMarginRightChange, onMarginBottomChange, onMarginLeftChange,
+  margin, marginX, marginY, marginTop, marginRight, marginBottom, marginLeft,
+  onMarginChange, onMarginXChange, onMarginYChange, onMarginTopChange, onMarginRightChange, onMarginBottomChange, onMarginLeftChange,
 }: {
   margin: string
+  marginX: string
+  marginY: string
   marginTop: string
   marginRight: string
   marginBottom: string
   marginLeft: string
   onMarginChange: (v: string) => void
+  onMarginXChange: (v: string) => void
+  onMarginYChange: (v: string) => void
   onMarginTopChange: (v: string) => void
   onMarginRightChange: (v: string) => void
   onMarginBottomChange: (v: string) => void
   onMarginLeftChange: (v: string) => void
 }) {
-  const [linked, setLinked] = React.useState(!marginTop && !marginRight && !marginBottom && !marginLeft)
+  const initialMode: LinkMode = (marginX || marginY)
+    ? "axis"
+    : (marginTop || marginRight || marginBottom || marginLeft)
+      ? "independent"
+      : "linked"
+  const [mode, setMode] = React.useState<LinkMode>(initialMode)
 
-  const handleToggleLink = () => {
-    if (!linked) {
+  const handleModeChange = (newMode: LinkMode) => {
+    if (newMode === "linked") {
+      onMarginXChange(""); onMarginYChange("")
       onMarginTopChange(""); onMarginRightChange(""); onMarginBottomChange(""); onMarginLeftChange("")
-      setLinked(true)
+    } else if (newMode === "axis") {
+      onMarginChange("")
+      onMarginTopChange(""); onMarginRightChange(""); onMarginBottomChange(""); onMarginLeftChange("")
     } else {
-      setLinked(false)
+      onMarginChange("")
+      onMarginXChange(""); onMarginYChange("")
     }
+    setMode(newMode)
   }
 
   const parseVal = (v: string, pfx: string) => {
@@ -790,29 +944,50 @@ function MarginControl({
     const raw = core.replace(`${pfx}-`, "")
     return neg ? `-${raw}` : raw
   }
-  const headerValue = linked
+  const headerValue = mode === "linked"
     ? parseVal(margin, "m")
-    : [
-        marginTop ? `T:${parseVal(marginTop, "mt")}` : null,
-        marginRight ? `R:${parseVal(marginRight, "mr")}` : null,
-        marginBottom ? `B:${parseVal(marginBottom, "mb")}` : null,
-        marginLeft ? `L:${parseVal(marginLeft, "ml")}` : null,
-      ].filter(Boolean).join(", ")
+    : mode === "axis"
+      ? [
+          marginX ? `X:${parseVal(marginX, "mx")}` : null,
+          marginY ? `Y:${parseVal(marginY, "my")}` : null,
+        ].filter(Boolean).join(", ")
+      : [
+          marginTop ? `T:${parseVal(marginTop, "mt")}` : null,
+          marginRight ? `R:${parseVal(marginRight, "mr")}` : null,
+          marginBottom ? `B:${parseVal(marginBottom, "mb")}` : null,
+          marginLeft ? `L:${parseVal(marginLeft, "ml")}` : null,
+        ].filter(Boolean).join(", ")
 
   return (
     <div className="space-y-2">
       <LinkedControlHeader
         label="Margin"
         value={headerValue}
-        linked={linked}
-        onToggleLink={handleToggleLink}
+        mode={mode}
+        onModeChange={handleModeChange}
         onClear={() => {
           onMarginChange("")
+          onMarginXChange(""); onMarginYChange("")
           onMarginTopChange(""); onMarginRightChange(""); onMarginBottomChange(""); onMarginLeftChange("")
         }}
       />
-      {linked ? (
+      {mode === "linked" ? (
         <MarginAxisSlider prefix="m" value={margin} onChange={onMarginChange} />
+      ) : mode === "axis" ? (
+        <>
+          <div className="flex items-center gap-1.5">
+            <AxisIcon axis="x" />
+            <div className="flex-1">
+              <MarginAxisSlider prefix="mx" value={marginX} onChange={onMarginXChange} />
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <AxisIcon axis="y" />
+            <div className="flex-1">
+              <MarginAxisSlider prefix="my" value={marginY} onChange={onMarginYChange} />
+            </div>
+          </div>
+        </>
       ) : (
         <>
           {([

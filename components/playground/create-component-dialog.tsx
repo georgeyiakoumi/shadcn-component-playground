@@ -15,15 +15,12 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  BaseElementSelect,
+  ConventionToggles,
+} from "@/components/playground/shared-form-controls"
 import { toPascalCase } from "@/lib/code-generator"
 import { generateFromTreeV2 } from "@/lib/parser/generate-from-tree-v2"
 import { createV2TreeFromScratch } from "@/lib/component-tree-v2-factories"
@@ -39,20 +36,6 @@ import {
   InlineVariantsSection,
 } from "@/components/playground/prop-variant-controls"
 
-/* ── Constants ──────────────────────────────────────────────────── */
-
-const BASE_ELEMENTS = [
-  { value: "div", label: "div", description: "Generic container" },
-  { value: "button", label: "button", description: "Clickable action" },
-  { value: "input", label: "input", description: "Text input" },
-  { value: "a", label: "a", description: "Anchor / link" },
-  { value: "span", label: "span", description: "Inline container" },
-  { value: "form", label: "form", description: "Form wrapper" },
-  { value: "textarea", label: "textarea", description: "Multi-line input" },
-  { value: "select", label: "select", description: "Dropdown select" },
-  { value: "img", label: "img", description: "Image element" },
-] as const
-
 /* ── Component ─────────────────────────────────────────────────── */
 
 export function CreateComponentDialog({
@@ -67,6 +50,9 @@ export function CreateComponentDialog({
   const [baseElement, setBaseElement] = React.useState("div")
   const [props, setProps] = React.useState<ComponentProp[]>([])
   const [variants, setVariants] = React.useState<CustomVariantDef[]>([])
+  const [namedGroup, setNamedGroup] = React.useState(false)
+  const [containerQuery, setContainerQuery] = React.useState(false)
+  const [headingFont, setHeadingFont] = React.useState(false)
 
   const pascalName = React.useMemo(() => {
     if (!name.trim()) return ""
@@ -80,6 +66,9 @@ export function CreateComponentDialog({
     setBaseElement("div")
     setProps([])
     setVariants([])
+    setNamedGroup(false)
+    setContainerQuery(false)
+    setHeadingFont(false)
   }
 
   function handleCreate() {
@@ -90,6 +79,11 @@ export function CreateComponentDialog({
     const now = new Date().toISOString()
 
     const treeV2 = createV2TreeFromScratch(componentName, baseElement, props, variants)
+    if (treeV2.subComponents[0]) {
+      treeV2.subComponents[0].namedGroup = namedGroup || undefined
+      treeV2.subComponents[0].containerQuery = containerQuery || undefined
+      treeV2.subComponents[0].headingFont = headingFont || undefined
+    }
     const source = generateFromTreeV2(treeV2)
 
     const component: UserComponent = {
@@ -180,24 +174,21 @@ export function CreateComponentDialog({
               <Label htmlFor="base-element" className="text-sm font-medium">
                 Base HTML element
               </Label>
-              <Select value={baseElement} onValueChange={setBaseElement}>
-                <SelectTrigger id="base-element" className="h-10 w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {BASE_ELEMENTS.map((el) => (
-                    <SelectItem key={el.value} value={el.value}>
-                      <span className="font-mono text-xs">
-                        &lt;{el.label}&gt;
-                      </span>
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        {el.description}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <BaseElementSelect
+                value={baseElement}
+                onValueChange={setBaseElement}
+              />
             </div>
+
+            <ConventionToggles
+              name={pascalName}
+              namedGroup={namedGroup}
+              onNamedGroupChange={setNamedGroup}
+              containerQuery={containerQuery}
+              onContainerQueryChange={setContainerQuery}
+              headingFont={headingFont}
+              onHeadingFontChange={setHeadingFont}
+            />
           </TabsContent>
 
           {/* ── Props ──────────────────────────────────────────── */}
