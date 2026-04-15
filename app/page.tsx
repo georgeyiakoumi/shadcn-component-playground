@@ -36,7 +36,7 @@ function Hero() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-medium tracking-tight sm:text-4xl lg:text-4xl">
-        Component lab
+        Component Lab
       </h1>
       <p className="max-w-md text-base text-muted-foreground sm:text-lg lg:text-xl">
         The visual workspace for shadcn/ui. Explore components, build
