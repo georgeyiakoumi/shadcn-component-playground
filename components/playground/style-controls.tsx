@@ -598,40 +598,78 @@ function AxisIcon({ axis, className }: { axis: "x" | "y"; className?: string }) 
 /* ── Border radius control with link/unlink ──────────────────────── */
 
 function BorderRadiusControl({
-  radius, radiusTL, radiusTR, radiusBR, radiusBL,
-  onRadiusChange, onRadiusTLChange, onRadiusTRChange, onRadiusBRChange, onRadiusBLChange,
+  radius, radiusT, radiusR, radiusB, radiusL, radiusTL, radiusTR, radiusBR, radiusBL,
+  onRadiusChange, onRadiusTChange, onRadiusRChange, onRadiusBChange, onRadiusLChange, onRadiusTLChange, onRadiusTRChange, onRadiusBRChange, onRadiusBLChange,
 }: {
-  radius: string; radiusTL: string; radiusTR: string; radiusBR: string; radiusBL: string
-  onRadiusChange: (v: string) => void; onRadiusTLChange: (v: string) => void; onRadiusTRChange: (v: string) => void; onRadiusBRChange: (v: string) => void; onRadiusBLChange: (v: string) => void
+  radius: string; radiusT: string; radiusR: string; radiusB: string; radiusL: string; radiusTL: string; radiusTR: string; radiusBR: string; radiusBL: string
+  onRadiusChange: (v: string) => void; onRadiusTChange: (v: string) => void; onRadiusRChange: (v: string) => void; onRadiusBChange: (v: string) => void; onRadiusLChange: (v: string) => void; onRadiusTLChange: (v: string) => void; onRadiusTRChange: (v: string) => void; onRadiusBRChange: (v: string) => void; onRadiusBLChange: (v: string) => void
 }) {
-  const [linked, setLinked] = React.useState(!radiusTL && !radiusTR && !radiusBR && !radiusBL)
+  const initialMode: LinkMode = (radiusT || radiusR || radiusB || radiusL)
+    ? "axis"
+    : (radiusTL || radiusTR || radiusBR || radiusBL)
+      ? "independent"
+      : "linked"
+  const [mode, setMode] = React.useState<LinkMode>(initialMode)
   const radiusValues = ["none", "sm", "md", "lg", "xl", "2xl", "full"] as const
 
-  const handleToggleLink = () => {
-    if (!linked) {
+  const clearAll = () => {
+    onRadiusChange(""); onRadiusTChange(""); onRadiusRChange(""); onRadiusBChange(""); onRadiusLChange("")
+    onRadiusTLChange(""); onRadiusTRChange(""); onRadiusBRChange(""); onRadiusBLChange("")
+  }
+
+  const handleModeChange = (newMode: LinkMode) => {
+    if (newMode === "linked") {
+      onRadiusTChange(""); onRadiusRChange(""); onRadiusBChange(""); onRadiusLChange("")
       onRadiusTLChange(""); onRadiusTRChange(""); onRadiusBRChange(""); onRadiusBLChange("")
-      setLinked(true)
+    } else if (newMode === "axis") {
+      onRadiusChange("")
+      onRadiusTLChange(""); onRadiusTRChange(""); onRadiusBRChange(""); onRadiusBLChange("")
     } else {
-      setLinked(false)
+      onRadiusChange("")
+      onRadiusTChange(""); onRadiusRChange(""); onRadiusBChange(""); onRadiusLChange("")
     }
+    setMode(newMode)
   }
 
   const getVal = (v: string, pfx: string) => v ? v.replace(`${pfx}-`, "") : ""
-  const headerValue = linked
+  const headerValue = mode === "linked"
     ? getVal(radius, "rounded")
-    : [radiusTL ? `TL:${getVal(radiusTL, "rounded-tl")}` : null, radiusTR ? `TR:${getVal(radiusTR, "rounded-tr")}` : null, radiusBR ? `BR:${getVal(radiusBR, "rounded-br")}` : null, radiusBL ? `BL:${getVal(radiusBL, "rounded-bl")}` : null].filter(Boolean).join(", ")
+    : mode === "axis"
+      ? [radiusT ? `T:${getVal(radiusT, "rounded-t")}` : null, radiusR ? `R:${getVal(radiusR, "rounded-r")}` : null, radiusB ? `B:${getVal(radiusB, "rounded-b")}` : null, radiusL ? `L:${getVal(radiusL, "rounded-l")}` : null].filter(Boolean).join(", ")
+      : [radiusTL ? `TL:${getVal(radiusTL, "rounded-tl")}` : null, radiusTR ? `TR:${getVal(radiusTR, "rounded-tr")}` : null, radiusBR ? `BR:${getVal(radiusBR, "rounded-br")}` : null, radiusBL ? `BL:${getVal(radiusBL, "rounded-bl")}` : null].filter(Boolean).join(", ")
 
   return (
     <div className="space-y-2">
       <LinkedControlHeader
         label="Radius"
         value={headerValue}
-        linked={linked}
-        onToggleLink={handleToggleLink}
-        onClear={() => { onRadiusChange(""); onRadiusTLChange(""); onRadiusTRChange(""); onRadiusBRChange(""); onRadiusBLChange("") }}
+        mode={mode}
+        onModeChange={handleModeChange}
+        onClear={clearAll}
       />
-      {linked ? (
+      {mode === "linked" ? (
         <SteppedSlider label="Radius" values={radiusValues} prefix="rounded" value={radius} onChange={onRadiusChange} hideLabel />
+      ) : mode === "axis" ? (
+        <>
+          {([
+            { side: "top" as const, key: radiusT, prefix: "rounded-t", onChange: onRadiusTChange },
+            { side: "right" as const, key: radiusR, prefix: "rounded-r", onChange: onRadiusRChange },
+            { side: "bottom" as const, key: radiusB, prefix: "rounded-b", onChange: onRadiusBChange },
+            { side: "left" as const, key: radiusL, prefix: "rounded-l", onChange: onRadiusLChange },
+          ]).map(({ side, key, prefix, onChange: onSideChange }) => (
+            <div key={side} className="flex items-center gap-1.5">
+              <SideIcon side={side} />
+              <Slider
+                className="flex-1"
+                value={[Math.max(0, key ? radiusValues.indexOf(key.replace(`${prefix}-`, "") as typeof radiusValues[number]) : -1)]}
+                min={0}
+                max={radiusValues.length - 1}
+                step={1}
+                onValueChange={([idx]) => onSideChange(`${prefix}-${radiusValues[idx]}`)}
+              />
+            </div>
+          ))}
+        </>
       ) : (
         <>
           {([

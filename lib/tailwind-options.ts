@@ -495,6 +495,7 @@ export const BORDER_RADIUS_OPTIONS = [
   "rounded-md",
   "rounded-lg",
   "rounded-xl",
+  "rounded-2xl",
   "rounded-full",
 ]
 export const BORDER_WIDTH_OPTIONS = ["border-0", "border", "border-2", "border-4", "border-8"]
@@ -503,6 +504,10 @@ export const BORDER_WIDTH_R_OPTIONS = ["border-r-0", "border-r", "border-r-2", "
 export const BORDER_WIDTH_B_OPTIONS = ["border-b-0", "border-b", "border-b-2", "border-b-4", "border-b-8"]
 export const BORDER_WIDTH_L_OPTIONS = ["border-l-0", "border-l", "border-l-2", "border-l-4", "border-l-8"]
 export const BORDER_STYLE_OPTIONS = ["border-solid", "border-dashed", "border-dotted", "border-double", "border-hidden", "border-none"]
+export const BORDER_RADIUS_T_OPTIONS = ["rounded-t-none", "rounded-t-sm", "rounded-t-md", "rounded-t-lg", "rounded-t-xl", "rounded-t-2xl", "rounded-t-full"]
+export const BORDER_RADIUS_R_OPTIONS = ["rounded-r-none", "rounded-r-sm", "rounded-r-md", "rounded-r-lg", "rounded-r-xl", "rounded-r-2xl", "rounded-r-full"]
+export const BORDER_RADIUS_B_OPTIONS = ["rounded-b-none", "rounded-b-sm", "rounded-b-md", "rounded-b-lg", "rounded-b-xl", "rounded-b-2xl", "rounded-b-full"]
+export const BORDER_RADIUS_L_OPTIONS = ["rounded-l-none", "rounded-l-sm", "rounded-l-md", "rounded-l-lg", "rounded-l-xl", "rounded-l-2xl", "rounded-l-full"]
 export const BORDER_RADIUS_TL_OPTIONS = ["rounded-tl-none", "rounded-tl-sm", "rounded-tl-md", "rounded-tl-lg", "rounded-tl-xl", "rounded-tl-2xl", "rounded-tl-full"]
 export const BORDER_RADIUS_TR_OPTIONS = ["rounded-tr-none", "rounded-tr-sm", "rounded-tr-md", "rounded-tr-lg", "rounded-tr-xl", "rounded-tr-2xl", "rounded-tr-full"]
 export const BORDER_RADIUS_BR_OPTIONS = ["rounded-br-none", "rounded-br-sm", "rounded-br-md", "rounded-br-lg", "rounded-br-xl", "rounded-br-2xl", "rounded-br-full"]

@@ -33,11 +33,19 @@ export function BordersSection({
           <EditSubSectionContent>
             <BorderRadiusControl
               radius={state.borderRadius}
+              radiusT={state.borderRadiusT}
+              radiusR={state.borderRadiusR}
+              radiusB={state.borderRadiusB}
+              radiusL={state.borderRadiusL}
               radiusTL={state.borderRadiusTL}
               radiusTR={state.borderRadiusTR}
               radiusBR={state.borderRadiusBR}
               radiusBL={state.borderRadiusBL}
               onRadiusChange={(v) => update("borderRadius", v)}
+              onRadiusTChange={(v) => update("borderRadiusT", v)}
+              onRadiusRChange={(v) => update("borderRadiusR", v)}
+              onRadiusBChange={(v) => update("borderRadiusB", v)}
+              onRadiusLChange={(v) => update("borderRadiusL", v)}
               onRadiusTLChange={(v) => update("borderRadiusTL", v)}
               onRadiusTRChange={(v) => update("borderRadiusTR", v)}
               onRadiusBRChange={(v) => update("borderRadiusBR", v)}
